@@ -882,10 +882,114 @@ dynamic memory allocation of 2d arrays
     delete[] ptr;
 
 constructor
-  
+  use member initialization list
+    because they initialize members directly and not assign later
+
+    ```
+      class Move {
+        int from, to;
+
+        Move(int f, int t) : from(f), to(t) {}
+      };
+    ```
+    the difference is 
+      without initializer list
+        1. default initialize member
+        2. assign new value
+
+      with initializer list
+        1. initialize member with given value
+
+    initializer list is MANDATORY for const and reference variables which must be bound at creation
+    ```
+      class A {
+        const int x;
+        int& y;
+        A (int val, int& value) : x(val), y(value) {} 
+      };
+    ```
+  copy constructor example
+    if you don't write one, compiler generates one for you (shallow copy)
+    ```
+      class Move {
+        int to, from;
+        
+        Move(int x, int y) : to(x), from(y) {}
+
+        // copy constructor
+        Move (const Move& other) { 
+          to = other.to;
+          from = other.from;
+        }
+      }
+    ```
+    so we can use 
+    `Move a(1, 2); Move b = a;`
+
+  explicit constructors // explained in initialization
+    basically prevent implicit conversion, and kinda force list or direct initialization and dont 
+    allow copy assignment
+    syntax
+      ```
+        class A { public: explicit A() {} };
+      ```
+    
+  constructor call order
+    1. base constructor
+    2. member constructor
+    3. derived constructor
+
+  note: some of the useful info is also in initialization section
 
 destructors
-const initialization list
+  destruction order is inverse of creation order
+  so like 
+    {
+      int x;
+      int y;
+    } // first y then x
+
+    class A {
+      int x;
+      int y;
+    };
+    // first y then x
+
+    int arr[2];
+    // first arr[1] then arr[0]
+
+    class Base ...
+    class Derived : Base ...
+    {
+      Derived d;
+    } // first destructor of derived called then base
+
+  virtual destructor
+    problem during virtual polymorphism
+    ```
+      class Base {
+        public:
+        ~Base() { std::cout << "Base bye bye"; }
+      };
+
+      class Derived : public Base {
+        public:
+        ~Derived() { std::cout << "Derived bye bye"; }
+      };
+
+      Base* b = new Derived();
+      delete b;
+    ```
+    output -> Base bye bye, derived destructor is NOT CALLED, potential memory leak
+
+    fix - virtual destructor
+    ```
+      class Base {
+        virtual ~Base() { std::cout "Base bye bye"; } 
+      };
+    ```
+    now output -> Derived bye bye Base bye bye
+  
 assert
 static
 override
