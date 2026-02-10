@@ -991,27 +991,477 @@ destructors
     now output -> Derived bye bye Base bye bye
   
 assert
+  it is a debugging tool that checks if a condition is true while the program runs
+  if the condition is false, the program is terminated
+
+  ```
+  #include <cassert>
+  assert(condition);
+  ```
+
+  assertions only exist in debug builds, if `NDEBUG` is defined, asserts are removed 
+  in release builds, asserts are ignored 
+
+  compiler flags
+    debug
+      g++ -g main.cpp -o debug 
+  
+    release build
+      g++ -DNDEBUG -O2 main.cpp -o release
+
+  use asserts to catch errors that are not runtime dependent for release builds
+
+  examples to use
+    ptrs
+      assert(ptr != nullptr)
+
+    bound checks
+      assert(index >= 0 && index < 64)
+
+    engine move
+      assert(validMove())
+      if fails, means move generation has a bug
+
+  dont use for runtime failurse
+    like assert(fileopened) these shouldn't be done using assert
+
+  to display custom message
+
+  assert(condition && "custom message")
+    if assert fails, message is print
+
 static
-override
-virtual
+  static local variables inside functions
+    ```
+      void foo() {
+        static int x = 0;
+        x++;
+        std::cout << x;
+      }
+      foo(); foo(); ...
+    ```
+    output -> 12345...
+
+    because static makes the variable
+      > created once
+      > stored in static memory (not stack)
+
+      lifetime vs scope
+        scope -> local to the function
+        lifetime -> entirety of the program 
+  
+  static global variable 
+    here static makes the variable have only internal linkage
+    i.e the variable is only visible inside that .cpp file and not from other .cpp files
+
+    without static, the variable would have external linkage -> visible from other files
+
+  static class members
+    belong to the class not the objects
+    defined outside of the class
+
+    ```
+      class A {
+        static int x;
+      };
+      int A::x = 0;
+    ```
+
+  static class methods
+    belong to the class, not the objects thus can only use static members
+    ```
+      class A {
+        static int add(int a, int b) {
+          return a + b;
+        }
+      };
+    ```
+
+
+runtime polymorphism
+  Base* ptr = new Derived();
+
+  1. need inheritence
+  2. need virtual and override (if you access non virtual, it will always go to base and not derived)
+  3. need virtual destructors in Base class, by default only the Base destructor is called, so need 
+      to create virtual destructors in Base class so that Dervied destructor will also be called
+      // discussed in destructors
+
 optional
+  when code may or may not return a value
+    > value
+    > null
+
+  ```
+    #include <optional>
+    std::optional<int> score; // std::nullopt;
+    score = 10;
+  ```
+
+  check value
+    ```
+      if (score.has_value()) {
+        std::cout << *score;
+      }
+    ```
+
+  accessing value
+    ```
+      *score // dereference
+
+      score.value()
+      // throw exception when empty, so check value
+
+      score.value_or(default)
+
+  resetting
+    `score.reset()`
+    or
+    `score = std::nullopt`
+
 nullptr
+  originally did
+    `ptr = NULL`
+  NULL is just 0, no type safety
+
+  nullptr is a typesafe null pointer
+
 include other files
+  include header files
+  compile with cpp files
+
+  remember to add include guards to prevent header files from being included multiple times
+
 cerr
-LOGFILE
-ifdef endif
+  stream just like cout, cin
+  difference is it is not buffered and prints immediately
+  use it to print errors
+
+clog  
+  stream too
+  it is buffered
+  use it to log 
+  
+include guards
+  when you include a header, the pre processor literraly just copies the contents onto the file
+  so if a header directly or indirectly gets included multiple times, it can cause errors 
+
+  Include guards ensure header contents are processed only once per translation unit.
+    (each cpp file and its includes are compiled into one object file (traslation unit) and multiple such
+      units are linked by the linker)
+
+  in header file 
+    ```
+      #ifndef FILE_NAME_H 
+      #define FILE_NAME_H
+      // ...
+      #endif
+    ```
+
+    modern alternative
+      ```header file
+        #pragma once
+        // ...
+      ```
+
 code structure
-cast
+  src/ 
+  test/
+  debug/
+  release/
+
+  use headers and cpp files
+  use a common header for frequently project global info
+
+  use CMAKE (TODO Learn)
+
 lambda functions
+  syntax 
+    ```
+      [capture](parameters) -> return_type {
+        body
+      }(); // the `()` calls it immediately, you can remove it to return the function and assign to a variable
+    ```
+
+  simple example
+    ```
+      auto square = [](int x) {
+        return x * x;
+      };
+
+      square(5);
+    ```
+  the return type is usually inferred, but you can specify
+
+  capture
+    controls access to outside variables
+      [=]
+        captures variables by value
+          > inside the lambda -> read only copy
+          > changing the variable outside doesnt change the value
+
+        ```
+          int x = 1;
+
+          auto f = [=]() {
+            std::cout << x;
+          };
+
+          f(); // x = 1
+          x = 2;
+          f(); // stil x = 1
+        ```
+
+      [&]
+        uses original variable
+        int x = 10;
+
+        auto f = [&]() {
+          x++;
+        };
+
+        f(); //11
+        f(); //12
+
+      capture specific variables 
+        [x]() // by value
+        [&x]() // by reference
+
+        can mix
+          [x, &y]()
+
+    by default all value captures are const
+    to modify the captures
+      ```
+      int x = 1;
+      auto f = [x]() mutable {
+        x++;
+        std::cout << x;
+      }
+      ```
+      NOTE: the original x is unchanged
+      
+  you can immediately call by doing 
+    auto result = [](){}(var1, var2 ....); // adding the parenthesis and calling immediately
+
+  lambda capturing `this`
+    inside classes, lambdas can capture object context
+    
+    ```
+      class Eval {
+        public:
+        int factor = 2;
+        void foo() {
+          auto f = [this]() {
+            return factor * 10;
+          };
+        }
+      };
+    ```
+
+  generic lambdas   
+    use auto parameters
+      ```
+        auto add = [](auto x, auto y) {
+          return x + y;
+        };
+
+
+  btw we use auto for the function references, because each lambda has a unique unnamed type
+
 extern
+  first lets understand working with multiple files in c++
+
+  multi file examples
+    ```add.cpp
+    int add(int a, int b) {
+      return a + b;
+    }
+    ```
+
+    ```main.cpp
+      #include <iostream>
+
+      int add(int a, int b); // declaration
+
+      int main() {
+        std::cout << add(2, 3);
+      }
+    ```
+
+    compiling 
+      g++ main.cpp add.cpp -o app // works
+
+    what happens internally
+      stage 1 - compilation
+        each file compiles seperately
+          main.cpp -> main.o // only knows declaration but is fine because it compiles
+          add.cpp  -> add.o
+
+      stage 2 - linking
+        main.o + add.o -> app // contains the definition now  
+
+    if we remove declaration `int add(int a, int b)` from main.cpp it would fail to compile
+      because the compiler compiles each file seperately
+    thus we add all the declarations in a header file and include it, this reduces error
+
+    ```add.h
+      #pragma once
+      int add(int a, int b);
+    ```
+    ```add.cpp
+      #include "add.h" // technically not needed but i think it's used to ensure that add.h is fully defined idk
+      
+      int add(int a, int b) {
+        return a + b;
+      }
+    ```
+
+    ```main.cpp
+      #include <iostream>
+      #include "add.h"
+
+      int main() {
+        std::cout << add(2, 3);
+      }
+    ```
+  declaration vs definition
+    declaration -> tells the compiler that something exists 
+      int x; // can also be definition depending on context
+    
+    definition -> allocates memory
+      int x = 10; // ONLY 1 definition program-wide
+
+  problem
+    suppose you want a global variable to be shared across files 
+      error during compilation
+      ```file1.cpp
+        int x = 1;
+      ```
+      ```file2.cpp
+        std::cout << x;
+      ```
+      error during compilation since file2.cpp doesnt know what x is
+
+      error during linkage
+        ```file1.cpp
+          int x = 1;
+        ```
+
+        ```file2.cpp
+        int x;
+        std::cout << x;
+        ```
+        linker will fail -> multiple definitions of global variable 
+      
+      extern  
+        tells this variable exists elsewhere dont create it again
+        ```file1.cpp
+          int x = 1;
+        ```
+
+        ```file2.cpp
+          extern int x;
+          std::cout << x;
+        ```
+        works now yay
+
+      combining with header cpp structure
+
+      ```globals.h
+        #pragma once
+        extern int x;
+      ```
+
+      ```globals.cpp
+        #inlcude "globals.h"
+        int x = 1;
+      ```
+
+      ```file.cpp
+        #include "globals.h"
+        // use x
+      ```
+
 inline
-using
-operator overloading
-class
-struct
-auto
-[[ ... ]]
-polymorphism
-virtual destructors
+  when you normally call functions 
+    1. jump to function
+    2. exectue
+    3. comeback
+  this has a small overhead
+
+  inlining just means that instead of function call just replace with the function text
+  its a request to the compiler and may or may not happen
+  most compilers do this automatically too
+  works on simple functions only
+
+  ```
+    inline add(int a, int b) { return a + b; }
+  ```
+
+  another usage
+    if you have defined (not just declared) a function in the header file,
+      including it in other files will lead to linker error
+      so use inline there
+      or just add declaration in header and definition in cpp file
+
 static assert
-explicit
+  its a compile time check, if condition fails, program isn't built 
+  it runs during all builds (debug or release)
+  
+operator overloading
+  some of the operators you can overload
+        +  -  *  /  %
+        == != < >
+        <= >=
+        [] () ->
+        << >>
+        & | ^
+        += -= *=
+        new delete
+
+
+  syntax 
+    common arithmetic 2 people operations 
+      member function
+        ```
+          class A {
+            public:
+
+            A operator+(const A& other) {
+              return A(...);
+            }
+          };
+        ```
+      non member function
+        ```
+          A operator+(const A& lhs, const A& rhs) {
+            return A(...);
+          }
+        ```
+    = (assignment)
+      ```
+        class A {
+          A& operator=(const A& other) {
+            // copy the data
+            return *this;
+          }
+        };
+      ```
+
+    []
+      ```
+        class Board {
+          int squares[64];
+          
+          public:
+          int& operator[](int i) {
+            return squares[i];
+          }
+        };
+      ```
+
+
+[[ ... ]]
+using
+cast
