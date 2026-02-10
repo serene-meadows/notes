@@ -120,6 +120,11 @@ template
                 // Initialize
                 Buffer<10> a;
                 ```
+        template for ptr (Note: This is function overloading, since we change the parameters from T var -> T* var)
+          ```
+            template<typename T>
+            void function(T* var) { ... }
+          ```
 
 enum
   enum -> enumeration 
@@ -499,6 +504,57 @@ constexpr
   constexpr if
     lets start with the problem
     suppose we write a template 
+
+    ```
+      template<typename T>
+      void print(T x) {
+        if (std::is_pointer_v<T>) {
+          std::cout << *x;
+        }
+        else {
+          std::cout << x;
+        }
+      }
+    ```
+    and suppose we call `int a = 5; print(a);`
+
+    it will fail to compile
+    because
+      templates are compiled at compile time, not run time
+      so the compiler sees both branches and sees `*x` which isn't valid for an int, thus compile error
+
+    that is because, the `if` is a runtime condition, whereas the compiler must ensure all code is 
+    valid at compile time, thus both branches must compile with normal `if`
+
+    `if constexpr`
+      ```
+        template<typename T>
+        void print(T x) {
+          if constexpr (std::is_pointer_v<T>) {
+            std::cout << *x;
+          }
+          else {
+            std::cout << x;
+          }
+        }
+      ```
+    now it will will work and not fail at compile time 
+    because
+    the `if constexpr` is evaluated at compile time, i.e the compiler chooses a branch before compiling 
+    the whole function and discards the other branch
+
+    normal if -> compile both branches -> runtime decides which to run
+    if constexpr -> evaluate condition at compile time -> compile only chosen branch -> other branch deleted
+
+    other way would be to do template for both
+      ```
+        template<typename T>
+        void print(T x) { ... }
+        
+        template<typename T>
+        void print(T* x) { ... }
+      ```
+      the compiler will chose the correct one at compile time
   
 
 consteval
@@ -517,13 +573,6 @@ consteval
       int a = square(n); // NOT POSSIBLE
     ```
           
-
-
-
-    
-    
-
-
 const objects and const methods
   const object
     `const Square x{5};`
@@ -545,8 +594,152 @@ const objects and const methods
     int area() const {} -> int area( const Square* this)
 
 initialization
-  when object gets its value
+  is different from assignment
+  ```
+    int x = 5; // init
+    x = 10;    // assignemnt
+  ```
+  initialization happens when object is created
 
+  default initialization
+  when you declare a variable without giving a value
+    primitive types
+      ```
+        int x;
+      ```
+      these are unintialized, they contain garbage values
+
+    arrays
+      ```
+        int arr[10];
+      ```
+      these are uninitialized too, because the contained element is int, which is defaulted to garbage
+      if it were strings, it would be empty strings
+
+    ptrs 
+      ```
+        int* ptr; 
+      ```
+      garbage address
+    
+    class types
+      here the default constructor are run
+      ```
+        std::string s;
+        std::vector<int> v;
+      ```
+      s -> ""
+      v -> empty vector
+      
+      for custom classes/structs the members are also default initialized according to their types
+   
+  value initialization
+      value initialization
+        step 1. -> zero initialize memory
+        step 2. -> calls default constructor, (NOTE: in custom classes/ structs if you only have 
+                                                parameterized constructor, value initialization will fail
+                                                you will have to do list initilaization, or direct
+                                                intialization)
+
+    primitives
+      ```
+        int x{};
+        double y{}'
+      ```
+      result -> x is 0, y is 0.0
+
+    arrays 
+      ```
+        int arr[10]{};
+      ```
+      filled with 0s
+
+    ptrs
+      ```
+        int* ptr{}
+      ```
+      nullptr
+    
+    class types
+      same as before, the default constructor is called
+      `std::string s{}` same as `std::string s`
+
+    for custom classes/ structs the value initialization for each member is called
+
+  zero initialization
+    low-level step where memory is set to 0
+
+    happens automatically for
+      > global variables
+      > static variables
+
+  direct initialization
+    calls constructor with parameters
+    ```
+      int x(5); // you can also do int x(5.33) and it will auto narrow
+                  // to avoid that, use list initialzation which doesn't allow for narrowing and causes error
+      std::string s("hello");
+    ```
+
+  copy initialization
+    ```
+      int x = 5;
+    ```
+    afaik compilers optimize this 
+
+    its actually a little confusing 
+    ```
+      struct A {
+        A(int x) { ... }
+      };
+
+      int x = 3;
+      A a = x; // WORKS, the compiler calls the A(int) constructor
+               // think of it this way, the compiler implicitly converts 3 to type `A`
+               //   it create a A object from 3 and then copy constructs 
+               //   it to the left side variables
+
+      double y = 3.0;
+      A a = y; // WORKS, the compiler calls the A(int) constructor and implictly converts the double
+               // think of it this way, the compiler implicitly converts 3.0 to type `A`
+               //   the compiler implicitly converts 3.0 to 3 and then creates 
+               //   an A object from 3 and then copy constructs it to the left side variable
+    ```
+    i.e copy initilazation allows for implicit conversion
+    because of this, it DOES NOT work when we have explicit constructors
+
+    ex
+      ```
+        struct A {
+            explicit A(int x) { ... } 
+        };
+
+        A a = 3; // DOESNT WORK, because the complier cannot implictly convert 3 to type `A`
+                 // have to use direct, list initilaiation
+                 // although direct intialazation also doesn't enforce narrowing
+                 // use list for that
+
+  list initialization
+    prefer this, at this point I dont know why there are so many types of initialization
+    when multiple constructors, it preferes the one if exists, initializer_list<>
+    ```
+      int x{5};
+      double d{3.2};
+
+      int arr[5]{1,2,3};
+
+      struct M { int from; int to; };
+      M m{1, 2};
+
+      std::vector<int> v{1, 2, 3}; // uses vector's intializer_list<> constructor
+          // can be confused here
+          // std::vector<int> v(3); means 3 elements initialized to 0
+          //    std::vector<int> v(3, 4); means 3 elements intialization to 4
+          // std::vector<int> v{3}; means 1 element intialized to 3
+          //    std::vector<int> v{3, 4}; means {3, 4}
+    ```
+    here compiler blocks narrowing, whereas in copy and direct the compiler used to allow
+    so cannot do `int x{1.2}`
 
 const vs constexpr vs enums
 inheritence
@@ -577,3 +770,4 @@ auto
 polymorphism
 virtual destructors
 static assert
+explicit
