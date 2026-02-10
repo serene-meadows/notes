@@ -1,0 +1,126 @@
+min max algorithm
+  function minmax(depth, maximizingPlayer) 
+    if depth == 0 
+      return score
+
+    if maximizingPlayer
+      maxScore = -infinity
+      for each child of state:
+        score = minmax(depth - 1, false)
+        maxScore = max(maxScore, score)
+      return maxScore
+
+    else
+      minScore = infinity
+      for each child of state:
+        score = minmax(depth - 1, true)
+        minScore = min(minScore, score)
+      return minScore
+        
+
+alpha beta pruning
+  the algorithm optimizes the minmax algorithm
+  it maintains 
+    alpha - the minimum score that the maximizer is assured of
+    beta  - the maximum score that the minimizer is assured of
+  good move ordering is important for the pruning
+
+  lets assume we are at a node for maximizer
+    from one of the childs we get value 5, so we can say this node's value is >= 5,
+    because the node being a maximizer will choose the highest possible value, so rn its 5
+    if the next one is 4, its value still >= 5, because thats our best so for
+    maybe we find something greater than 5 in other children, so for now its >= 5
+    suppose the next child is 10, then our value is >= 10 depending on more children
+ 
+    so basically we get an approx value of our node before completely searching all the children
+    (this is why move ordering is good, so that we can eval good moves first which is closer to true value)
+
+    now its >= 10, suppose rn beta value is 8, this means that a minimzer up the tree is having a child
+    with value of 8, so it won't go for a node whose value is >= 10, so we dont have to search for more children
+    we can prune
+
+  same for minimizer
+    from one of the children we get value 5, so we can say this node's value is <= 5
+    because minimizer will choose the lowest possible value
+
+    suppose we have an alpha value of 6, this means that a maximizer up the tree has a child of value
+    6, so it will never go for this node which has a value of <= 5 so we can prune
+
+
+  algorithm
+    function alphabeta(depth, alpha, beta, maximizingPlayer) 
+      if depth == 0 
+        return score
+
+      if maximizingPlayer
+        maxScore = -infinity
+        for each child of state:
+          score = alphabeta(depth - 1, alpha, beta, false)
+          maxScore = max(maxScore, score)
+          alpha = max(alpha, score)
+          if (beta <= alpha)
+            break
+        return maxScore
+
+      else
+        minScore = infinity
+        for each child of state:
+          score = alphabeta(depth - 1, alpha, beta, true)
+          minScore = min(minScore, score)
+          beta = min(beta, score)
+          if (beta <= alpha)
+            break
+        return minScore
+
+negamax
+  instead of having two subroutines in minmax, 
+  we can use one subroutine by using the following math property
+
+  max(x, y) = -min(-x, -y) OR min(x, y) = -max(-x, -y)
+
+  think of it this way, each person tries to get the largest value
+  and what is good for them is bad for the opponent
+  and in the game of chesst your_score = -opponent_score
+
+  so if maximizer has option 1 3 4, he will pick 4
+  as minimizer instead of looking at it like min of 1 3 4, we look at it like max of -1 -3 -4, and pick
+  -1, then we will return -ve of that value upawards to the maximizer
+
+  algorithm
+    function negamax(depth)
+      if depth == 0
+        return score
+
+      max = -infinity
+      for each child of state:
+        score = -negamax(depth - 1)
+        if score > max
+          max = score
+      return max
+
+nega alpha beta
+  just like negamax, always look to maximize, and then negate values and pass on
+
+  alpha -> best value i can guarantee so far
+  beta  -> best value for me beyond which opponent wont choose this line
+
+  algorithm
+    function negaalphabeta(depth, alpha, beta)
+      if depth == 0
+        return score
+
+      best = -infinity
+      for each child of state
+        score = -negamax(depth -1, -beta, -alpha) // confusing part!
+        best = max(best, score)
+        alpha = max(alpha, score)
+
+        if (alpha >= beta)
+          break
+
+      return best
+
+FEN notation
+magic bitboards
+reference engine
+
