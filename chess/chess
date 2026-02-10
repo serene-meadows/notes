@@ -121,6 +121,85 @@ nega alpha beta
       return best
 
 FEN notation
+  One line ascii string to denote a chess position
+
+  consists of 6 fields seperated by a space 
+    1. piece placement
+    2. side to move
+    3. castling ability
+    4. en passant target square
+    5. halfmove clock
+    6. fullmove clock
+
+    <FEN> ::=  <Piece Placement>
+           ' ' <Side to move>
+           ' ' <Castling ability>
+           ' ' <En passant target square>
+           ' ' <Halfmove clock>
+           ' ' <Fullmove counter>
+
+
+  piece placement
+    piece placement is determined rank by rank in big endian order, i.e starting at the 8th rank down to 
+    the first rank
+    each rank is seperated by the terminal '/'
+    each rank scans piece placemine in litte endian file order from 'A' to 'H'
+
+    a decimal digit counts consecutive empty squares 
+
+    upper case notation for white pieces, lower case notation for black pieces 
+
+      <Piece Placement> ::= <rank8>'/'<rank7>'/'<rank6>'/'<rank5>'/'<rank4>'/'<rank3>'/'<rank2>'/'<rank1>
+      <ranki>       ::= [<digit17>]<piece> {[<digit17>]<piece>} [<digit17>] | '8'
+      <piece>       ::= <white Piece> | <black Piece>
+      <digit17>     ::= '1' | '2' | '3' | '4' | '5' | '6' | '7'
+      <white Piece> ::= 'P' | 'N' | 'B' | 'R' | 'Q' | 'K'
+      <black Piece> ::= 'p' | 'n' | 'b' | 'r' | 'q' | 'k'
+
+  side to move 
+    <Side to move> ::= {'w' | 'b'}
+
+  castling ability
+    if neither side can castle -> '-'
+
+    otherwise 
+      each of the four individual castling rights for king and queen castling for both sides are 
+      indicated by a sequence of one to four letters -> K Q k q 
+
+        <Castling ability> ::= '-' | ['K'] ['Q'] ['k'] ['q'] (1..4)
+
+  en passant
+    the en passant target square is specified after a double push of a pawn, no matter whether an 
+    en passant capture is really possible or not 
+    
+    if no double push of a pawn -> '-'
+    if possible -> enpassantsquare -> <file letter> <rank>
+
+        <En passant target square> ::= '-' | <epsquare>
+        <epsquare>   ::= <fileLetter> <eprank>
+        <fileLetter> ::= 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
+        <eprank>     ::= '3' | '6'
+  
+  halfmove clock
+    specifies a decimal number of half moves wrt to the 50 move rule 
+    resets to 0 after capture or pawn move 
+    0 1 2 ....
+
+      <Halfmove Clock> ::= <digit> {<digit>}
+      <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+
+  fullmove clock
+    number of full moves, it starts at 1 (not 0) and is incremented after blacks move
+
+      <Fullmove counter> ::= <digit19> {<digit>}
+      <digit19> ::= '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+      <digit>   ::= '0' | <digit19>
+
+
+
+
+
+
 magic bitboards
 reference engine
 
