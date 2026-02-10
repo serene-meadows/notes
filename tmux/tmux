@@ -1,0 +1,30 @@
+tmux -> terminal multiplexer
+
+cheatsheet
+  session
+    opening a session 
+      `tmux` // default name is numbered
+      `tmux new -s <name>`
+
+    detach - `<Ctrl-b> d`
+    view sessions - `tmux ls` on the console
+    attach - `tmux attach -t <session_name>`
+    rename - `tmux rename-session -t <old_name> <new_name>`
+    kill - `tmux kill-session <name>`
+
+  window
+    indexed from 0
+    create new window - `<Ctrl-b> c`
+    movement btw windows - `<Ctrl-b> <index>`
+    rename window - `<Ctrl-b> ,`
+    close window - exit all panes
+
+  pane
+    to the right - `<Ctrl-b> %`
+    down         - `<Ctrl-b> "`
+    movement btw panes - `<Ctrl-b> <arrow_key>`
+    close a pane - `exit` on console
+
+TODO
+  better inter pane movement keybinds
+  better kill window key bind

@@ -1,0 +1,579 @@
+namespace
+    named namespace
+        namespace is a declarative region that provides a scope for 
+            > functions
+            > classes
+            > variables
+            > constants
+            > templates
+        it prevents name collision and helps organize large codebases
+
+        example
+            ```
+            namespace MyNamespace {
+                int value = 1;
+                std::cout << value;
+            }
+
+            // use it with scope operator
+            std::cout << MyNamespace::value;
+            ```
+
+    nested namespace
+        you can have nested namespaces
+        example
+            ```
+            namespace A {
+                namespace B {
+                    namespace C {
+                    }
+                }
+            }
+            ```
+
+    anonymous namespace
+        you can have anonymous namespaces,
+        an anonymous namespace make it so that everything inside is only visible to that .cpp file
+        so can think of it like file-private-scope
+
+        example
+            ```
+            namespace {
+                int x = 1;
+            }
+            std::cout << x;
+            
+            // but cannot use this in another file
+            ```
+
+        thus, 
+            when two files having the same function names are compiled, it gives linker error
+            but if they were in anonymous namespace, no problem since they are visible only within
+            their files
+
+template
+    often times you can ommit the `<types...>` and the compiler can deduce it
+    function
+        basic syntax
+            ```
+            // Declare
+            template<Typename T>
+            T Add(T a, T b) {
+                return a + b;
+            }
+
+            // Initialize
+            Add<int>(1, 2);
+            ```
+
+        multiple parameters
+            ```
+            // Declare
+            template<typename T, typename U>
+            auto Add(T a, U b) {
+                return a + b;
+            }
+            
+            // Initialize
+            Add<int, double>(1, 2.3);
+            ```
+
+        class 
+            ```
+            // Declare
+            template<typename T>
+            class Box {
+                public:
+                T value;
+            }
+
+            // Initialize
+            Box<int> a;
+            ```
+
+        template specialization
+            custom behaviour for a type
+                ```
+                // Generic Declaration
+                template<typename T>
+                T Square (T x) {
+                    return x * x;
+                }
+
+                // Declaration for bool
+                template<>
+                Square<bool> (bool x) {
+                    return x;
+                }
+                ```
+
+        non type templates
+            templates can take values too
+            the value must be known at compile time
+                ```
+                // Declaration
+                template<int N>
+                class Buffer {
+                    int data[N];
+                }
+
+                // Initialize
+                Buffer<10> a;
+                ```
+
+enum
+  enum -> enumeration 
+  type that represent a fixed set of named values
+    ```
+    // Declaration
+    enum GameState {
+      START,   // 0
+      PLAYING, // 1
+      END      // 2
+    };
+
+    // Initialize
+    GameState state = START;
+    ```
+
+  enums are still integers underneath
+  default value is 0, 1, 2 ...
+
+  we can assign values too
+    ```
+    enum ErrorCode {
+      OK = 0,
+      WARNING = 100,
+      FATAL = 200
+    };
+    ```
+
+  anonymous enums
+    ```
+    enum {
+      MAX_MOVES = 10000,
+      MAX_SQR   = 62
+    };
+    // equivalent to
+    constexpr MAX_MOVES = 10000;
+    constexpr MAX_SQR = 62;
+    ```
+
+enum class
+  adds typesafety
+  example where enum isn't good
+    ```
+    // traditional enums leak out of their "type"
+    enum Piece {
+      PAWN,
+      KNIGHT
+    }
+
+    enum Card {
+      PAWN, // CONFLICT
+      KING
+    }
+    ```
+
+    ```
+    int x = PAWN; // Implicit conversion to int
+    ```
+
+  enum class
+    ```
+    // Declaration
+    enum class Piece {
+      Pawn, 
+      Knight,
+      Bishop
+    };
+
+    // Initialize
+    Piece p = Piece::Pawn;
+    ```
+
+  now, they don't leak out of their "type", they don't implicitly convert to int
+
+  ```
+    // with normal enum
+    int a = RED; // works
+
+    // but with class enum
+    int a = Color::RED;   // doesn't work
+    Color a = Color::RED; // works
+  ```
+
+  you can specify internal int type
+  ```
+    enum class Piece: uint8_t {
+      Pawn,
+      Knight,
+      Bishop
+    };
+  ```
+  
+header
+  contain declarations not implementations
+  basic structure
+    ```
+    // Header file
+    #ifndef FILE_NAME_H
+    #define FILE_NAME_H
+    int add(int a, int b);
+    int multiply(int a, int b);
+    
+    #endif
+
+    // cpp file implementation file
+    #include "FILE_NAME_H"
+
+    int add(int a, int b) {
+      return a + b;
+    }
+
+    int multiply(int a, int b) {
+      retrun a * b;
+    }
+    
+    // importing functionality
+    #include "FILE_NAME_H" // you include the header not the cpp file
+
+    int main () {
+      std::cout << add(2, 3);
+    }
+    ```
+
+  what typically goes in headers
+    > function declarations `int evaluate(int a, int b);`
+    > class declarations // method implementations go in cpp file
+      ```
+        class className {
+          public:
+          void search();
+          void add();
+
+          private:
+          int depth;
+        };
+      ``` 
+    > structs, enums, typedefs
+    > constants, macros
+
+  include guards
+    without guards, headers can cause problems when included multiple times
+    problem
+      ```
+        #include "fileA.h"
+        #include "fileB.h" // also includes fileA within its file
+      ```
+
+    special case
+      if using templates, they must be fully defined within the headers
+  
+    solutions
+      ```
+        #ifndef FILE_A_H
+        @define FILE_A_H
+        // ...
+        #endif
+
+        or on modern compilers
+
+        #pragma once
+      ```
+        
+abstract class
+  abstract classes 
+    > cannot be instantiated
+    > have to be inherited to be used
+    > serve as interfaces
+    > contain atleast one pure virtual function
+    > All functions don't have to be pure virtual
+
+  pure virtual function
+    `virtual void functionName() = 0;`
+    derived class MUST implement this function
+
+  example
+    ```
+    class Animal {
+      public:
+      virtual void makeSound() = 0;
+    };
+
+    Animal a; // cannot do
+
+    class Dog : public Animal {
+      public:
+      void makeSound() override {
+        std::cout << "woof";
+      }
+    };
+
+    Dog d;
+    d.makeSound();
+    ```
+
+pointers
+  int* p = new int;
+  delete p;
+
+  int* p = new int[10];
+  delete[] p;
+  ```
+
+smart pointers
+  wrappers around pointers to avoid manual memory management
+  if we do manual memory management, errors can lead to
+    > memory leaks
+    > double frees
+    > use after free
+    > dangling pointers
+      
+  
+  `#include <memory>` header
+  
+  ```normal example
+  Board* b = new Board;
+  delete b;
+  ```
+  ```with smart pointer
+  std::unique_ptr<Board> b = std::make_unique<Board>();
+  ```
+
+  smart pointers use RAII (Resource Aquistion Is Initialization)
+    basically memory is freed when object goes out of scope
+    this is what stack objects do by default
+
+  3 main types of smart pointers
+    unique_ptr   ->  single owner
+    shared_ptr   ->  multiple owners
+    weak_ptr     ->  non owning observer
+
+  unique_ptr
+    exclusive ownership
+
+    only one pointer owns the object
+    ```std::unique_ptr<Board> b = std::make_unique<Board>();```
+    use like a normal pointer
+    when out of scope, it gets deleted automatically
+    
+    ```
+      {
+        std::unique_ptr<Board> b = std::make_unique<Board>();
+      } // deleted
+    ```
+
+    cannot copy 
+      ```
+        std::unique_ptr<Board> b1 = std::make_unique<Board>();
+        std::unique_ptr<Board> b2 = b1; // NOT POSSIBLE
+      ```
+
+    can move
+      ```
+        std::unique_ptr<Board> b1 = std::make_unique<Board>();
+        std::unique_ptr<Board> b2 = std::move(b1); 
+        // b2 now owns the object
+        // b1 becomes null
+      ```
+  shared pointer
+    multiple pointers own the same object
+    object is deleted when total references become 0
+
+    ```
+    {
+      std::shared_ptr<Board> b1 = std::make_shared<Board>();
+      {
+        std::shared_ptr<Board> b2 = b1;
+      } // b2 is destroyed, count down to 1
+    } // count is 0, object is destroyed
+
+  problem with shared pointers
+    suppose we have two shared pointers A and B
+    and we set their property so that
+      A->b = B  
+      B->a = A
+    now, they both depend on each other, so they will not be freed when they go out of scope
+    because the count doesn't go to 0
+
+    for this there exists weak_ptr
+  
+  weak_ptr
+    doesn't own objects
+    
+    `weak_ptr<A> a = sharedPtr;` 
+    doesnt increase the count
+
+    you cannot directly access the weak pointer since the shared pointer might have been destroyed
+    so you have to lock it
+
+    ```
+    // wp -> weak pointer
+    wp->a; // NOT POSSIBLE
+
+    if (shared_ptr<TypeHere> sp = wp.lock()) {
+      std::cout << sp->a;
+    }
+    ```
+    lock()
+      returns a shared pointer, if the object is alive
+      nullptr if destroyed
+
+    checking expiration
+      `wp.expired() // false or true, prefer lock()`
+
+constexpr
+  allows you to move computation from runtime to compile time, if the values are known at compile time
+
+  constexpr variables
+    `constexpr int x = 1;`
+    compiler guarantees value known at compile time 
+    stored in read only memory
+    can be used in constexpr expressions
+
+  example
+    ```
+      constexpr int SIZE = 64;
+      int board[SIZE]; // compile time, because SIZE is constexpr
+    ```
+
+  constexpr functions 
+    functions that CAN run at compile time (i.e runtime or compile time based on context)
+    ```
+        constexpr int square(int x) {
+          return x * x;
+        }
+      constexpr int y = square(5); // compile time
+    ```
+
+    this function can also be run time
+    ```
+      int n;
+      std::cin >> n;
+      
+      int y = square(n); // run time
+    ```
+
+    there are many rules for a constexpr function to be compile time evaluable
+    some are
+      > return literal types
+      > simple statements
+      > no dynamic allocation
+      > no i/o
+      > no virtual calls (runtime polymorphism)
+      > modern cpp allows loops
+
+  difference between constexpr and const variables
+    const -> cannot change value and may or may not be known at compile time
+    constexpr -> cannot change value and has to be known at compile time
+
+  constexpr objects
+    you can create compile time objects
+    ex
+      ``` 
+        struct Point {
+          int x, y;
+
+          constexpr Point(int a, int b) : x(a), y(b) {}
+        };
+        
+        constexpr Point p(3, 2); // compile time
+      ```
+
+    constexpr methods
+
+    ```
+      struct Square {
+        int side;
+
+        constexpr int area() const { // const objects can only all const methods
+          return side * side;
+        }
+      };
+
+      constexpr Square s{5};
+      constexpr int a = s.area();
+    ```
+  
+  constexpr if
+    lets start with the problem
+    suppose we write a template 
+  
+
+consteval
+  MUST be run at compile time, cannot be run at runtime
+    ```
+      consteval int square(int x) {
+        return x * x;
+      }
+
+      constexpr int a = square(5);
+    ```
+  cannot do
+    ```
+      int n;
+      std::cin >> n;
+      int a = square(n); // NOT POSSIBLE
+    ```
+          
+
+
+
+    
+    
+
+
+const objects and const methods
+  const object
+    `const Square x{5};`
+    this object cannot be modified after creation
+      > cannot change its data members
+      > cannot call functions that might change it
+
+  const method
+    `int area() const { ... }`
+    the method promises not to modify the object  
+      > can read members 
+      > cannot edit members
+
+  const objects can only call const methods
+
+  internally 
+    a member function is just a normal function with an extra parameter 
+    int area() {}       -> int area(Square* this)
+    int area() const {} -> int area( const Square* this)
+
+initialization
+  when object gets its value
+
+
+const vs constexpr vs enums
+inheritence
+dynamic memory allocation
+constructor & destructors
+const initialization list
+assert
+static
+override
+virtual
+optional
+nullptr
+include other files
+cerr
+LOGFILE
+ifdef endif
+code structure
+cast
+lambda functions
+extern
+inline
+using
+operator overloading
+class
+struct
+auto
+[[ ... ]]
+polymorphism
+virtual destructors
+static assert
