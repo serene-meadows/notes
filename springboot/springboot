@@ -1,0 +1,67 @@
+so spring is an open source framework to make developing java applications easier
+
+core features 
+  IOC (Inversion of Control Container)
+    It is responsible for managing the lifecycle of a java object (beans)
+    It uses dependency injection
+
+    > it automatically injects dependencies into beans
+    > manages bean creation, initialization, destruction
+
+  AOP (Aspect Oriented Programming)
+    provides modularity to cross cutting functions like logging, caching, authentication and so on
+
+  DAF (Data Access Framework)
+    Provides various frameworks like jdbc, hibernate, jpa
+
+  MVC
+  
+
+
+Core Concepts of SpringBoot
+  IoC Container (Inversion of Control)
+    It is responsible for creating, managing, configuring application objects (called Beans)
+    Using Dependency Injection  
+      > Automatically injects dependencies into Beans
+      > Manages Bean creation, initialization, destruction
+      > Supports XML, annotation, and Java-based configuration
+      
+    There are two types of IoC containers in Spring
+      1. Bean Factory
+        The basic IoC container that provides fundamentals like Dependency Injection and management of Bean lifecycle
+
+      2. Application Context
+        Extends Bean Factory and provides additional features like event handling, internationalization, annotaion based-configuration
+
+
+java bean
+  an object that is managed by the spring framework
+
+  lifecycle of a spring bean
+    the lifecycle of any object means when and how it is born, how it behaves and how it dies
+    a bean's lifecycle is managed by the spring framework
+
+  making beans
+    @Configuration  
+      declares class as a configuration class
+      Note: the class cannot be final and has to be public
+
+    @Bean
+      decleres bean configuration method inside a Configuration class 
+      the method must be non final and non private
+
+    example 
+      ```
+      @Configuration
+      public class AppConfig {
+        @Bean
+        public PaymentService paymentService() {
+          return new PaymentServiceImpl(accountRepository());
+        }
+
+        @Bean
+        public AccountRepository accountRepository() {
+          return new 
+      }
+
+
