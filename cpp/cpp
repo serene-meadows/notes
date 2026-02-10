@@ -741,10 +741,150 @@ initialization
     here compiler blocks narrowing, whereas in copy and direct the compiler used to allow
     so cannot do `int x{1.2}`
 
-const vs constexpr vs enums
 inheritence
-dynamic memory allocation
-constructor & destructors
+  syntax
+    ```
+      class Derived : public Base { ... };
+    ```
+  access specifiers
+    ```
+      class Derived : public Base
+      class Derived : protected Base
+      class Derived : private Base
+    ```
+    public inheritence
+      public -> public
+      protected -> protected
+
+    protected inheritence
+      public & protected -> protected
+
+    private inheritence
+      public & protected -> private
+
+
+  constructors
+    base constructors run first then derived
+    ```
+      class Base {
+        public:
+        Base() { std::cout << "Base"; }
+      };
+
+      class Derived : public Base {
+        public:
+        Derived() { std::cout << "Derived"; }
+      };
+      // output -> "Base" then "Derived"
+    ```
+    calling parent constructor
+      ```
+        class Base {
+          public:
+          Base(int x) { ... }
+        };
+
+        class Derived : public Base {
+          public: 
+          Derived(int x) : Base(x) { ... } // Call parent constructor in init list
+        };
+      ``` 
+
+  function overriding
+    i.e. virtual
+
+    ```
+      class Base {
+        public:
+        virtual void move() { std::cout "base movement"; } // virtual
+      };
+
+      class Derived : public Base {
+        public: 
+        void move() override { std::cout << "derived movement"; } // Override
+      };
+    ```
+    this is used for runtime polymorphism
+    ```
+      Base* ptr = new Derived();
+      ptr->move(); // "derived movement"
+    ```
+      if we didn't have virtual or override, the previour runtime polymorphism code would have
+      displayed "base movement"
+
+    multiple inheritence
+      syntax
+        ```
+          class Derived : public Base_a, public Base_b { ... }
+        ```
+        here suppose both Base_a, Base_b have the same named member, 
+        simply doing derivedObject.member would give error since it would be ambigious
+        therefore in such cases you have to use scope resolution operator
+        `derivedObject.Base_a::member` or `derivedObject.Base_b::member`
+      
+    virtual inheritance
+      used to solve the diamond problem
+        when we inherit from two classes which have common ancestor
+        ```
+          class A { public: int x; };
+
+          class B : public A {};
+          class C : public A {};
+
+          class D : public B, public C {};
+
+          D d;
+        ```
+        there exist two copies of A within D now
+          rough memory
+        D
+        | --- B --- A (copy 1)
+        | --- C --- A (copy 2)
+
+        this is a problem because accessing A is now ambigious, which version do we mean 
+        when we do d.x, C's or D's version
+        one solution is via the earlier discussed scope resolution operator
+        ```
+          d.C::x
+          d.B::x
+        ```
+        while this solution works, sometimes we want only 1 copy logically 
+          virtual inheritance ensures only one copy of shared base
+
+        syntax 
+          ```
+            class B : virtual public A {};
+            class C : virtual public A {};
+
+            class D : public B, public C {};
+          ```
+          only 1 A in D now 
+            rough memory
+          D
+          | --- B
+          | --- C
+          | --- A
+
+dynamic memory allocation of 2d arrays
+  ```
+    int** ptr = new int*[N];
+    // [ ptr ] [ ptr ] ...
+    
+    for (int i = 0; i < N; ++i) {
+      ptr[i] = new int[cols];
+    }
+
+    ptr[i][j] // access
+
+    for (int i = 0; i < N; ++i) {
+      delete[] ptr[i];
+    }
+    delete[] ptr;
+
+constructor
+  
+
+destructors
 const initialization list
 assert
 static
