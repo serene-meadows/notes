@@ -1,0 +1,3 @@
+an access modifier allows us to define which parts of our code, or even someone else's code, can access a particular element
+ex
+  public

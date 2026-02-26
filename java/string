@@ -1,0 +1,18 @@
+string is a class that contains a sequence of characters
+
+strings are immutable 
+    lastString = lastString + anotherString;
+  here, a new string is created by java 
+
+  for a lot of concatenation, prefer mutable class -> StringBuilder
+
+string with unicode character 
+  "this is a string \u0024"
+
++ 
+  when numbers
+    + -> addition 
+
+  when String + anything 
+    + -> string concatenation
+

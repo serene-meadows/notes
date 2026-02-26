@@ -1,0 +1,8 @@
+The standard library refers to a comprehensive collection of packages, modules that are included in every go installation
+
+Thee packages provide essential functionalities for builing and executing Go programs across different platforms and environments, it is maintained and provided with the language 
+
+It includes a wide range of functionality like i/o operations, networking, text processing, concurrency, crytography and so on..
+
+To use a specific package from the standard, you have to import it explicitly
+  this helps in managing dependencies, optimizing executable size, and avoding namespace collisions

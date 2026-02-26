@@ -1,0 +1,27 @@
+go build
+  creates a persistent executable file
+
+go run
+  creates a temporary executable file in RAM and runs it
+  after the program execuation, the temporary executabble created by Go Run is discarded
+
+compiler
+  converts code into executable
+
+runtime
+  manages execution of program, memory allocation, garbage collection, etc
+
+
+why go runtime is needed despite go compiler converting code into machine code
+  go runtime is needed for several parts of program execuation particularly those related to memory management, which is garbage collection
+
+  go runtime manages go routines
+
+  provide go runtime libraries, like reflection
+
+  help with cross-platform compatibility
+
+  and many other reasons
+
+
+TODO: Learn Go Compiler and Go Runtime

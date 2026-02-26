@@ -1,0 +1,50 @@
+Visibility
+  Go uses CASE to control visibility 
+  There are no 'public' or 'private' keywords
+
+  exported (Public)
+    must start with an Upper case letter
+    they are accessible from other packages
+
+  unexported (private)
+    must start with a Lower case letter
+    they are accessibly only within the same package
+
+package
+  style: lowercase
+
+  try to keep singular and small
+
+variable & functions
+  style: camelCase
+
+  avoid 'Get' prefixes ('Amount()' instead of 'GetAmount()')
+
+types & interfaces
+  style: PascalCase
+
+  interfaces
+    usually end with -er ('Reader', 'Writer')
+
+constants
+  style: camelCase or PascalCase
+
+acronyms
+  style: keep case consisten (all UP or all down)
+
+  httpServer, userID
+
+filenames
+  style: snake_case
+
+  test files 
+    must end in '_test.go'
+    only compiled when running `go test`
+
+  Test signatures 
+    unit test: func TestXxx(t *testing.T)
+    banchmark: func BenchmarkXxx(b *testing.B)
+    example: func ExampleXxx()
+
+  // TODO: what is *testing
+

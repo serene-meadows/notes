@@ -1,0 +1,47 @@
+int
+  (default)
+
+  following gives error
+    int a = 2147483648; // this is INT_MAX + 1
+  following gives overflow
+    int a = INT_MAX + 1; // because the compiler doesn't attempt to evaluate the expression
+
+long
+  remember to use long iterals, by default literals are int
+  long a = 100L;
+
+  (suffix - l/L)
+
+
+readability
+  long a = 1_023_320_432L // this is valid
+
+
+floating numbers
+  float  (suffix - f/F)
+  double (default) (suffix - d/D)
+    so
+      float var = 5.25; // error, since double default, makes this a lossy conversion
+
+scientific notation
+  E
+  ex
+    5.0E3
+
+char
+  2 byte representation
+
+  3 ways to assing value
+    > a literal character
+      >> char myChar = 'D';
+
+    > a Unicode value
+      >> char myChar = '\u0044';
+
+    > an integer value
+      >> char myChar = 64;
+
+boolean
+  true
+  false
+

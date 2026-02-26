@@ -1,0 +1,45 @@
+import statment, 
+  integrates external liraries into the source code
+  it affects program size, performance and maintability
+
+
+  lets say all packages libraries are included in the program (even just the standard library)
+    it will builk up the final executable size
+
+  when you import a package, it includes the entire go package 
+    this encompasses all functions, types, variables, constants and other definitions in that package 
+
+    but when compiling and running the program, only the relevant part is kept and the rest is discarded
+    despite importing the whole package, only the entities that are actually used in the program are included
+      this concept is known as tree shaking (concept in many modern languages)
+
+      this is used to improve final executable size and runtime performance
+
+
+
+multiple imports 
+  you can do 
+    ```go
+      import "fmt"
+      import "net/http"
+    ```
+    you can also do 
+    ```go
+      import (
+        "fmt"
+        "net/http"
+      )
+    ```
+
+named imports 
+  the named import eables us to refer to entities within the imported packages using a custom name 
+  
+  ```go
+    import (
+      "fmt"
+      foo "net/http"
+    )
+  ```
+
+  now foo will be used in place of http (using http will give error)
+

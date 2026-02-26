@@ -1,0 +1,18 @@
+widening casting is implicit
+narrowing casting is explicit
+
+the java compiler does not attempt to evaluate the value, in a variable, when it's used in a calculation, 
+so it doesn't know if the value would fit, and throws error if narrow casting implicitly 
+  ex 
+    int minByte = Byte.MIN_VALUE;
+    byte var = (minByte / 2); // error 
+
+if calculation includes literal values, java compiler can figure out the end result at compile time, and whether 
+it fits into the ariable, and won't throw an error if it does, a little confused about this behaviour, so just cast manually
+  ex 
+    byte var = (-128) / 2;
+
+casting 
+  byte minValue = (byte) Byte.MIN_VALUE; // int casted to byte
+
+

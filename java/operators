@@ -1,0 +1,39 @@
++
+  when used with numbers
+    + -> addition
+
+  when String + anything
+    + -> string concatenation
+
+  when char + char
+    + -> addition of the 2 byte representation of the chars, not concatenation
+
+    if you wanted concatenation do string concatenation
+      "" + char_var + char_var_2; // causes string concatenation because of ""
+
+reference table
+
+assets/operators_reference_table.png
+
+compound operators
+  -=
+    a -= b AND a = a - b have one difference
+    if we are doing lossy conversion, a -= b wont give error, where as a = a - b will give error
+
+    ex
+      int a = 2;
+      a -= 1.5; // no error
+      int a = 2;
+      a = a - 1.5; // lossy conversion error
+        have to cast
+          a = (int) (a - 1.5);
+
+
+    so -= is actually the short hand with casting
+      a -= 1.5;
+      in this case is actually the shorthand for
+        a = (int) (a - 1.5);
+
+
+ternary operator 
+  operand_1 ? operand_true : operand_false;

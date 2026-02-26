@@ -1,0 +1,2 @@
+Go allows only one `main()` function per package,
+  and by default all .go files in a folder belong to the same pacage (unless explicitly specified otherwise)

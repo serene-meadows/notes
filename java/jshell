@@ -1,0 +1,17 @@
+/list -> executed commands 
+/var -> all variables
+
+code block 
+  you can run muliple statemetns together inside { } 
+
+  {
+    int x = 10;
+    int y = 10;
+    System.out.println(x + y);
+  }
+
+  treats it whole as a code snippet, either all run or none
+  easier to manage blocks of code this way in jshell
+
+  variables declared inside { } only exist inside that block
+

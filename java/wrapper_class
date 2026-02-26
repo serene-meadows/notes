@@ -1,0 +1,26 @@
+
+Wrapper Class
+  Java provides a Wrapper Class for each of its 8 primitive types
+  A wrapper class provides simple operations and information about the primitive type
+
+  byte -> Byte       - 1 byte
+  short -> Short     - 2 bytes
+  char -> Character  - 2 bytes unsigned
+  int -> Integer     - 4 bytes
+  long -> Long       - 8 bytes
+  float -> Float     - 4 bytes
+  double -> Double   - 8 bytes
+  boolean -> Boolean - 1 byte
+
+  min/ max value
+    <Wrapper_Class>.MIN_VALUE
+    <Wrapper_Class>Integer.MAX_VALUE
+    ex
+      Integer.MIN_VALUE
+
+  num of bits
+    <Wrapper_Class>.SIZE
+    ex
+      Integer.SIZE
+
+
