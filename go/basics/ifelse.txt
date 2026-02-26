@@ -1,0 +1,27 @@
+if condition {
+  //
+}
+
+
+
+
+if condition {
+  //
+} else {
+  //
+}
+
+
+
+
+
+if condition {
+  //
+} else if condition {
+  //
+} else {
+  //
+}
+
+
+if a condition is met, the compiler doesn't check any other branch

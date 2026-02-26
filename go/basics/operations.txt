@@ -1,0 +1,15 @@
+division between integers is an integer which is truncated towards zero.
+to get a floating point answer, one of the operands should be a floating point number 
+  var ans float64 = 5 / 2 
+    // results in 2 not 2.5, 
+      // even though ans is a float, 5 / 2 is integral division 
+
+  var ans float64 = 5 / 2.0
+    // results in 2.5
+      // since one of the operands is a float 
+
+
+underflow with float 
+  if you divide a small float64 with a very large float (like MaxFloat)64
+    it will result in a answer that is so small that it cannot be captured in float64 and thus 
+    results in underflow and making the answer = 0.0 instead of the actuall answer

@@ -1,0 +1,52 @@
+import "fmt" -> format
+
+printing
+  // doesn't insert new line
+  fmt.Print("text")
+
+  // inserts new line
+  fmt.Println("line text")
+
+  // prints formatted string
+    // doesn't add new line char at end
+  fmt.Printf("formatted text just %d you \n", 4)
+
+    common verbs for formatted string
+      %v -> value
+      %T -> type of variable
+      %t -> bool
+      %d -> integer
+      %f -> float
+      %s -> string
+      %q -> quoted string
+        // example
+        // %s for "vikas \n" would give vikas and go to next line
+        // %q for "vikas \n" would give vikas \n written in text
+
+formatting
+  get formatted string, but not print to the console
+
+  `fmt.Sprintf()`
+  works exactly like Printf, but returns a string instead of printing it
+
+Error type
+  get Error type
+
+  `fmt.Errorf()`
+  works exactly like Printf, but returns an error object instead of printing it
+
+reading input 
+  to read from the terminal, you must pass a pointer so the function can modify variable's value
+
+  fmt.Scan(&variable)
+    // reads space-seperated values,
+    // stops reading at the first whitespace it encounters
+
+  fmt.Scanln(&variable)
+    // similiar to scan 
+    // stops readingwhen it his a newline (Enter Key)
+
+  fmt.Scanf("%d", &variable)
+    // reads input according to a specific format string
+  
+

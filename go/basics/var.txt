@@ -1,4 +1,6 @@
-syntax for declaring variables
+var -> mutable
+
+syntax for declaring var
   ex
     // uninitialzed variable
     var age int
@@ -15,9 +17,10 @@ syntax for declaring variables
       // it can only be used within a function
         // example cannot be used in packge("global") scope
    count := 0
+  
 
-
-variables declared without explicit initialization are zero-initialized
+zero initialzation
+  var declared without explicit initialization are zero-initialized
 
 variables have block scope
   blocks can be

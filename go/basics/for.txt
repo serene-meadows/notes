@@ -1,0 +1,42 @@
+syntax
+  for initialization; condition; post {
+    // code block
+  }
+
+break -> terminates the loop immediately
+continue -> skips the current iteration and moves to the next iteration of the loop
+
+c-style loop
+  for i := 0; i < 10; i++ {
+    // code block
+  }
+
+while loop
+  for i < 10 {
+    // code block
+  }
+
+infinite loop
+  for {
+    // code block
+  }
+
+range loop
+  slices/ arrays -> returns index, value
+  maps -> returns key, value
+  integers -> range 10 -> returns 0 .. 9
+
+iterating over a collection
+  numbers := []int{1, 2, 3, 4, 5}
+  for index, value := range numbers {
+    fmt.Printf("Index: %d, Value: %d", index, value)
+  }
+
+
+range over integers
+  for i := range 10 {
+    // code block
+  }
+    // range -> [0, 10)
+
+
