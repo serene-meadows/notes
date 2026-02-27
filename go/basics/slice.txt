@@ -1,0 +1,56 @@
+slices do not have a fixed length
+
+slices are references to underlying arrays
+they do not store any data themselves but provide a window into the array's elements
+
+slices can grow and shrink dynamically
+
+
+declaration
+  var sliceName []elementType // zero initialized to nil
+
+  var sliceName []int = []int{1, 2, 3}
+  var sliceName = []int{1, 2, 3}
+  sliceName := []int{1, 2}
+
+  // initialize a slice using make()
+  sliceName := make([]int, 5) // slice with len -> 5, cap -> 5 (defaults to len)
+  sliceName := make([]int, 5, 10) // slice with len -> 5, cap -> 10
+
+    // what are len and cap
+    len -> number of elements currently in the slice
+    cap -> number of elements in the underlying array
+           starting from the slice's first element
+           represents how much the slice can grow before it needs to allocate new memory
+
+
+  // slice from array
+  a := [5]int{1, 2, 3, 4, 5}
+  sliceName := a[startIndex:endIndex] // [startIndex, endIndex)
+
+
+len(sliceName)
+
+cap(sliceName)
+
+append
+  sliceName := []int{1, 2, 3}
+  sliceName = append(sliceName, 4, 5, 5, 6) // go on as long as you want
+
+
+copying a slice
+  sliceOrig := []int{1, 2, 3}
+  sliceCopy = make([]int, len(sliceOrigin))
+
+  copy(sliceCopy, sliceOrig)
+
+
+iterating
+  same as array
+
+indexing
+  same as array
+
+
+comparing slices
+
