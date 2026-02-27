@@ -1,0 +1,21 @@
+maps are a builtin datastructure that associate keys with values
+  each key must be unique within the map
+    map keys must be comparable
+      a type is comparable if the logical comparison operators (== and != can be applied to it)
+      its needed to test if a key already exists
+
+maps are unordered collections of key value pairs
+
+declaration
+  var mapName map[keyType]valueType // zero initialized to nil
+
+  mapName := map[keyType]valueType{
+    key1: value1,
+    key2: value2,
+  }
+
+  // using make
+  mapName := make(map[keyType]valueType)
+
+
+
