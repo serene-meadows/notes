@@ -19,16 +19,60 @@ declaration
 
     // what are len and cap
     len -> number of elements currently in the slice
-    cap -> number of elements in the underlying array
-           starting from the slice's first element
+    cap -> number of elements in the underlying array starting from the slice's first element
            represents how much the slice can grow before it needs to allocate new memory
 
 
-  // slice from array
-  a := [5]int{1, 2, 3, 4, 5}
-  sliceName := a[startIndex:endIndex] // [startIndex, endIndex)
+  // slicing an array
+    when you slice an array, you are creting a new slice header that points to a specific
+    segment of that array
+
+    a := [5]int{1, 2, 3, 4, 5}
+    sliceName := a[startIndex:endIndex] // [startIndex, endIndex)
+      // array owns the memory, the slice is juts a "window" into that memory 
+      ```golang
+        arr := [5]int{1, 2, 3, 4, 5}
+        s := arr[1:3] // [2, 3]
+      ```
+        Lenght -> 2 
+        Capacity -> 4 (from index 1 to end of array)
+
+        since array owns the memory, if you change s[0], arr[1] also changes
+
+  // slicing a slice 
+    when you slice a slice, you are creating a new slice header that points to the same 
+    underlying array that the first slice was using 
+    
+    both slices not point to the same original background array 
+
+    the new slice's capacity is limited by the capcity of the original slice, starting from 
+    the new starting point 
+      ```golang
+        originalSlice := make([]int, 3, 10) // len 3, cap 10
+        newSlice := originalSlice[1:3] // len 2, cap 9
+      ```
+
+  
 
 
+  // multi dimensionaly slices
+  matrix := [][]int{
+    {1, 2},
+    {3, 4, 5},
+    {6},
+  }
+
+  matrix := make([][]int, 3) // 3 rows
+  for i := range matrix {
+    board[i] = make([]int, i + 1) // cols varying in size
+  }
+    // len and capacity apply independently to outer and inner slices 
+      // len and cap of the outer slice refer only to the "rows"
+        // matrix := make([][]int, 3, 5)
+        // len -> 3 rows 
+        // capacity -> 5 rows
+      // len and cap of the inner slice refer to its own independent slice 
+      
 len(sliceName)
 
 cap(sliceName)
@@ -53,4 +97,13 @@ indexing
 
 
 comparing slices
+  sliceOrig := []int{1, 2, 3}
+  sliceCopy = make([]int, len(sliceOrigin))
 
+  copy(sliceCopy, sliceOrig)
+
+  // compare 
+  slices.Equal(sliceOrig, sliceCopy // true if equal
+
+slice operator
+  sliceName[low:high] // [low, high)

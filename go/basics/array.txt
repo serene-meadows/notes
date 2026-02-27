@@ -12,6 +12,21 @@ declaration
 
 
 
+  multi dimensional arrays 
+    var matrix [3][3]int = [3][3]int{
+      {1, 2, 3},
+      {4, 5, 6},
+      {7, 8, 9},
+    }
+
+    for i, row := range matrix {
+      for j, value := range row {
+        // code
+      }
+    }
+
+
+
 indexing
   arrayName[index] // zero indexed
 
@@ -69,10 +84,4 @@ comparing arrays
 
   array1 == array2 // evaluates to true, since array are value types 
 
-multi dimensional arrays 
-  var matrix [3][3]int = [3][3]int{
-    {1, 2, 3},
-    {4, 5, 6},
-    {7, 8, 9},
-  }
 
