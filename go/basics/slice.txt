@@ -96,7 +96,7 @@ indexing
   same as array
 
 
-comparing slices
+equality check
   sliceOrig := []int{1, 2, 3}
   sliceCopy = make([]int, len(sliceOrigin))
 

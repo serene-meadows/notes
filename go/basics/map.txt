@@ -9,6 +9,10 @@ maps are unordered collections of key value pairs
 declaration
   var mapName map[keyType]valueType // zero initialized to nil
 
+  var mapName map[keyType]valueType = map[keyType]valueType {}
+  var mapName = map[keyType]valueType {}
+
+
   mapName := map[keyType]valueType{
     key1: value1,
     key2: value2,
@@ -17,5 +21,65 @@ declaration
   // using make
   mapName := make(map[keyType]valueType)
 
+
+  // nested maps
+  outerMap := make(map[string]map[string]string) 
+  innerMap := make(map[string]string)
+    outerMap["map1"] = innerMap
+
+
+// set key, value
+mapName[key] = value
+
+// get value
+mapName[key]
+  // if a key doesn't exist, zero-value of valueType is returned
+
+  // there is another optional return-value that is returned along with mapName[key] apart from the value
+  ```golang
+    // without using optional return-value
+    value := mapName["string-key"]
+      // gets value, zero-value of valueType if key doesn't exist
+
+    // with using optional return-value
+    value, ok := mapName["string-key"]
+      // ok
+        // true -> if key exists
+        // false -> if key doesn't exist
+
+  ```
+
+// delete key, value
+delete(mapName, key)
+
+// clear map
+clear(mapName)
+
+
+// equality check
+  mpas.Equal(mapName1, mapName2) // trye if equal
+
+// iteration
+  for k, v := range mapName {
+    // code
+  }
+
+
+// confusing behavioud - reading/ writing from a nil map
+  var mapName map[keyType]valueType // zero initialized to nil
+
+  // nil map - read
+    var mapName[string]string
+      // mapName is nil right now
+    val := mapName["key"]
+      // val is the zero-value of valueType (string) since the key doesn't exist
+      // so basically you can read from a nil map
+
+  // nil map - write
+    cannot create a key, value pair in a nil map
+
+
+
+len(mapName)
 
 
