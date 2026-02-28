@@ -1,0 +1,226 @@
+functions help with modularity and code reusability
+
+declaration
+  when arguments are passed to a function, they are copied into the function's parameters
+    modifications to the parameters inside the function do not affect the original arguments
+  
+  func name(parameters list) { }
+    ```go 
+      func name(a int, b string) { }
+    ```
+
+  // just 1 return type
+  func name(parameters list) returnType {
+    // code block
+    // return value
+  }
+    ```go
+      func add(a, b int) int { return a + b }
+    ```
+
+  // multiple return
+    func name(parameters list) (returnType list) { }
+      ```go 
+        func name(a, b int, c string) (int, string) { return a + b, c }
+
+        a, b := name(1, 2, "vikas")
+      ```
+
+      // you can use named return parameters too
+      // this treats them like variables initialized to their zero-value inside the function
+      example
+        func name(width, height int) (area int) {
+          area = width * height
+          
+          return
+            // you can use `return area` as well
+            // go compiler is smart enough to know which variables to return 
+            // when you use just `return` when using named returns
+
+        }
+
+    // one of the main use cases of multiple return is to return an error
+      when we don't have an error, in return statement pass nil
+      if we have an error, we pass zero-value(convention) for other return types, and error for error 
+        example 
+          return types -> string, error 
+          // no error 
+            return "vikas", nil 
+          // error 
+            return "", errors.New("error message") 
+
+      // example 
+      ```go
+        func StrictCompare(a, b int) (string, error) {
+          if (a > b) {
+            return "a > b", nil
+          } else if (a < b) {
+            return "a < b", nil
+          } else {
+            return "", errors.New("unable to tell which is strictly greater")
+          }
+        }
+
+        result, err := StrictCompare(3, 2)
+        if err != nil {
+          fmt.Println("error: ", err)
+        } else {
+          fmt.Pritnln(result)
+        }
+      ```
+
+  // grouping parameters
+  if mutiple consecutive parameters share the sme type, you only need to write the type
+    once at the en of the group
+    // instead of (x int, y int, z int)
+    func name(x, y, z int, name string) {}
+
+  // variadic functions 
+    allow you to create functions that can accept variadic parameters
+      variadic parameters are -> 0 or more parameters
+      its like a list
+      they must be the last parameter 
+
+      they are defined by prefixing the type of the last parameter with an ellipsis (...) [0 or more]
+    
+    func name(param1 typ1, param2 type2, param3 ...type3)
+    
+    ```go 
+      func sum(printMe string, nums ...int) int {
+        fmt.Println(printMe)
+
+        total := 0
+         
+         for _, v := range nums {
+           total += v
+         }
+
+         return total
+      }
+    ```
+
+    // passing slices to variadic functions 
+      if you have a slice of values that you want to pass to a variadic function 
+        you can do so by appending ellipsis(...) to the slice when calling the function 
+        and this syntax unpacks the slice into individual arguments 
+
+          i.e. to unpack a slice we use the ellipsis which destructures the slice into individual elements 
+
+          `sliceName...`
+            btw variadic argument syntax -> `variableName ...typeName`
+      
+      ```go
+
+        func sum(nums ...int) int {
+          total := 0
+           for _, v := range nums {
+             total += v
+           }
+           return total
+        }
+
+        nums := []int{1, 2, 3}
+        total := sum(nums...)
+
+      ```
+
+anonymous function/ closures/ function literals 
+  they are functions deined without a name directly in line where they are used 
+
+  // example - calling an anonymous function 
+    ```golang 
+      func() {
+        fmt.Println("hello from anonymous function")
+      }() // the () call the function direcly
+    ```
+
+  // example - assigning the anonymous function to a variable 
+    ```golang 
+      greet := func() {
+        fmt.Println("hello from anonymous function")
+      }
+
+      greet()
+    ```
+
+nested anonymous function 
+  you cannot declare a named function inside another function,
+  however, because functions are first class citizens, you can achieve nesting by using anonymous functions
+    you dont have to assign to a variable, but should be anonymous
+
+  ```
+    func Outer() {
+        fmt.Println("Inside Outer")
+
+        nested := func() {
+            fmt.Println("Inside Nested")
+        }
+
+        nested()
+          // could also have just used `()` to call directly with anonymous function 
+          // without needing to assign to a variable
+    }
+  ```
+
+functions as types (i.e. functions are first class citizen/ first class objects)
+                    // first class citizens ca 
+                      // > be assigned to a variable 
+                      // > be passed as an argument 
+                      // > be return from a function 
+                      // > be stored in data structures
+
+  example - assigning to a variable
+    let there be a function add
+      ```golang 
+        func add(a, b int) int {
+          return a + b
+        }
+      ```
+
+     assigning add function to another variable 
+     ```golang 
+        operation := add 
+
+        // using the new function
+        fmt.Println(operation(1, 2))
+     ```
+
+    example - function passed as a parameter
+      ```golang
+        func applyOperation(x, y int, operation func(int, int) int) int { 
+            // operation -> func that takes 2 integers as a parameter 
+            //                and returns an int
+          return opertions(x, y)
+        }
+      ```
+
+        ```golang
+          func add(x, y int) int {
+            return x + y
+          }
+          
+          ans := applyOperation(1, 2, add)
+        ```
+
+    example - function returned from a function
+      ```golang 
+        func createMultipler(factor int) func(int) int {
+          return func (x int) int {
+            return x * factor
+          }
+        }
+      ```
+
+        ```golang
+          multiplyBy2 := createMultipler(2)
+          ans := multiplyBy2(6)
+        ```
+
+
+public functions start with a UPPER case 
+  i.e. the function is available for other packages to import and use 
+
+private functions start with a lower case   
+  i.e. the function cannot be used by other packages
+
+

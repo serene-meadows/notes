@@ -1,0 +1,16 @@
+os.exit 
+  is a fucntion that terminates the program immediately with the given status code 
+
+  its used for situations where you need to halt the execution of the program completely,
+  without deferring any functions or performing any cleanup operations 
+
+  the function takes an integer argument, which represent the status code returned to the 
+  operating system
+  conventionaly a status code of zero indicates successful completion,
+  while any non-zero status code indicates an error or abnormal termination
+
+
+syntax
+  import "os"
+
+  os.Exit(1) // exits with a status code of 1

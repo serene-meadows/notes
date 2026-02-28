@@ -25,3 +25,20 @@ if condition {
 
 
 if a condition is met, the compiler doesn't check any other branch
+
+go allows you to execute a short initialization statment before evaluating the boolean condition 
+  its useful, because it keeps the variable local to the scope 
+
+  if assignment; condition {
+    // codeblock
+  }
+
+  ```go
+    if val := getVal(); val > 10 {
+        fmt.Println(val, "is large")
+    } else {
+        fmt.Println(val, "is small")
+    }
+
+    // fmt.Println(val) // ERROR: val is undefined here!
+  ```

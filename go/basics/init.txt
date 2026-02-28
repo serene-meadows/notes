@@ -1,0 +1,77 @@
+init function
+  is a special function that can be declared in any package
+  its used to perform initialization tasks for the package before it is used
+
+  go executes the init function automatically when the package is initialized
+  this happens before the `main` function is executed
+  the init fucntion is executed once per package, even if the package is imported multiple times
+    int multiple files
+
+  order of exeution
+    within a single package
+      go eecutes init functions in the order in which they are declared
+
+      if there are multiple init functions
+          they execute sequentially following their textual order in the package file
+
+its used
+  to initialize variables
+  setup operations
+  registering components or configurations
+  intializing state required for the package to function
+
+  one use case is
+    open database connections
+    perform schema migrations needed by the package
+
+
+declaration
+  the init function hsa no parameters and no return values
+
+  example
+    ```go
+      package main
+
+      import "fmt"
+
+      func init() {
+        fmt.Println("Initializing package")
+      }
+
+      func main() {
+        fmt.Println("Inside the main function")
+      }
+    ```
+
+    // output
+      Initializing package
+      Inside the main function
+
+
+  example - multiple init functions
+    ```go
+      package main
+
+      import "fmt"
+
+      func init() {
+        fmt.Println("Initializing package - 1")
+      }
+      func init() {
+        fmt.Println("Initializing package - 2")
+      }
+      func init() {
+        fmt.Println("Initializing package - 3")
+      }
+
+      func main() {
+        fmt.Println("Inside main function")
+      }
+    ```
+    // output
+      Initializing package - 1
+      Initializing package - 2
+      Initializing package - 3
+      Inside main function
+
+

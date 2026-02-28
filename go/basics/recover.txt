@@ -1,0 +1,67 @@
+recover is a built-in function that is used to regain control of a panicking go routine
+its only useful inside defer functions and is used to manage behaviour of a panicking go routine
+  to avoid abrupt termination
+
+
+its a builtin function that stops the propogation of a panic and returns the value passed to the panic
+  and allows the program the continue executing
+
+  the recover function is called inside a deferred function
+
+  so if the current go routine is panicking, recover stops the panic and returns the value passed
+    to the panic function it is returning
+      note, the value is only returned if the function is panicking
+      if not panicking, recover() returns nil
+
+
+example
+  ```go
+    func main() {
+      process()
+      fmt.Println("return from main")
+    }
+
+    func process() {
+      defer func() {
+        if r := recover(); r != nil {
+          fmt.Println("Recovered", r)
+        }
+      }()
+
+      fmt.Println("Start process")
+
+      panic("panicking")
+
+      // fmt.Println("End process")
+      // commented because statements after panic() is called
+      // are not reachable
+    }
+  ```
+
+  // output 
+    Start process
+    Recovered panicking
+    return from main
+
+  panic() gets executed 
+    statements after panic() are not executed because function is panicking 
+  defer gets executed 
+  recover gets executed 
+    since function is panicking
+      panicking stops
+      recover returns panic message 
+  control jumps back up in the main() and process continues executing
+
+
+use cases 
+  graceful recovery 
+  cleanup
+  logging and reporting 
+
+best practices
+  use with defer 
+    because tehnically otherwise it will alwasys give nil 
+
+  avoid silent recovery
+
+  avoid ovreuse

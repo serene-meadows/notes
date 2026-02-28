@@ -1,0 +1,96 @@
+panic
+  is a builtin function that stops normal execution of a function immediately
+
+  when a function encounters a panic, it stops executing its current activities, 
+    unwinds the stack, and executes any deferred functions (defer statemnts run before panic statment)
+
+  this process continues up the stack until all functions have returned, at which point 
+    the program terminates
+
+  better explanation
+    a panic is a built-in function that stops the ordinary flow of control and begins panicking
+    when the function panic is called, the current function stops execution and any deferred functions
+    in that function are executed, and then the control returns to the calling function 
+    this process continues up the stack until all the functions in current go routine have returned 
+    at which point the program crashes and prints the panic message
+
+a panic, is typically used to signal an unexpected error condition where the program cannot proceed
+  safely
+
+its called with an optional argument of any type, which represents the value associated with the panic 
+
+statments writen after panic are not executed
+
+syntax
+  panic(interface())
+
+    // interface 
+      interface means that you can input any value of any type as an argument for this function
+  
+  example 
+    ```go
+      func process(input int) {
+        if input < 0 {
+          panic("input must be a non-negative number")
+          // any code here onwards is not executed
+        }
+
+        fmt.Println("processing input", input)
+      }
+    ```
+
+    // calling process(10) and process(-1) in main 
+    // output 
+      processing input: 10
+      panic: input must be a non-negative number
+
+      goroutine 1 [running]:
+      main.process(0x124bcd70e1e0?)
+              /home/vikasgoudar/Documents/serene-meadows/github/notes/go/panic.go:12 +0x8f
+      main.main()
+              /home/vikasgoudar/Documents/serene-meadows/github/notes/go/panic.go:7 +0x25
+      exit status 2
+
+    if panic, gives error stack
+
+using panic with defer statments 
+  defer statements are run as each function exits 
+  then at the end the desc is printed
+
+  ```go
+    func main() {
+      process(10)
+      process(-1)
+    }
+
+    func process(input int) {
+      defer fmt.Println("deferred 1")
+      defer fmt.Println("deferred 2")
+
+      if input < 0 {
+        fmt.Println("before panic")
+        panic("input must be a non-negative number")
+        // fmt.Println("after panic")
+        // defer fmt.Println("deferred 2")
+        // both statements are unrecheable
+      }
+
+      fmt.Println("processing input:", input)
+    }
+  ```go
+
+  // output 
+    processing input: 10
+    deferred 2
+    deferred 1
+    before panic
+    deferred 2
+    deferred 1
+    panic: input must be a non-negative number
+
+    goroutine 1 [running]:
+    main.process(0x1e6ed73da1e0?)
+            /home/vikasgoudar/Documents/serene-meadows/github/notes/go/panic.go:16 +0x167
+    main.main()
+            /home/vikasgoudar/Documents/serene-meadows/github/notes/go/panic.go:7 +0x25
+    exit status 2

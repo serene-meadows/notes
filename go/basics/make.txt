@@ -1,0 +1,16 @@
+slices, maps and channels are headers that point to underlying data (like an underlying array for slice)
+if you just declare them using var, the header is empty and points to nil 
+
+make creates that underlying memory and sets up the header so you can start using the object
+directly 
+
+slice 
+  make([]type, length) // capacity is inferred to = length
+  make([]type, length, capacity)
+
+maps
+  make(map[keyType]valueType)
+  make(map[keyType]valueType, capacity)
+
+channels 
+  make(chan type, bufferSize)

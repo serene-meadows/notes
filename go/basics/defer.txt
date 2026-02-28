@@ -1,0 +1,84 @@
+defer
+  its a mechanism that allows you to postpone the execution of a function until the surrounding
+    function returns 
+
+  it can be used to ensure that certain cleanup actions or finalizing tasks are performed
+    regardless of how the funcion exists (normally or panics)
+
+  so, defer statement invokes a function whose execution is deferred to the moment 
+    the surrounding function returns 
+      either because the surrounding function executed a return, reached the end of its function
+        body, or because the corresponding go routines is panicking 
+          go routines -> functions that run in the background, which are running concurrently
+            in the background, and they are not part of the main thread
+          
+
+syntax 
+  the deferred statement is followed by a function or method call 
+  the function call is evaluated immediately, but the execution is deferred
+
+  so the defer function is always part of another function (i.e. enclosed by another function)
+  
+  ```go
+    func process() {
+      defer fmt.Println("Deferred statement executed")
+      fmt.Println("Normal execution statment")
+    }
+
+    // output 
+      // Deferred statement executed 
+      // Normal execution statement
+  ```
+  
+  remember, you can use and call anonymous functions too, just has to be a function
+    example 
+      ```go
+        defer func() {
+          fmt.Println("just checking")
+        }()
+      ```
+
+  we can have multiple deferred statements in a function 
+    they will be executed in a LIFO
+
+    ```go
+      func process() {
+        defer fmt.Println("deferred statement 1 execution")
+        defer fmt.Println("deferred statement 2 execution")
+
+        fmt.Println("normal statement execution")
+      }
+    ```
+    output
+      // normal statement execution
+      // deferred statement 2 execution
+      // deferred statement 1 execution
+
+  imp thing to know
+  arguments to deferred functions are evaluated immediately when the defer statement is encountered 
+
+    ```go
+      func process(num int) {
+        defer fmt.Println("deferred statement 1 execution", num)
+        num++
+        defer fmt.Println("deferred statement 2 execution", num)
+        num++
+
+        fmt.Println("normal statement execution", num)
+      }
+
+      
+    ```
+    // outut on calling process(0)
+      normal statement execution 2
+      deferred statement 2 execution 1
+      deferred statement 1 execution 0
+
+
+practical use case 
+  resources cleanup
+      ensuring resources like files or database connections are closed 
+
+  unlocking mutexes
+
+  logging and tracing 

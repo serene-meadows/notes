@@ -12,7 +12,7 @@ printing
   fmt.Printf("formatted text just %d you \n", 4)
 
     common verbs for formatted string
-      %v -> value
+      %v -> generic placeholder for value
       %T -> type of variable
       %t -> bool
       %d -> integer
