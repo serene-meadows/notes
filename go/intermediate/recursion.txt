@@ -1,0 +1,44 @@
+recursion
+  is a fundamental concept it breaks down a problem into smaller subproblems of the same type, 
+  in programming, where a function calls itself directly or indirectly 
+    until they become simple enough to solve directly
+
+  in every recursion 
+    there is a base case where the function stops calling itself and returns a value
+
+    without a base case, the recursion would continue indefinetely, leading to a stack overflow
+
+  apart from the base case we have a recursive case,
+    this is where the function calls itself, with a simpler input to make the progress towards 
+    the base case 
+
+
+example - factorial 
+  ```go
+    func factorial(n int) int {
+      // base case
+      if n == 0 {
+        return 1
+      }
+
+      // recursive case
+      return n * factorial(n-1)
+    }
+  ```
+
+
+usecases
+  useful in mathematical algorithms 
+  useful in tree and graph traversal 
+  useful in divide and conquer algorithms 
+
+considerations 
+  its comparatively less efficient that iterative solutions because of the overhead of function calls 
+  it has the potential for stack overflow 
+
+
+sometimes recursive solutions can be optimized using techniques like memoization,
+  memoization 
+    cachine results of expensive function calls 
+
+
