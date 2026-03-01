@@ -1,0 +1,17 @@
+closures
+  allow functions to capture and manipulare variables that are defined outside of their body
+    the variable persist as long as the closure itself is referenced 
+    
+  closures work with lexical scoping, meaning they capture variables from their surrounding context
+    lexicla scoping 
+      when you use a variable, go looks for its definition in a specific order, moving from inside to out 
+        1. local scope: inside the current function or block {}
+        2. parent scope: inside the function that contains the current function 
+        3. package scope: variables defined at the top of file/ package 
+        4. universe scope: built-in types like int or true
+
+  this allows closures to access variables even after the outer function has finished execution 
+
+```go
+  
+```
