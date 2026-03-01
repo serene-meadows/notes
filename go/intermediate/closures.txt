@@ -1,4 +1,6 @@
 closures
+  closures in go provide a powerful way to create functions that encapsulate state and behaviour
+
   allow functions to capture and manipulare variables that are defined outside of their body
     the variable persist as long as the closure itself is referenced 
     
@@ -12,6 +14,147 @@ closures
 
   this allows closures to access variables even after the outer function has finished execution 
 
-```go
+  ```go
+      func main() {
+        sequence := adder()
+
+        fmt.Println(sequence())
+        fmt.Println(sequence())
+      }
+
+      func adder() func() int {
+        i := 0
+        fmt.Println("previous value of i: ", i)
+
+        return func() int {
+          i++
+          fmt.Println("added 1 to i")
+          return i
+        }
+      }
+  ```
+  // output 
+    previous value of i:  0
+    added 1 to i
+    1
+    added 1 to i
+    2
   
-```
+  behaviour 
+    i is NOT resetting to 0 every time
+    the value of i is stored in a state, and the value of i is continuosly getting updated with 
+      every run, with every execution of sequence 
+ 
+  going over this program and what it does 
+    we have a function adder which returns another function 
+      inside the adder function we have a variable i initialized to zero 
+      this variable `i` is scoped to the adder function 
+
+      we print the previous value of i, that is the value of i that is initialized inside the adder 
+      function and it's initiazled to zero 
+        the fmt.Println("previous value of i: ", i) is executed every time the adder function is called 
+        thats why that statement print the value only once in the output, since the adder function()
+        in main() is only called once (to return function to assign to sequence)
+          we called adder for the first tie, it inializes i to zero and returns the inner function 
+
+      now when we call the returned fucntion (which is stored inside sequence)
+        it increments i, and returns the updated value 
+          i exists inside the memory
+          i is not getting initialized again and again, 
+          every time sequence() is called, the i value is incremented by 1
+
+      since i is captured by the returned function, its value is persists between calls to the 
+      returned function 
+        therefore, subsequent calls to the sequence function continue to increment i from the value it 
+        had from the previous calls 
+
+      when you call the adder fucntion again, it initializes a new variable i to zero, and returns 
+      a new closure that operates independently of the first one 
+
+        ```go 
+
+          func main() {
+            sequence := adder()
+            sequence2 := adder()
+
+            fmt.Println(sequence())
+            fmt.Println(sequence())
+
+            fmt.Println(sequence2())
+            fmt.Println(sequence2())
+          }
+
+          func adder() func() int {
+            i := 0
+            fmt.Println("previous value of i: ", i)
+
+            return func() int {
+              i++
+              fmt.Println("added 1 to i")
+              return i
+            }
+          }
+        ```
+          // output 
+            previous value of i:  0
+            previous value of i:  0
+            added 1 to i
+            1
+            added 1 to i
+            2
+            added 1 to i
+            1
+            added 1 to i
+            2
+
+      the i initialization is called everytime adder() is called 
+        thats why 
+          fmt.Println("previous value of i: ", i)
+          is only called twice, at the places where we called adder() to return a function
+            each one of the returned functions mentain a seperate independent state 
+  
+
+    another example 
+      ```go 
+        func main() {
+          subtracter := func() func(int) int {
+            countdown := 99
+            return func(x int) int {
+              countdown -= x
+              return countdown
+            }
+          }()
+
+          // using closure subtracter
+          fmt.Println(subtracter(1))
+          fmt.Println(subtracter(2))
+        }
+      ```
+      // output 
+        98
+        96
+
+      since the returned funcions retains the state of the anonymous functino that returned it 
+      the countdown variable persists between subsequent subtracter() calls 
+
+      here 
+        subtracter is a function returns another function 
+        the return function captures the variable count from its surrounding context 
+        the surrounding context is the subtractor function 
+        each time the returned function is called 
+          it modifes and returns the update value of the captured variable - countdown 
+
+
+practical use case 
+  closures are useful for creating cunctions that maintain state across multiple calls without exposing the state directly 
+  
+  They help encapsulate functionality and data, allowing for cleaner and more modular code.
+
+  Closures are commonly used in callback functions, where they capture variables to provide context or
+  maintain state during asynchronous operations.
+
+considerations 
+  closures can keep variables alive longer than expected if they hold references to large objects or resources 
+  in that case, we have to consider the memory usage and resource consumption 
+
+  care must be taken when using closures in concurrent programs to avoid race conditions 
