@@ -1,0 +1,136 @@
+the fmt package in go is a fundamental pacakge that provides formatted input output functions 
+  it is used for printing and formatting strings, numbers and other data types
+
+
+key functions of fmt package 
+  Printing functions 
+    Print()
+    Println()
+    Printf()
+
+  Formatting functions 
+    Sprint()
+    Sprintf()
+    Sprintln()
+
+  Scanning functions 
+    Scan()
+    Scanf()
+    Scanln()
+
+  Error formatting functions 
+    Errorf()
+
+
+Printing 
+  sends output to the console 
+
+  Print()
+    Spaces: Only added between two arguments if neither of them is a string.
+    Newline: It does not add a newline at the end.
+
+  Println()
+    Spaces: Always adds a space between every argument.
+    Newline: Always adds a \n at the very end.
+
+  Printf()
+    prints formatted string 
+    use formatting verbs 
+      example 
+        ```go
+          fmt.Printf("%d %s", 32, "vikas")
+        ```
+
+
+formatting functions 
+  returns a string that you can store in a variable
+
+  Sprint()
+    adds spaces between the operand only if neither is a string
+    example 
+      ```go
+        s := fmt.Sprint("user: ", name, age) // no space between "user: " and name, space between name and age
+      ```
+
+  Sprintln()
+    just like Sprint, but it always adds spaces between operand and appends a newline at the end of the string 
+      ```go 
+        s := fmt.Sprintln("vikas", "goudar")
+      ```
+
+  Sprintf()
+    uses formatting verbs 
+    ```go 
+      s := fmt.Sprintf("vikas is a %s", stringName)
+    ```
+     
+
+scanning functions 
+  we need to pass the address of the variables, we cannot pass the variable directly because in go, copy is passed in function call 
+  Scan()
+    it takes any type of value as its argument, and its a variadic parameter (any number of arguments)
+
+    picks up space-seperated values
+    treats newlines as spaces (keeps waiting until enough values to fill arguments, even if user keeps pressing Enter)
+
+    example 
+      ```go 
+        var name string 
+        var age int
+        fmt.Scan(&name, &age)
+      ```
+
+  Scanln()
+    similar to Scan, but it stops at a newline 
+    if the user presses Enter before all variables are filled, it stops and leaves the remaining variables empty
+
+    example 
+      ```go 
+        var name string 
+        var age int
+        fmt.Scanln(&name, &age)
+      ```
+
+      if i only give "vikas" and press enter 
+        name will be initialized to "vikas"
+        age, will remain zero-initialized
+  
+  Scanf()
+    scans text from standard input into arguments as determined by the format specifier
+
+    example 
+      ```go 
+        var age int 
+        fmt.Scanf(", %d", &age)
+      ```
+      
+      input should match this format, and the values are stored into the specified arguments
+        input shold match the exact format
+
+
+error formatting functions 
+  formats errors according to a format specifier and returns the string as an error type that satisfies the error interface
+
+  example 
+    ```go 
+      func checkAge(age int) error {
+        if age < 18 {
+          return fmt.Errorf("Age %d is too young to drive", age)
+        }
+        return nil
+      }
+
+      // in main 
+      func main() {
+        err := checkAge(15)
+        if err != nil {
+          // code block
+        } 
+      }
+    ```
+      
+
+    
+
+    
+

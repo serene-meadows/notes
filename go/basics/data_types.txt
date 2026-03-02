@@ -12,6 +12,7 @@ data types
   functions
   channels
   json
+  error interface
   text and html templates
 
 default/ zero values 
@@ -41,6 +42,8 @@ default/ zero values
 
   json -> when unmarshalling into a struct, 
             its fields are zero initialized 
+
+  error interface -> nil
 
   // TODO: text and html template zero initialization
 

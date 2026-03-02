@@ -1,5 +1,6 @@
 // general formatting verbs
   %v  -> Prints the value in the default format
+  %v  -> the value in a default format with field names
   %#v -> Prints the value in Go-syntax format // refers to the format in which values are represented in go code
   %T  -> Prints the type of the value
   %%  -> Prints the % character
