@@ -1,0 +1,45 @@
+// general formatting verbs
+  %v  -> Prints the value in the default format
+  %#v -> Prints the value in Go-syntax format // refers to the format in which values are represented in go code
+  %T  -> Prints the type of the value
+  %%  -> Prints the % character
+
+
+// width is used often in explanation
+    This is the minimum total number of characters the entire output should take up, 
+    including the digits, the decimal point, and any spaces.
+
+
+// integer formatting verbs
+  %b  -> base 2
+  %d  -> base 10
+  %+d -> base 10 and always show sign
+  %o  -> base 8
+  %O  -> base 8, with leading 0o
+  %x  -> base 16, lowercase
+  %X  -> base 16, uppercase
+  %#X -> base 16, with leading 0x
+  %4d -> pad with spaces (width 4, right justified)
+  %-4d -> pad with spaces (width 4, left justified)
+  %04d -> pad with zeroes (width 4)
+
+
+// string formatting verbs
+  %s  -> prints value as plain string
+  %q  -> prints value as double quoted string
+  %8s -> prints the value as plain string (width 8, right justified)
+  %-8s -> prints the value as plain string (width 8, left justified)
+  %x  -> prints the value as hex dump of byte values
+  % x -> prints the value as hex dump with spaces
+
+
+// boolean formatting verbs
+  %t  -> value of the boolean opeartor in true or false
+
+
+// float formatting verbs 
+  %e  -> scientific notation with 'e' as exponent 
+  %f  -> decimal point, no exponent 
+  %.2f -> default width, precision 2
+  %6.2f -> width 6, precision 2 
+  %g exponent as needed, only necessary digits
