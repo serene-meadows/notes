@@ -1,1 +1,45 @@
+escape sequences
+  \n
+    new line 
+      it autmatically goes to the first character in the new line 
+        in old typewriters you had to do both \n\r but now default behaviour of \n is sufficient
+  \t 
+    tab
+  \r 
+    carriage return
+      moves cursor back to beginning of current line, without moving to a new line 
+        sometimes environments (like go playground) which are not real interactive terminals don't support 
+        terminal cursor movment, they just buffer the program output and print it out, so they will interpret
+        \r like \n only
+  \b
+    backspace
+      moves cursor one position back (to the left)
+      does not autmatically delete a character
+        if you enter any further characters it will override and move on right
+
+string
+  is a sequence of bytes (usigned 8bit values)
+  strings are immutable 
+
+declaration 
+  message := "hello world"  
+  rawMessage := `hello world \n`
+    ` (backticks) are used to declare raw string literals 
+      a raw string literal is a string where escape sequences are not prcoessed
+        that means characters like \n are treated as literal text not special commands
+
+strings are like an array of unicode characters 
+each unicode character in go is called a Rune
+  Rune is an integer value that represent an unicode character
+
+len(stringName)
+  \n is counted as 1 character, when it is interpretted as an escape sequence
+
+indexing
+  just like arrays, we can access characters of a string by indexing 
+  accessing a character at a specific index
+    returns its byte value 
+
+string concatenation
+
 
