@@ -1,1 +1,16 @@
-.
+single server setup
+  [ user (web app, mobile app) ] <-> [ dns ]
+     |
+     |
+     ↓
+  [ Web Server ]
+
+  Request Cycle
+    Users access servers using domain names
+      DNS is a paid service provided by a 3rd party, and not hosted on our servers
+
+    IP address is returned to the browser/ mobile app
+
+    HTTP requests are sent to the IP adress
+
+    The server returns HTML pages or JSON response for rendering
