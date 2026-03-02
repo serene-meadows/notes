@@ -1,0 +1,22 @@
+pointer
+  a pointer is a variable that stores the memory address of another variable 
+  pointer variables have their specific types 
+    a pointer could be an integer pointer, floating point pointer, string pointer, so on...
+
+use cases
+  modify the value of a variable indirectly
+  we can pass large data structures efficiently between functions using pointers 
+  manage memory directly for performance reasons
+
+pointer operations 
+  limited to referencing (&) and dereferencing (*)
+
+  go doesn't support pointer arithmetic like c/ c++
+  
+
+declaration
+  var ptr *int // zero-value -> nil
+
+  var a int = 1
+  ptr = &a  // ptr now points to a's memory address
+
