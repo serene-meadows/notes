@@ -1,0 +1,188 @@
+structs
+  they are composite data types that allow you to group together different types of variables under a single name
+
+  they are similar to classes in Object Oriented languages, but they are more light weight
+
+  they dont support inheritence
+
+
+go allows you to define structs and functions (as variables) inside main
+but you cannot define methods inside main (since go doesn't support nested functions)
+  also
+    when you define a type inside main, it is local to that function 
+      no other function in your package can use that struct
+
+so when defining types in go, define them in package scope
+
+
+declaration
+  ```go
+    type structName struct { // keywords -> type, struct
+      // fields
+      firstName string
+      lastName string
+      age int
+    }
+  ```
+
+  initialization
+    // using a struct literal
+    p := Person {
+      firstName: "vikas"
+      lastName: "goudar"
+      age: 30
+    }
+      -- if we omit a field, it will be initialized to its zero-value
+
+    p1 := Person {
+      firstName: "rajani"
+      lastName: "goudar"
+    }
+      -- age initialized to its zero-value (= 0)
+
+  // anonymous structs
+    structs without a predefined type name
+    usefull for temporary data structures
+
+    // using var
+    ```go
+      var user struct {
+        username string 
+        email string
+      }
+
+      user = struct {
+        username string 
+        email string 
+      } {
+        username "vikas"
+        email "some@som@.com"
+      }
+    ```
+
+    // using :=
+    ```go
+    user := struct {
+      username string
+      email string
+    } {
+      username: "vikas"
+      email: "something@something.somewhere"
+    }
+    ```
+
+
+  accessing fields
+    use . operator
+      example
+        ```go
+          structName.fieldName
+        ```
+
+
+"associating" methods to structs 
+  methods are functions associated with a specific type 
+  methods are defined with a receiver, which is the struct type upon which the method operates 
+
+  You can only associate a method with a type defined in the same package
+
+  unlike other languages, we cannot define methods inside struct declaration
+    why? 
+      -> for seperation of concerns betweem data type and methods (behaviour)
+      -> this approach allows methods to be defined for any type, not just structs 
+
+  there are two ways for receiver 
+    > value receiver (passes copy)
+    > pointer receiver (passes address)
+
+  // defining struct 
+
+    ```go 
+      type Person struct {
+        firstName string 
+        lastName string 
+        age int
+      }
+
+      p := Person {
+        firstName: "vikas"
+        lastName: "goudar"
+        age: 0
+      }
+    ```
+  // defining method - value receiver
+    
+    ```go 
+      func (p Person) fullName() string {
+        return p.firstName + p.lastName
+      }
+    ```
+
+  // calling the method 
+  ```go 
+    p.fullName()
+  ```
+
+  when you use a "norma" receiver (like (u User)), Go makes a complete copy of the struct every time you call the method 
+  thus, 
+    its read-only
+    you can "change" a field inside the method, but you are only changing the field of the copy 
+
+    although this makes it safer, since the original variable remains untouched, it does make it slow for large structs 
+      since you have to copy the whole struct
+
+  to modify the original struct, you have to use a pointer reciever (like (u *User))
+    go passes the memory address of the original struct 
+      any changes you ake inside the method happen directly to the original data 
+      its faster, because go only passes a small memroy address, no matter how big the struct is 
+
+  // defining method - pointer receiver
+    ```go 
+      func (p *Person) incrementAgeBy1() {
+        p.age++
+      }
+    ```
+
+    // calling 
+      ```go
+        p.incrementAgeBy1()
+      ```
+
+embedding 
+  go supports embedding structs within structs 
+  this allows for creating a composition of structs 
+
+  // creating struct 
+  ```go 
+    type Address struct {
+      city string 
+      country string 
+    }
+
+  // embedding struct-Address into struct-Person 
+    // modif
+  ````go 
+    type Person struct {
+      firstName string 
+      lastName string 
+      age int
+      address Address
+    }
+  ````
+    // defining a person 
+    ````go 
+      p := Person {
+        firstName: "vikas"
+        lastName: "goudar"
+        age: 0
+        address: Address {
+          city: "hyd"
+          country: "ind"
+        }
+      }
+    ````
+      // to address a field in p-address
+      ````go 
+        p.address.city
+      ````
+
