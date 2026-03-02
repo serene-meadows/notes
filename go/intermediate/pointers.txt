@@ -19,4 +19,42 @@ declaration
 
   var a int = 1
   ptr = &a  // ptr now points to a's memory address
+      // &var -> gives the address of the var in RAM
 
+  fmt.Println(*ptr) // dereference - prints the value at the memory address
+  fmt.Println(ptr) // prints the memory address
+
+passing pointer to a function
+  whenever you pass a variable to a function, a copy of that variable is passed 
+  thus to modify the variable, you must pass the memory address of that variable
+  ```go
+    func modifyValue(ptr *int) {
+      // increment the value at the ptr
+      *ptr++
+    }
+
+    a := 10
+    ptr := &a
+    modifyValue(ptr)
+    fmt.Println(a) // 11
+  ```
+
+go also has a unsafe pointer 
+  Go normally guarantees:
+    Type safety
+    Memory safety
+    Garbage collector protection
+    No pointer arithmetic
+
+  Using unsafe lets you:
+    Perform pointer arithmetic
+    Reinterpret memory as another type
+    Break type safety
+    Access private struct fields
+    Potentially corrupt memory
+
+  If misused, it can cause:
+    Crashes
+    Data corruption
+    Subtle bugs
+    Security vulnerabilities
