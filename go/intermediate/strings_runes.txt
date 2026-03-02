@@ -1,14 +1,19 @@
+---------------------------
+  Strings 
+---------------------------
+
+
 escape sequences
   \n
-    new line 
-      it autmatically goes to the first character in the new line 
+    new line
+      it autmatically goes to the first character in the new line
         in old typewriters you had to do both \n\r but now default behaviour of \n is sufficient
-  \t 
+  \t
     tab
-  \r 
+  \r
     carriage return
-      moves cursor back to beginning of current line, without moving to a new line 
-        sometimes environments (like go playground) which are not real interactive terminals don't support 
+      moves cursor back to beginning of current line, without moving to a new line
+        sometimes environments (like go playground) which are not real interactive terminals don't support
         terminal cursor movment, they just buffer the program output and print it out, so they will interpret
         \r like \n only
   \b
@@ -19,27 +24,98 @@ escape sequences
 
 string
   is a sequence of bytes (usigned 8bit values)
-  strings are immutable 
+  strings are immutable
 
-declaration 
-  message := "hello world"  
+declaration
+  message := "hello world"
   rawMessage := `hello world \n`
-    ` (backticks) are used to declare raw string literals 
+    ` (backticks) are used to declare raw string literals
       a raw string literal is a string where escape sequences are not prcoessed
         that means characters like \n are treated as literal text not special commands
 
-strings are like an array of unicode characters 
+strings are like an array of unicode characters
 each unicode character in go is called a Rune
   Rune is an integer value that represent an unicode character
 
-len(stringName)
+length of string
   \n is counted as 1 character, when it is interpretted as an escape sequence
 
+  len(stringName)
+    returns the number of bytes in a string 
+    for basic ASCII characters, this is the same as the character count because they only use 1 byte
+
+    so for special characters, len() will return a larger number than expected
+
+  utf8.RuneCountInString(str)
+    in go, a rune is an alias for int32 and represents a single unicode code point 
+    to find out how many actual characters are in a string, rune count is required
+    
+    this is required, because go strings are encoded in UTF-8, where a single character can take up anywhere from 1 to 4 bytes 
+
+    ```go 
+      import "unicode/utf8"
+
+      fmt.Println(utf8.RuneCountInString(stringName))
+    ```
+
+
 indexing
-  just like arrays, we can access characters of a string by indexing 
+  just like arrays, we can access characters of a string by indexing
   accessing a character at a specific index
-    returns its byte value 
+    returns its byte value
+
+  since go is a read-only slice of bytes, if you use an index like s[i] you are asking go for the i'th byte, which is 
+    not necessarily the ith character
+  indexing gives gibberish results if the runes in the string are outside of ASCII (1 byte representations)
+  so if the runes come under utf8 multi byte representation, this is not the way, using range loop (which is "smart")
 
 string concatenation
+  done using the + operator
 
 
+comparing strings 
+  done using == < >
+    works based lexicographic ordering (dictionary ordering)
+      compared using ASCII values
+    
+    if one string is a prefix of another, the shorted string is considered smaller
+      ex, "app" < "apple"
+
+    UPPER case alphabets have a lower value as compared to lower case alphabets
+
+
+string iteration
+  its just like iterating over an array or a slice 
+  
+  go's for range loop is "smart" - it autmatically decodes utf-8,
+    it iterates over runes
+
+
+  ```go 
+    for i, char := range stringName {
+      // code block
+    }
+  ```
+
+string manipulation
+  operations like appending, replacing, modifying require creating new strings
+
+
+
+
+
+
+---------------------------
+  Runes
+---------------------------
+A rune is an alias for int32 
+it represents a unicode code point
+so a rune is not a character, its an integer value that will be converted into a character 
+
+runes are used to represent individual characters in a string 
+
+declaration 
+  var chr rune = 'a' // type -> rune
+
+to convert to a string 
+  stringName := string(chr)

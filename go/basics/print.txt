@@ -11,11 +11,12 @@ printing
     // doesn't add new line char at end
   fmt.Printf("formatted text just %d you \n", 4)
 
-    common verbs for formatted string
+    common format verbs for formatted string
       %v -> generic placeholder for value
       %T -> type of variable
       %t -> bool
       %d -> integer
+      %x -> hexadecimal
       %f -> float
       %s -> string
       %q -> quoted string
