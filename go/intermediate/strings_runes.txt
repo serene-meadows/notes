@@ -119,3 +119,30 @@ declaration
 
 to convert to a string 
   stringName := string(chr)
+
+
+
+
+---------------------------
+  Misc
+---------------------------
+does a string contain bytes or runes 
+  a string is a sequence of bytes 
+  however, go follows the convention that those bytes represent utf-8 encoded text 
+
+  when you use len(s) or s[i]
+    you are talking to bytes 
+
+  when you use for range 
+    go decodes the bytes on the fly and presents them as runes 
+
+are runes always 4 byets 
+  in memory (as a variable) : yes 
+  in a string : no 
+
+  a rune is an alias for int32, 
+    a single rune varibale always occupies 4 byets in your computer RAM 
+
+  however, when that run is stored inside a string, go uses utf-8 encoding to save space, so its 1-4 bytes 
+
+
