@@ -79,7 +79,6 @@ declaration
           structName.fieldName
         ```
 
-
 "associating" methods to structs 
   methods are functions associated with a specific type 
   methods are defined with a receiver, which is the struct type upon which the method operates 
@@ -160,7 +159,6 @@ embedding
     }
 
   // embedding struct-Address into struct-Person 
-    // modif
   ````go 
     type Person struct {
       firstName string 
@@ -185,4 +183,54 @@ embedding
       ````go 
         p.address.city
       ````
+
+  // anonymous fields 
+    we can define structs with anonumous fields 
+    anonymous fields myst be a type
+    they simplify the structure definition - it promotes the fields of the anonymous struct to the outer struct in go 
+
+    ````go
+      type PhoneHomeCell struct {
+        home string
+        cell string 
+      }
+    ````
+          ````go 
+            type Person struct {
+              firstName string 
+              lastName string 
+              age int
+              address Address
+              PhoneHomeCell // anonymous field
+            }
+          ````
+                
+                // defining a person 
+                ````go 
+                  p := Person {
+                    firstName: "vikas"
+                    lastName: "goudar"
+                    age: 0
+                    address: Address {
+                      city: "hyd"
+                      country: "ind"
+                    }
+                    PhoneHommeCell: PhoneHomeCell {
+                      home: "slefijs"
+                      cell: "123123"
+                    }
+                  }
+                ````
+              // access is different since, PhoneHomeCell is anonumous field 
+                // even though both Address and PhomeHomeCell are at the sae embedding level  
+                ````go
+                  p.address.city // indirect access
+                  p.home // direct access
+                ````
+
+
+comparing structs 
+  you can compare two structs of the same type using the equality operator 
+
+
 
