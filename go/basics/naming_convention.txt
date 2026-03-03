@@ -10,6 +10,9 @@ Visibility
     must start with a Lower case letter
     they are accessibly only within the same package
 
+  even if the package is imported 
+    only the public things are usable, the private ones are not exposed
+
 package
   style: lowercase
 

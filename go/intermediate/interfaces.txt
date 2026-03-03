@@ -1,0 +1,107 @@
+interfaces provide a way to specify behaviours 
+  they define a set of method signatures that a type must implement to satisfy the interface 
+
+  they help with code reuse, decoupling, polymorphism without relying on inheritance (go does not support inheritance)
+
+  in go, interface implementation is implicit, (there is no implements keyword)
+  if a type's method set contains all the methods declared by an interface, the type implements that interface automatically 
+
+
+
+  interface in go, is a way to define a set of methods that other types must implement in order for them to be considered 
+  the type that the interface is of 
+    it doesn't matter if the type implements additional methods
+      as long it implements the interface functions the interface is considered implemented 
+        the type can have additional methods it doesn't matter
+
+declaration 
+  // just like with structs and methods, define outside main function 
+
+  ````go
+  type geometry interface { // keywords -> type, interface 
+    area() float64
+    perim() float64
+  }
+  ````
+
+
+  // implementing interface - (taking geometry as example)
+    a type implicitly satisfies an interface if it implements all the methods defined by that interface 
+
+    ````go
+      // types 
+        // geometry interface declared above 
+
+        type rect struct {
+          width, height float64
+        }
+
+        type circle struct {
+          radius float64
+        }
+
+
+      // implementing methods 
+        // rect
+          func(r rect) area() {
+            return r.width * r.height
+          }
+
+          func (r rect) permim() float64 {
+            return 2 * (r.height + r.width)
+          }
+
+        // circle
+          func(c circle) area() {
+            return math.Pi * c.radius * c.radius
+          }
+
+          func (c circle) perim() float64 {
+            return 2 * math.Pi * c.radius 
+          }
+
+          func (c circle) diameter() float63 {
+            return 2 * c.radius
+          }
+        
+        // geometry
+          func measure(g geometry) {
+            fmt.Println(g)
+            fmt.Println(g.area())
+            fmt.Println(g.perim())
+          }
+
+                  // circle has implemented methods from the interface + one more (diammeter)
+                  // rect has implemented methods from the interface 
+
+                  r := Rectangle { height: 10, width: 10 }
+                  c := Circle { radius: 10 }
+        
+          measure(r)
+            // { 10, 10 } -- rectangle properties 
+            // 100 -- area 
+            // 40 -- perim 
+
+          measure(c)
+            // { 10 } -- circle properties 
+            // area of the circle 
+            // perim of the circle
+    ````
+
+    the reason it works 
+      the interface has 2 functions that are undefined 
+
+      both rect and circ have methods that have those functions defined (there is no explicity mention of implmenetation )
+        -- the interface functions and the type methods, have the function signature
+
+    in go, interface implementation is implicit, (there is no implements keyword)
+    if a type's method set contains all the methods declared by an interface, the type implements that interface automatically 
+
+
+its really useful in go, so you dont have to create different functions for every type 
+  Println()
+    its function header is 
+      func Println(a ...any)
+        any is an alias for interface{} and is equivalent to interface{}
+      
+
