@@ -9,7 +9,7 @@ structs
 go allows you to define structs and functions (as variables) inside main
 but you cannot define methods inside main (since go doesn't support nested functions)
   also
-    when you define a type inside main, it is local to that function 
+    when you define a type inside main, it is local to that function
       no other function in your package can use that struct
 
 so when defining types in go, define them in package scope
@@ -47,13 +47,13 @@ declaration
     // using var
     ```go
       var user struct {
-        username string 
+        username string
         email string
       }
 
       user = struct {
-        username string 
-        email string 
+        username string
+        email string
       } {
         username "vikas"
         email "some@som@.com"
@@ -79,27 +79,27 @@ declaration
           structName.fieldName
         ```
 
-"associating" methods to structs 
-  methods are functions associated with a specific type 
-  methods are defined with a receiver, which is the struct type upon which the method operates 
+"associating" methods to structs
+  methods are functions associated with a specific type
+  methods are defined with a receiver, which is the struct type upon which the method operates
 
   You can only associate a method with a type defined in the same package
 
   unlike other languages, we cannot define methods inside struct declaration
-    why? 
+    why?
       -> for seperation of concerns betweem data type and methods (behaviour)
-      -> this approach allows methods to be defined for any type, not just structs 
+      -> this approach allows methods to be defined for any type, not just structs
 
-  there are two ways for receiver 
+  there are two ways for receiver
     > value receiver (passes copy)
     > pointer receiver (passes address)
 
-  // defining struct 
+  // defining struct
 
-    ```go 
+    ```go
       type Person struct {
-        firstName string 
-        lastName string 
+        firstName string
+        lastName string
         age int
       }
 
@@ -110,65 +110,64 @@ declaration
       }
     ```
   // defining method - value receiver
-    
-    ```go 
+
+    ```go
       func (p Person) fullName() string {
         return p.firstName + p.lastName
       }
     ```
 
-  // calling the method 
-  ```go 
+  // calling the method
+  ```go
     p.fullName()
   ```
 
-  when you use a "norma" receiver (like (u User)), Go makes a complete copy of the struct every time you call the method 
-  thus, 
+  when you use a "norma" receiver (like (u User)), Go makes a complete copy of the struct every time you call the method
+  thus,
     its read-only
-    you can "change" a field inside the method, but you are only changing the field of the copy 
+    you can "change" a field inside the method, but you are only changing the field of the copy
 
-    although this makes it safer, since the original variable remains untouched, it does make it slow for large structs 
+    although this makes it safer, since the original variable remains untouched, it does make it slow for large structs
       since you have to copy the whole struct
 
   to modify the original struct, you have to use a pointer reciever (like (u *User))
-    go passes the memory address of the original struct 
-      any changes you ake inside the method happen directly to the original data 
-      its faster, because go only passes a small memroy address, no matter how big the struct is 
+    go passes the memory address of the original struct
+      any changes you ake inside the method happen directly to the original data
+      its faster, because go only passes a small memroy address, no matter how big the struct is
 
   // defining method - pointer receiver
-    ```go 
+    ```go
       func (p *Person) incrementAgeBy1() {
         p.age++
       }
     ```
 
-    // calling 
+    // calling
       ```go
         p.incrementAgeBy1()
       ```
 
-embedding 
-  go supports embedding structs within structs 
-  this allows for creating a composition of structs 
-
-  // creating struct 
-  ```go 
+composition
+  Composition means building complex types by combining smaller types.
+  
+  // creating struct
+  ```go
     type Address struct {
-      city string 
-      country string 
+      city string
+      country string
     }
 
-  // embedding struct-Address into struct-Person 
-  ````go 
+  // embedding struct-Address into struct-Person
+  ````go
     type Person struct {
-      firstName string 
-      lastName string 
+      firstName string
+      lastName string
       age int
       address Address
     }
   ````
-    // defining a person 
-    ````go 
+    // defining a person
+    ````go
       p := Person {
         firstName: "vikas"
         lastName: "goudar"
@@ -180,33 +179,38 @@ embedding
       }
     ````
       // to address a field in p-address
-      ````go 
+      ````go
         p.address.city
       ````
 
-  // anonymous fields 
-    we can define structs with anonumous fields 
-    anonymous fields myst be a type
-    they simplify the structure definition - it promotes the fields of the anonymous struct to the outer struct in go 
+embedding 
+  Embedding is a special form of composition.
+    where we use anonymous fields 
+
+  anonymous fields myst be a type
+  it promotes the fields of the anonymous struct to the outer struct in go
+
+  // anonymous fields
+    we can define structs with anonumous fields
 
     ````go
       type PhoneHomeCell struct {
         home string
-        cell string 
+        cell string
       }
     ````
-          ````go 
+          ````go
             type Person struct {
-              firstName string 
-              lastName string 
+              firstName string
+              lastName string
               age int
               address Address
               PhoneHomeCell // anonymous field
             }
           ````
-                
-                // defining a person 
-                ````go 
+
+                // defining a person
+                ````go
                   p := Person {
                     firstName: "vikas"
                     lastName: "goudar"
@@ -221,16 +225,16 @@ embedding
                     }
                   }
                 ````
-              // access is different since, PhoneHomeCell is anonumous field 
-                // even though both Address and PhomeHomeCell are at the sae embedding level  
+              // access is different since, PhoneHomeCell is anonumous field
+                // even though both Address and PhomeHomeCell are at the sae embedding level
                 ````go
                   p.address.city // indirect access
                   p.home // direct access
                 ````
 
 
-comparing structs 
-  you can compare two structs of the same type using the equality operator 
+comparing structs
+  you can compare two structs of the same type using the equality operator
 
 
 

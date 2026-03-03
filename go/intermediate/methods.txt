@@ -1,0 +1,107 @@
+// methods are also covered in structs.txt
+
+methods are functions that are associated with any specific type (not just structs)
+
+methods are declared with a receiver which specifies the type thta the method operates on
+  there are two types of receiver
+    value receiver
+    pointer receiver
+
+    // value receiver
+      ````go
+      type Retangle struct {
+        length float64
+        width float64
+      }
+
+      func (r Rectangle) Area() float64 {
+        return r.length * r.width
+      }
+
+      func main() {
+        rect := Rectangle {
+          length: 1.0
+          width: 2.0
+        }
+
+        fmt.Println(rect.Area())
+      }
+      ````
+
+    // pointer receiver
+      we use a value receiver if the method does not modify the receiver instance,
+      if we want to modify the receiver instance
+        or if ew want to avoid copying large structs
+        we need to use a pointer receiver
+
+      ````go
+        func (r *Rectangle) Scale(factor float64) {
+          r.length *= factor
+          r.width *= factor
+        }
+      ````
+
+methods can be associated with any type
+  // method on a user-defined type
+  ````go
+    type MyInt int // user-defined type
+                   // we need to do this, because we can only associate methods with types that are defined in the pacakge
+                   // so we cannoy directly assoiate methods to the default int type
+
+    func (m MyInt) IsPositive() bool {
+      return m > 0
+    }
+
+
+    // usage
+    num := MyInt(-5)
+    fmt.Println(num.IsPositive()) // false
+  ````
+
+
+method doesn't need to be associated to an instance
+  if we are not going to access instance fields, we can associate the method to the type
+    and we can call this method on instances
+  good practice
+    only use an instance if you are using the instance for extracting or modifying a value
+
+  ````go
+    type MyInt int
+
+    func (MyInt) SayHi () {
+      fmt.Println("Hi")
+    }
+
+    // usage
+    num := MyInt(3)
+    num.SayHi()
+  ````
+
+
+methods and embedding
+  ````go
+    type Shape struct {
+      Rectange // embedding type struct Rectangle
+    }
+    type Retangle struct {
+      length float64
+      width float64
+    }
+
+    func (r Rectangle) Area() float64 {
+      return r.length * r.width
+    }
+
+
+
+    s := Shape {
+      Rectangle: Rectangle {
+        length: 10
+        width: 10
+      }
+    }
+
+    // calling area() 
+    // since we have embedded Rectangle in Shape, the methods associated with Rectangle (inner type) is promoted to Shape (outer type)
+    s.Area() // works
+  ````
