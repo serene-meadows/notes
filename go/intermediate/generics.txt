@@ -1,0 +1,55 @@
+generics in programming languages provide a way to write functions, data structures and algorithms 
+  that can handle various types without specifying each type explicitly
+
+generics in go are declared using type parameters, which are placeholder for types that can be specified 
+  when using the the generic function or data structure 
+
+generic function 
+  ````go
+    func swap[T any](a, b T) (T, T) {
+      return b, a
+    }
+  ````
+  // usage 
+    a, b := swap[int](10, 20) // it can also does this implicitly
+
+data structure 
+  ````go
+    type Stack[T any] struct {
+      elements []T
+    }
+  ````
+
+  // associating a method with the type Stack struct 
+    // the reasong you use just T, its because methods reuse the type parameter - they don't redefine it 
+    ````go
+      func (s *Stack[T]) push(element T) {
+        s.elements = append(s.elements, element)
+      }
+
+      func (s *Stack[T]) pop() (T, bool) {
+        if len(s.elements) == 0 {
+          var zero T
+          return zero, false
+        }
+        element := s.elements[len(s.elements) - 1]
+        s.elements = s.elements[:len(s.elements) - 1]
+
+        return element, true
+      }
+
+      func (s Stack[T]) printAll() {
+        if len(s.elements) == 0 {
+          fmt.Println("stack is empty")
+        }
+
+        for _, v := range elements {
+          fmt.Println(v)
+        }
+      }
+    ````
+  // usage 
+    intStack := Stack[int] {}
+    intStack.push(1)
+    fmt.Println(intStack.pop())
+    intStack.printAll()
