@@ -105,3 +105,29 @@ its really useful in go, so you dont have to create different functions for ever
         any is an alias for interface{} and is equivalent to interface{}
       
 
+
+example 
+  ````go
+    func MyPrinter(i ...interface{}) {
+      for _, v := range i {
+        fmt.Println(v)
+      }
+    }
+  ````
+    // this method excepts all types which implement 
+    // interface { } 
+      // all types implement this blank interface 
+        // you can also write `i ...any` since `any` is an alias for `interface {}`
+
+example 
+  ````go
+    func printType(i interface{}) {
+      switch i := i.(type) {
+        case int:
+          fmt.Println("Type int")
+        case string:
+          fmt.Println("Type string")
+        // so on ...
+      }
+    }
+  ````
