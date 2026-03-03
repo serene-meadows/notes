@@ -1,0 +1,23 @@
+errors are represented by the error interface 
+  which is a built in type used to indicate the presence of an error condition
+
+errors are created using the errors package or by implementing the error interface 
+
+example 
+  ````go 
+    func sqrt (x float64) (float64, error) {
+      if x < 0 {
+        return 0, errors.New("math: square root of a negative number")
+      }
+
+      // code block 
+      return <result>, nil
+    }
+
+    result, err := sqrt(10)
+    if err != nil {
+      fmt.Println(err)
+        return 
+    }
+    // code ...
+  ````
