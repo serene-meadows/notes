@@ -1,0 +1,94 @@
+struct embedding allows a struct to inherit fields and methods from another struct type
+  // PS: I know shitty explanation, I have already written about embedded structs in structs
+
+````go
+  type Person struct {
+    name string
+    age int
+  }
+
+  type Employee struct {
+    Person // embedded struct
+    empId string
+    salary float64
+  }
+
+  emp := Employee {
+    person: Person {
+      name: "vikas"
+      age: 20
+    }
+    empId "123"
+    salary 123
+  }
+
+  fmt.Prinln("Name: ", emp.name)
+  fmt.Println("salary", emp.salary)
+````
+Employee embeds Person
+this means employee inherits the fields and methods of person
+  the fields of inner struct is promoted to the outer struct
+  // accessing embedded struct fields is direct now rather than indirect
+    direct -> outer.innerfield
+    indirect -> outer.inner.innerfield
+
+  i.e. promotion only happens in anonymous fields
+
+method inheritance
+  methods are also promoted
+
+  ````go
+    func (p Person) introduce() {
+      fmt.Printf("Hi, I'm %s and I'm %d years old", p.name, p.age)
+    }
+
+    type Person struct {
+      name string
+      age int
+    }
+
+    type Employee struct {
+      Person // embedded struct
+      empId string
+      salary float64
+    }
+  ````
+  example
+    // e := Employe ....
+    e.introduce() // direct access
+
+
+
+------------ upper part covered in depth in other files
+
+overriding methods
+  methods can be overriden by redefining them in the outer struct
+  
+
+    ````go
+      type Person struct {
+        name string
+        age int
+      }
+
+      type Employee struct {
+        Person // embedded struct
+        empId string
+        salary float64
+      }
+
+      func (p Person) introduce() {
+        fmt.Printf("Hi, I'm %s and I'm %d years old", p.name, p.age)
+      }
+
+      // override 
+      func (e Employee) introduce() {
+        fmt.Println("Hi")
+      }
+
+    ````
+
+  now Employee's introduce method, override Person's introduce method 
+
+
+
