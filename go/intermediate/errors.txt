@@ -5,7 +5,7 @@ errors are created using the errors package or by implementing the error interfa
 
 example 
   ````go 
-    func sqrt (x float64) (float64, error) {
+    func sqrt (x float64) (float64, error) { // error is the type
       if x < 0 {
         return 0, errors.New("math: square root of a negative number")
       }
@@ -20,4 +20,66 @@ example
         return 
     }
     // code ...
+  ````
+custom errors 
+  custom errors are types that implement the error interface 
+  ````go
+    // builtin error interface in go 
+    type error interface {
+      Error() string
+    }
+    // thats it 
+  ````
+
+  ````go
+    type myError struct {
+      message string
+    }
+
+    // implementing error interface
+    func (m myError) Error() string { 
+      return fmt.Printf("Erorr: %s", m.message)
+    }
+
+
+    func process() error {
+      return myError { "some error message" }
+    }
+  ````
+
+  this is useful because we can define the struct however we want according to our needs, and as long as it implements the error 
+  interface it is considered error type 
+
+
+fmt.Errorf
+  is used to create formatted text errors in go
+  it returns an error 
+
+  it works similar to errors.New() but in errors.New() you cannot format the string 
+    fmt.Errorf() allows you to format the string 
+
+  the most common use case is, using format to wrap around errors using %w
+  
+  ````go
+    func readConfig() error {
+      return errors.New("Config error")
+    }
+
+    func readData() error {
+      err := readConfig()
+      if err != nil {
+        return fmt.Errorf("readData: %w", err)
+      }
+
+      return nil
+    }
+
+    func main() {
+      err := readData()
+      if err != nil {
+        fmt.Println(err)
+        return
+      }
+      fmt.Println("success")
+    }
   ````

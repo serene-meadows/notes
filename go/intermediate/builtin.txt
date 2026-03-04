@@ -1,0 +1,6 @@
+builtin package is a package that need not be imported into our program
+  it is imported in our code by default
+
+that is why we can directly use fundamental types in our code 
+
+it also contains interfaces like error interface 

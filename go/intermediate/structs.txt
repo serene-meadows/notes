@@ -144,7 +144,9 @@ declaration
 
     // calling
       ```go
-        p.incrementAgeBy1()
+        (&p).incrementAgeby1() 
+        // or 
+        p.incrementAgeBy1() // the compiler auto makes it (&p) since we are using a pointer receiver
       ```
 
 composition
