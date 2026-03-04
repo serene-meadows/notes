@@ -4,7 +4,8 @@
   %#v -> Prints the value in Go-syntax format // refers to the format in which values are represented in go code
   %T  -> Prints the type of the value
   %%  -> Prints the % character
-
+  
+  %w -> error
 
 // width is used often in explanation
     This is the minimum total number of characters the entire output should take up, 

@@ -1,0 +1,77 @@
+custom errors in go allow us to create error types that provide more context/ addditional information 
+
+they help us differentiate between different types of errors 
+
+custom errors are types that implement the error interface 
+  the error interface requires the impelementation of the method Error method that returns a string
+
+````go
+  type customError struct {
+    code int // 500 404 and so on 
+    meessage string
+  }
+
+  // error interface requires Error() method 
+  function (e *customError) Error() string {
+    return fmt.Sprintf("Error: %d: %s", e.code, e.message)
+  }
+
+  // function that return a custom error 
+  func doSomething() error {
+    return &customError {
+      code: 500 
+      message: "something went wrong"
+    }
+  }
+
+  func main() {
+    err := doSomething() 
+    if err != nil {
+      fmt.Print(err)
+      return
+    }
+    // code continue
+  }
+````
+
+wrapped errors 
+  ````go
+    type customError struct {
+      code int // 500 404 and so on 
+      meessage string
+      err error
+    }
+
+    // error interface requires Error() method 
+    function (e *customError) Error() string {
+      return fmt.Sprintf("Error: %d: %s %v", e.code, e.message, e.er)
+    }
+
+    // function that return a custom error 
+    func doSomethingElse() error {
+      return errors.New("internal error")
+    }
+    
+    func doSomething() error {
+      er := doSomethingElse()
+      if err != nil {
+        return &customError {
+          code: 500
+          message: "something went wrong"
+          err: er
+        }
+      }
+
+      return nil
+    }
+
+
+    func main() {
+      err := doSomething() 
+      if err != nil {
+        fmt.Print(err)
+        return
+      }
+      // code continue
+    }
+  ````

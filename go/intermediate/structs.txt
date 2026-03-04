@@ -146,7 +146,23 @@ declaration
       ```go
         (&p).incrementAgeby1() 
         // or 
-        p.incrementAgeBy1() // the compiler auto makes it (&p) since we are using a pointer receiver
+        p.incrementAgeBy1() 
+          // this doesn't work all the time 
+            // case 1
+              // u := User{name: "Vikas"}
+              // u.Rename("John")
+                // you do not need &, go auto converts p. to (&p).
+
+            // case 2 
+              // You must use & when the value is not addressable - when using literals 
+                // WRONG 
+                  // p{age: 1}.incrementByAge("John")
+
+                // CORRECT 
+                  // (&p{age: 1}).incrementByAge("John")
+
+                          
+                         
       ```
 
 composition
