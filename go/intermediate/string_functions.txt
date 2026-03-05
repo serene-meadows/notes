@@ -1,0 +1,165 @@
+string in go are a immutable sequence(slice) of bytes 
+  carefull note 
+    ascii -> require 1 byte 
+    for other characters (read abouit runes) , go uses utf-8 encoding so they might take more than 1 byte (upto 4)
+    the reason this is important is because, some functions work with bytes (not chars directly)
+
+concatenation
+  strName := strName1 + strName2
+  
+len(strName)
+  returns the number of bytes // ascii have 1 byte representations, so this works to fetch number of chars, if the string is composed of ascii characters
+  
+indexing 
+  strName[0] // value of first byte 
+  gets the value of the ith byte // ascii have 1 byte representations, so this works to fetch chars if the string is composed of ascii characters
+
+
+substring 
+  strName[2:4] // [2:4)
+
+
+base functions
+  // conversions 
+    // integer to string (ascii)
+      strconv.Itoa(intName)
+        ````go
+          num := 18
+          strName := strconv.Itoa(num) // integer to ascii
+        ````
+     
+  // strings splitting 
+    strings.Split(strName, delimeter)
+      ````go
+        fruits := "apple, orange, banana"
+        parts := strings.Split(fruits, ",") // returns a slice 
+      ````
+
+  // join to string
+    strings.Join(sliceName, delimeter)
+      ````go
+        countries := []string{"vikas", "goudar"} // slice of strings 
+        join := strings.Join(countries, ",") // "vikas,goudar"
+      ````
+
+  // does string contain substring 
+    strings.Contains(strName, substring)
+      ````go
+        strName := "vikas"
+        strings.Contains(strName, "Goudar") // false
+      ````
+
+  // replace n occurences of a substring with another substring 
+    strings.Replace(strName, substringOld, substringNew, n_int)
+      // n_int -> -1 -> replace all matches
+      ````go
+        strName := "vikas goudar vikas"
+        strName := strings.Replace(strName, "vikas", "rajani", 1) // "rajani goudar" // 1 -> n occurences
+      ````
+
+
+  // trim leading and trailing whitespace
+    strings.Trim(strName)
+      ````go
+        strName := " vikas goudar "
+        fmt.Println(strings.Trim(strName)) // "vikas goudar"
+      ````
+
+  // to UPPER to lower 
+    strings.ToUpper(strName)
+    strings.ToLower(strName)
+      ````go
+        strName := "Vikas Goudar"
+        fmt.Println(strings.ToLower(strName)) // "vikas goudar"
+        fmt.Println(strings.ToUpper(strName)) // "VIKAS GOUDAR"
+      ````
+
+  // repeat substring n times to make string 
+    strings.Repeat("susbtring", n_int)
+      ````go
+        strName := strings.Repeat("vikas", 3) // "vikasvikasvikas"
+      ````
+
+
+  // count occurences of substring 
+    strings.Count(baseStr, subsStr)
+      ````go
+        fmt.Println(strings.Count("Base String", "substring")) // 0
+      ````
+
+  // check suffix/ prefix 
+    strings.HasPrefix(baseStr, substring)
+    strings.HaPrefix(baseStr, substring)
+
+      ````go
+        str := "vikas"
+        fmt.Println(strings.HasPrefix("vi")) // true 
+        fmt.Println(strings.HasSuffix("as")) // true
+
+
+// regex 
+  explained with an example 
+    ````go
+      // base string 
+        strName := "Hello, 123 45 Go!"
+      
+      // regex expression 
+      re := regex.MustCompile(`\d+`)  // one or more digits
+        // returns a regex
+        // MustCompiler -> panicks if error
+        // regex is enclosed in ` (back ticks) // since we need raw string literals
+
+      matches := re.FindAllString(strName) 
+          // int -> max number of matches we want
+            // value of -1 -> all matches
+        // returns a slice of matches 
+          // nil if no matches
+
+      fmt.Println(matches) // [123 45]
+    ````
+
+// working with unicode characters (utf-8) (runes)
+  // number of runes 
+    utf8.RuneCountInString(strName)
+
+
+// string builder 
+  // strings are immutable
+  // string builder is designed to concatenate strings more efficiently
+    // normal string concatenation requires building intermediate strings which can be memory and processing intensive
+
+  string builder can be used directly after declaration without initialization 
+  a builder can be reused by calling the reset method, which clears it's internal buffer 
+  the final string can be retreived using a string method 
+
+  declaration and usage 
+    ````go
+      var builder strings.Builder 
+
+      // write 
+        // .Write()
+        // .WriteString()
+        // .WriteRune()
+        // .WriteByte()
+      builder.WriteString("hello ")
+      builder.WriteString("world ")
+      builder.WriteString("what's ")
+      builder.WriteString("up ")
+
+      // convert to a string 
+      result := builder.String() // "hello world what's up "
+
+      // using WriteRune() to add a char 
+      builder.WriteRune('-')
+      result = builder.String() // "hello world what's up -"
+
+      // builder keeps on writing to its existing string buffer 
+      // so in order to start a new string, you have to reset 
+      builder.Reset()
+      builder.WriteString("Starting fresh")
+
+      result = builder.String() // "Starting fresh"
+
+
+
+
