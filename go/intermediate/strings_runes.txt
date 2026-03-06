@@ -33,6 +33,13 @@ declaration
       a raw string literal is a string where escape sequences are not prcoessed
         that means characters like \n are treated as literal text not special commands
 
+      raw strings are also used with SQL queries and regex expressions
+
+      They are particularly useful in contexts where you want to preserve the exact content of a string,
+
+      including special characters and line breaks, without any interpretation by the go compiler.
+
+
 strings are like an array of unicode characters
 each unicode character in go is called a Rune
   Rune is an integer value that represent an unicode character

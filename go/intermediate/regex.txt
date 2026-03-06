@@ -1,0 +1,5 @@
+regex expressions provide a powerful way to search, manipulate and validate text strings based on patterns 
+
+they are used in text processing, searching and data extractions where patterns of haracters need to be matched or manipulated 
+
+to work with regex pattern in go, you first compile it using the regexp.Compile or regext.MustCompile 

@@ -98,6 +98,7 @@ base functions
 
 
 // regex 
+  in the "regexp" package
   explained with an example 
     ````go
       // base string 
@@ -124,6 +125,7 @@ base functions
 
 
 // string builder 
+  in the "strings" package
   // strings are immutable
   // string builder is designed to concatenate strings more efficiently
     // normal string concatenation requires building intermediate strings which can be memory and processing intensive

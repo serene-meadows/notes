@@ -1,0 +1,201 @@
+text templates
+  they allow you to define and execute templates for generating text output
+
+  they are particularly useful when you need to generate structured text like HTML, JSON, SQL queries 
+
+
+  a template is a string or a file that contains one or more action sequences
+    these actions control the template execution, such as inserting values, iterating over data, or executing conditions 
+
+
+brief 
+  actions 
+    they are enclosed in double curly braces 
+    there are several type of actions, like 
+      > variable insertion: {{.FieldName}}
+      > pipelines: {{functionName .FieldName}}
+      > control structures: {{if .Condition}} .. {{else}} .. {{end}}
+      > iteration: {{range .Slice}} .. {{end}}
+  
+advanced features
+  nested templates
+
+templates are executed by applying them to data structures known as template data
+  these data structures can be simple values, structs, slices, maps or any custom types 
+
+
+templates are part of two pacakges text template and html template
+  text/template -> basic features of templating 
+  html/template -> some more advanced features 
+                   i dont understand it properly, but its safer for webpages, and prevents things like XSS
+
+template.New(string)
+  creates a template object 
+
+templateObject.Parse(string)
+  string is the template content that we want to execute
+
+templateObject.Execute(output_destination, data_object)
+  // read example to understand
+
+example
+  ````go
+    import (
+    "text/template"
+    "os"
+    )
+
+    func main() {
+      // 
+      // tmpl := template.New("example") // name of the template
+      // tmpl, err := tmpl.Parse("Welcome {{.name}}! How are you?")
+        // the argument is a string which we want to be processed as a template 
+      // writing the above lines in 1 line 
+      tmpl, err := template.New("example").Parse("Welcome {{.name}}! How are you?")
+
+      if err != nil {
+        panic(err)
+      }
+
+
+      // define data for the welcome message template 
+      data := map[string]interface{} {
+        "name": "John"
+      }
+
+
+      err = tmpl.Execute(os.Stdout, data)
+        // the first argument is the destination where we want to send the ouput to
+        // the second argument is the data, which is the map which contains name as John
+      if err != nil {
+        panic(err)
+      }
+    }
+  ````
+    // running the code gives the ouptut 
+      Welcome John! How are you?
+
+
+
+    ````go
+      tmpl, err := template.New("example").Parse("Welcome {{.name}}! How are you?")
+
+      if err != nil {
+        panic(err)
+      }
+    ````
+      we can rewrite this using template.Must, which panics autmatically if error while parsing our template 
+      ````go
+        tmpl := template.Must(template.New("example").Parse("Welcome {{.name}}! How are you?"))
+      ````
+
+example 
+  create a console application where we have a menu and we have different things that we can do 
+    and it will show the template with newer data every time 
+
+  it will dewpend on the data we enter into the console 
+
+  ````go
+    import (
+    "text/template"
+    "os"
+    )
+
+    reader := bufio.NewReader(os.Stdin)
+    fmt.Println("Enter your name: ")
+    name, err := reader.ReadString('\n')
+      // \n is the delimiter
+
+    if err != nil {
+      panic(err)
+    }
+
+    name = strngs.TrimSpace(name)
+
+
+    // define name templates for different types of 
+    templates := map[string]string {
+      "welcome": "Welcome {{.name}}! We are glad you joined.",
+      "notification": "{{.name}}, you have a new notification: {{.notification}}",
+      "error": "Ooops! An error occured: {{.errorMessage}}",
+    }
+      // key -> name of the template 
+      // value -> template string
+
+    // parse and store templates 
+    parsedTemplates:= make(map[string]*template.Template) // value -> pointer to a parsed template object 
+    for name, tmpl := range templates {
+      parsedTemplates[name] = template.Must(template.New(name).Parse(tmpl))
+    }
+
+    // running applicatino 
+    for {
+      // show menu
+      fmt.Println("Menu \n")
+      fmt.Println("1. Join \n")
+      fmt.Println("2. Get Notif \n")
+      fmt.Println("3. Get Error \n")
+      fmt.Println("4. Exit \n")
+
+      fmt.Println("Choose option")
+
+      reader := buifio.NewReader(os.Stdin)
+      choice, _ := reader.ReadString('\n')
+      choice = strings.TrimSpace(choice)
+
+      var data map[string]interface{} 
+      var tmpl *template.Template
+      
+      switch choice {
+        case "1":
+          tmlp = parsedTemplates["welcome"]
+          data = map[string]interface{} {
+            "name": name
+          }
+
+        case "2":
+          fmt.Println("Enter your notification message")
+          notification, _ = reader.ReadString('\n')
+          notification = strings.TrimSpace(notification)
+
+          tmpl = parsedTemplates["nofification"]
+          data = map[string]interface{} {
+            "name": name,
+            "notification": notification,
+          }
+
+        case "3":
+          fmt.Println("Enter you error message:")
+          errorMessage, _ := reader.ReadString('\n')
+          errorMessage = strings.TrimSpace(errorMessage)
+
+          tmpl = parsedTemplates["error"]
+          data = map[string]interface{} {
+            "name": name,
+            "errorMessage": errorMessage
+          }
+
+        case "4":
+          fmt.Println("Exiting...")
+          return
+
+        default:
+          fmt.Println("Invalid choice")
+          continue
+      }
+
+      // render and print template to console 
+      err := tmpl.Execute(os.Stdout, data)
+      if err != nil {
+        fmt.Println("Error executing template: ", err)
+      }
+    }
+
+  ````
+
+
+
+generally used for 
+  HTML Page generation 
+  Email templates 
+  Code/ Config generation
