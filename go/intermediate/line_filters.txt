@@ -1,0 +1,39 @@
+line filters 
+  refers to the process of processing or modifying lines of text based on specific criteria
+
+  it involves reading text line by line and applying certain operations or conditions to each line
+
+  it is commonly used in text processing, data cleaning, file manipulation
+
+example 
+ ````go
+  file, err := os.Open("example.txt")
+  if err != nil {
+    fmt.Println("Error opening file", err)
+    return
+  }
+  defer file.Close()
+
+  scanner := bufio.NewScanner(file)
+
+  // keyword to filter lines 
+  keyword = "important"
+
+  // read and filter lines 
+  for scanner.Scan() {
+    line := scanner.Text()
+    if strings.Contains(line, keyword) {
+      updatedLine := strings.ReplaceAll(line, keyword, "meh")
+      fmt.Println(line)
+      fmt.Println(updatedLine)
+    }
+  }
+
+  err := scanner.Err() 
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+
+ ````
+
