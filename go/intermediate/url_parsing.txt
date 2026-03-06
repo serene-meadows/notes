@@ -1,0 +1,100 @@
+URL Parsing (URL - Uniform Resource Locator)
+  Invloves extracting various components like scheme, host path, query parameters from a URL string 
+
+URL structure 
+  [scheme://] [userinfo@]host[:port][/path][?query][#fragment]
+  
+  scheme 
+    the protocol 
+      http 
+      http 
+      ftp
+
+  userinfo 
+    optional
+    contains the username and passowrd
+
+  host 
+    domain name/ IP address 
+
+  port number 
+    optional 
+
+  path 
+    path to the resource on the server 
+
+  query parameters
+    key - value pairs 
+
+  fragment identifier 
+    optional 
+
+    used for specifying a location within the resource 
+
+
+standard library used 
+  neturl
+
+example 
+  ````go
+    import (
+      "net/url"
+    )
+
+    rawURL := "https://example.com:8080/path?query=param#framgent"
+
+    parsedURL, _ := url.Parse(rawURL)
+
+    fmt.Println(parsedURL.Scheme)
+    fmt.Println(parsedURL.Host)
+    fmt.Println(parsedURL.Port())
+    fmt.Println(parsedURL.Path)
+    fmt.Println(parsedURL.RawQuery)
+    fmt.Println(parsedURL.Fragment)
+      //  https 
+      // example.com:8080
+      // 8080
+      // /path
+      // query=param
+      // fragment
+  ````
+
+              Parsing 
+                process/ manipulate/ extract something from data 
+
+example - parsing query parameters 
+    rawURL := "https://example.com:8080/path?name=John&age=30#framgent"
+
+    parseURL, _ := url.Parse(rawURL)
+    
+    queryParams := parseURL.Query()
+
+    fmt.Println(queryParams)
+      // map[age:[30] name:[John]]
+    fmt.Println(queryParams.Get("name"))
+      // John
+    fmt.Println(queryParams.Get("age"))
+      // 30
+
+example - builing URL 
+  ````go
+    baseURL := &url.URL {
+      Scheme: "https",
+      Host: "example.com",
+      Path: "/path",
+    }
+
+    query := baseURL.Query()
+    
+    query.Set("name", "John")
+      // sets key value pairs 
+    baseURL.RawQuery = query.Encode()
+      // encode encodes the values into the url ecoded format
+
+    fmt.Println(baseURL.String())
+  ````
+
+    // another method of using url.Values 
+  ````go
+    values := url.    
+  ````
