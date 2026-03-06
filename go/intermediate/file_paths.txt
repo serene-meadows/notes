@@ -1,0 +1,63 @@
+absolute path
+  complete path from the root directory
+
+relative path
+  path relative from current working directory
+
+  uses
+    . to go down the current working directory
+    .. to go up the current working directory
+
+
+go provides
+  path/filepath package
+    which handles platform specific path issues
+    and has utilties for path manipulation
+
+usefull functions
+  filepath.Join
+    // constucts a path by joining individual components with appropriate seperator
+
+  filepath.Split
+    // splits a path into directory and file name components
+
+  filepath.Clean
+    // normalizes a path, cleaning up redundant seperators, and resolving . and .. references
+
+  filepath.Abs
+    // returns absolute path of a relative path
+
+  filepath.Base
+    // retreives that last element of the path, which is the file, or maybe a directory
+
+  filepath.Dir
+    // retreives the directory part of the path
+
+
+  os.Mkdir()
+  os.MkdirAll()
+    // creating directories 
+
+  os.Remove()
+  os.RemoveAll()
+    // deleting directories
+
+example 
+  ````go
+    relativePath := "./data/file.txt"
+    absolutePath := "/home/user/docs/file.txt"
+
+    // join paths using filepath.Join
+    joinedPath := filepath.Join("home", downloads", "file.zip") // "home/downloads/file.zip"
+      // takes variadic argument 
+
+    normalizedPath := filepath.Clean("./data/..data/file.txt") // "data/file.txt"
+
+    dir, file := filepath.Split("/home/user/docs/file.txt")
+      // dir -> "/home/user/docs"
+      // file -> "file.txt"
+
+    base := filepath.Base("/home/user/docs/file.txt") // file.txt
+  ````
+
+
