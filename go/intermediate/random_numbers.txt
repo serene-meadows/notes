@@ -5,6 +5,11 @@ in go,
   in go, the default psudo random number generator provided by the math Rand uses a seed to initialize the sequence 
   rand uses a deterministic algorithm to generate psudo random numbers based on the seed 
 
+Now, something to consider while using the math Rand package is that it is not safe for concurrent
+use.
+
+when we want to use random numbers for cryptographic purposes, there is a crypto rand package 
+
 
 pseudo random numbers 
   they are generad by algorithms, they are not trully random numbers

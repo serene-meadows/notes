@@ -1,0 +1,43 @@
+number parsing 
+  is the process of onverting textual representations of numbers into their corresponding numberic values in go
+
+example string to int
+  ````go
+    import "strcov"
+
+    func main() {
+      numStr := "1234"
+      num, _ := strconv.Atoi(numStr)
+    }
+  ````
+
+example string to specific int type 
+  ````go
+    numStr := "1234"
+    num, _ := strconv.ParseInt(numStr, 10, 32)
+      // 10 -> base
+      // 32 -> bit size
+  ````
+
+example string to float   
+  ````go
+    floatStr := "3.14"
+    float, _ := strconv.ParseFloat(floatStr, 32)
+      // 32 -> bit size
+  ````
+
+example binary string to int 
+  ````go
+    binaryStr := "010101"
+    dec, _ := strconv.ParseInt(binaryStr, 2, 64)
+      // 2 -> base
+      // 64 -> bit representation
+  ````
+
+example hex sting to int 
+  ````go
+    hexString := "FF"
+    dec, _ := strconv.ParseInt(hexString, 16, 64)
+      // 16 -> base 
+      // 64 -> bits
+  ````
