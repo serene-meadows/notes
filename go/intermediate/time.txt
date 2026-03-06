@@ -1,0 +1,31 @@
+time
+  essential for dealing with dates, times, durations, time zones
+
+  provides functionalities to create, manipulate, format and compare time
+
+  in go, time values are represented by the time.Time struct
+
+  you can create time values using various mehthods like
+    time.Now
+    time.Date
+    time.Parse
+
+example 
+  ````go 
+    import (
+      "fmt"
+      "time"
+    )
+
+    // current local time 
+    fmt.Println(time.Now())
+
+    // specific time 
+    specificTime := time.Date(2024, time.July, 30, 12, 0,0,0, time.UTC) // check arguments 
+    fmt.Println("Specific time: ", specificTime)
+
+    // parse time 
+    parsedTime := time.Parse()
+  ````
+
+// NOTE: TOO BORING, will do later
