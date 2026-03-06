@@ -1,0 +1,97 @@
+hashing is a process used in computing to transform data into a fixed size string of characters
+  which is aimed to be appear random
+
+key concepts
+  hashing results in a fixed size output, no matter how small or large the input data is
+    i.e. the output hash will always be of fixed size
+    for example using SHA256 hash function always produces 256 bits/ 32 byte hash
+
+  hashing is deterministic
+    the same input will always produce the same output hash
+
+  avalanche effect
+    even a small change in input, will produce a completely different hash
+
+  hashing is a one-way function
+    you cannot easily reverse a hash to its original state
+
+  hashing is very fast and efficient
+
+  good hash functions minimize collisions
+
+usage
+  > security
+
+  > to check if download is corrupted
+    when you download a file, you can hash the downloaded file and compare it the original hash provided by the source
+
+  > quick retreival of data
+    used in data structures like hash tables
+
+in go
+  we have crypto SHA256 and SHA512 hash functions
+
+
+example
+  ````go
+    password := "password123"
+
+    hash := sha256.Sum256([]byte(password))
+      // returns the sha256 checksum (hash value) of the data - byte slice
+      // takes byte slice as input
+
+    fmt.Println(hash)
+    fmt.Printf("SHA-256 Hash hex value: %x", hash)
+
+  ````
+
+salting
+  salting adds an extra layer of security by combining the password with a unique random value so it can be random
+
+  it helps protect against dictionary attacks and rainbow table attacks
+
+  even if two users have the same password, their hash values will be different because of salting
+
+  ````go
+    salt := make([]byte, 16)
+    _, err := io.ReadFull(rand.Reader, salt)
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+    
+    ... ...
+
+    func HashPassword(password string, salt[] byte) string {
+      saltedPassword := append(salt, []byte(password)...)
+
+      hash := sha256.Sumb256(saltedPassword)
+      return base64.StdEncoding.EncodeToString(hash)
+    }
+
+
+    // now one way is 
+    // to store salt (bse64 encoded) and the hashed password in the db
+    // the attacker doesn't necessary know that the db contains encoded salt, and that too which form of encoding
+
+
+    // now to verify user's password 
+    // get encoded salt, de-encode it, add it to password and hash the salted password and compare
+  ````
+
+
+Now, the cryptographically secure random numbers are different from the general random numbers because
+  these numbers are generated in a way that makes them unpredictable and resistant to reverse engineering.
+  General random numbers, however, are predictable if enough information about the internal state is
+  known.
+  For example, a common pseudo random number generator might have patterns or weaknesses that make it
+  less secure.
+  However, in case of cryptographically secure random numbers, the algorithms used to generate these
+  numbers ensure that even if part of the data is known, predicting the rest is computationally infeasible.
+
+
+Cryptographically secure random numbers are used in security sensitive applications or security sensitive
+  functions such as generating cryptographic keys, secure tokens, password hashing, and encryption.
+  The quality of randomness is crucial to maintaining security.
+  However, general random numbers are used in applications where security is not much of a concern,
+  such as simulation games or non-security related random data generation.
