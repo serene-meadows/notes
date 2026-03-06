@@ -94,7 +94,15 @@ example - builing URL
     fmt.Println(baseURL.String())
   ````
 
-    // another method of using url.Values 
+    // another method by using url.Values 
   ````go
-    values := url.    
+    values := url.Values()
+
+    values.Add("name": "James")
+    values.Add("age": "21")
+    values.Add("city": "ggn")
+
+    encodedQuery := values.Encode()
+    baseURL := "https://example.com/search"
+    fullURL := baseURL + "?" + encodedQuery
   ````
