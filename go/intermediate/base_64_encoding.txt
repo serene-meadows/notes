@@ -1,0 +1,62 @@
+encoding is essentially the method used to translate data from original format into a specific format
+  that can be used by other systems, applications, or protocols
+
+common types of encoding
+  text encoding
+    ASCII
+    UTF-8
+    UTF-16
+
+  data encoding
+    base64 // a method for encoding binary data into a text format
+    URL encoding // converts characters into a format that can be transmitted over the internet (ex: spaces are encoded as %20)
+
+  file encoding
+    binary encoding // data is encoded in binary format, suitable for images, executables
+    text encoding // coverts text into text encoding like UTF-8
+
+Base-64 encoding 
+  biary to text encoding using a set of 64 ASCII characters 
+
+  used for transmitting binary data over text based protocols like email, or storing binary data as text in databases/ files 
+
+  characters used 
+    a-z (26 chars)
+    A-Z (26 chars)
+    special chars (2)
+      +
+      / 
+
+    there is also '=', which is used as a padding character in case length isn't divisible by 3
+
+
+example 
+  ````go
+    import (
+      "encoding/base64"
+    )
+
+    func main() {
+      data := []byte("Hello world")
+
+      // encode
+      encoded := base64.StdEncoding.EncodeToString(data)
+
+      // decode 
+      decoded, err := base64.StdEncoding.DecodeString(encoded) 
+      if err != nil {
+        fmt.Println(err)
+        return
+      }
+      fmt.Println("Decoded byte slice: ", decoded)
+      fmt.Println("Decoded string: ", string(decoded))
+    }
+  ````
+
+how to make base64 encoding URL safe 
+  needed since base64 uses special characters like + /
+  
+  ````go
+    urlSafeEncoded := base64.URLEncoding.EncodeToString(data)
+  ````
+  

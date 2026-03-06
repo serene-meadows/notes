@@ -1,0 +1,114 @@
+the bufio package provides buffered input output operations
+  which significantly improves performance which reading or writing data especially for large amounts of data
+
+it wraps io.Reader and io.Writer and provides buffering with additional methods for more efficient reading and writing
+
+key components
+  bufio.Reader
+    func NewReader(rd io.Reader) *Reader
+    func (r *Reader) Read(p []byte) (n int, err error)
+    func (r *Reader) ReadString(delim byte) (line string, err error)
+
+    // NewReader creates a new instance of Reader
+      // it wraps around an existing Reader to create a buffered reader
+    // we pass a source to this Reader
+    // Read method reads data from a source into a byte slice 
+        // the reason passing by value works, because slice is a wrapper around array, so it contains the pointer to the underlying array
+    // ReadString method reads data from a source until it reaches a delimiter
+
+  bufio.Writer
+    func NewWriter(wr io.Writer) *Writer
+    func (w *Writer) Write(p []byte) (n int, err error)
+    func (w *Writer) WriteString(s string) (n int, err error)
+    func (w *Writer) Flush() error
+    
+    // NewWriter creates a new instance of Writer 
+      // it wraps aroudn an existing Writer to create a buffered writer 
+    // Write method writes data from byte slice 
+    // WriteString writes data from string 
+      // both methods write to a buffer, to write to destination you have to flush 
+        // writer.Flush()
+
+why should we use buffered reader writer if we have io packages
+  suppose you are watching a movie,
+  typically what happens is as you are watching the movie, it keeps downloading the future scenes
+  this is buffering
+  if we didn't buffer, we would have to wait to download the whole movie first, then watch
+
+  so buffering, reads and writes in chunks (we decide the size of the chunks) instead of the whole size, which makes it faster
+
+
+Reader 
+  ````go
+    import (
+      "strings"
+    )
+
+    func main() {
+      reader := bufio.NewReader(strings.NewReader("Hello world! \n"))
+        // reading source can be a string, external text file, image ...
+        // strings.NewReader() that takes a string and returns a Reader object 
+        // bufio.NewReader() takes that Reader object and creates a buffered Reader
+      
+
+      // reading byte slice 
+      data := make([]byte, 20)
+      n, err := reader.Read(data)
+      if err != nil {
+        fmt.Println(err)
+        return
+      }
+      fmt.Printf("Read: %d bytes: %s", n, data[:n])
+      
+      str, err := reader.ReadString('\n')
+      if err != nil {
+        fmt.Println(err)
+        return
+      }
+    }
+  ````
+
+Writer 
+  ````go
+    writer := bufio.NewWriter(os.Stdout)
+      // os.Stdout is also a writer
+        // because it implements the io.Writer interface 
+          // which requires Write(p []byte) (n int, err error) to be implemented
+            // even though os.Stdout has writer with a small case w, it doesn't matter, because w or W means public or private in go
+
+    // writing a byte slice 
+    data := []byte{"Hello world \n"}
+    n, err := writer.Write(data)
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+    fmt.Println("Wrote %d bytes \n", n)
+      // to print the output to the destination (in our case the std output) we have to flush the buffer 
+      // because the writer writes to an internal buffer 
+    // flushing the buffer to ensure that data is written to destination 
+    err = writer.Flush()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+      
+
+
+    // writing a string 
+    str := "this is a string \n"
+    n, err := writer.WriteString(str)
+
+    fmt.Println("Wrote %d bytes \n", n)
+    if err != nil {
+      return
+    }
+     
+    err = writer.Flush()
+    if err != nil {
+      return
+    }
+  ````
+
+
+
