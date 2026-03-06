@@ -3,3 +3,70 @@ regex expressions provide a powerful way to search, manipulate and validate text
 they are used in text processing, searching and data extractions where patterns of haracters need to be matched or manipulated 
 
 to work with regex pattern in go, you first compile it using the regexp.Compile or regext.MustCompile 
+
+
+to used double quotes in a string 
+  method 1
+    "He said \"I am great\"" // using \"
+      btw escape sequences like \n \" are treated as 1 character, not 2
+
+  method 2
+    `He said "I am great"` // using ``
+
+
+
+// compile a regex patter to match email address 
+  ````go
+    import (
+      "fmt"
+      "regexp"
+    )
+    re := regexp.MustCompile(`[a-zA-Z0-9._+%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
+      // note hyphen (-) has a special meaning, it is used to denote reange, so if we want to use it as a character, it should be mentioned last
+    
+    // test strings 
+    email1 := "user@email.com"
+    email2 := "invalid_email"
+
+    // Match 
+    fmt.Println("Email1: ", re.MatchString(email1)) // true
+    fmt.Println("Email2: ", re.MatchString(email2)) // false
+
+
+    // capturing groups 
+    // Compile a regex to capture date componenets
+
+    re = regex.MustCompile(`(\d){4}-(\d{2})-(\d{2})`)
+
+    // Test string 
+    date := "2024-07-30"
+
+    // find all submatches
+    submatches := re.FindStringSubmatch(date)
+
+    fmt.Println(submatches) // is a slice 
+    fmt.Println(submatches[0]) // sourec 
+    fmt.Println(submatches[1]) // starting from index 1 are the submatches
+    fmt.Println(submatches[2])
+    fmt.Println(submatches[3])
+
+
+    // target string
+    str := "Hello World"
+    re = regexp.MustCompile(`[aeiou]`)
+    result := re.ReplaceAllString(str, "*")
+    fmt.Println(result) // H*ll* W*rld
+
+
+    // flags, must start with ? followed by 
+      // i - cases sensititve 
+      // m - multi line model 
+      // s - dot matches all 
+    re = regexp.MustCompiler(`(?i)go`)
+
+    // test string 
+    text := "Golang is great"
+
+    fmt.Println("Match: ", re.MatchString(text)) // true
+  ````
+
