@@ -1,0 +1,83 @@
+directories or folders are used to organize files on computer's file system 
+
+the os package provides functions for interacting with directory system
+
+key functions 
+  os.Mkdir
+  os.MkdirAll // creates necessary parent directories
+  os.ReadDir // returns contents of a directory and returns a slice of os.Dir entry objects 
+  os.Remove
+  os.RemoveAll
+  os.Chdir // changes the CWD
+
+
+// filepath also allows us to walk through directories 
+  filepath.Walk
+  filepath.WalkDir
+
+````go
+  err := os.Mkdir("subdir", 0755)
+    // second argument is file permision
+      // type is os.FileMode
+  if err != nil {
+    panic(err)
+  }
+
+  defer os.RemoveAll("subdir")
+
+
+  err = os.MkdirAll("subdir/parent/child", 0755) 
+  if err != nil {
+    panic(err)
+  }
+
+  os.WriteFile("subdir/parent/file", []byte (""), 0755)
+  os.WriteFile("subdir/parent/child/file", []byte (""), 0755)
+
+
+  res, err = os.ReadDir("subdir/parent")
+  if err != nil {
+    panic(err)
+  }
+  for _, entry := range result {
+    fmt.Println(entry)
+    fmt.Println(entry.Name(), entry.IsDir())
+    // entry is of type dir.Entry
+  }
+
+  // to change directory 
+  err = os.Chdir("subdir/parent/child")
+  if err != nil {
+    panic(err)
+  }
+  // to read current directory 
+  os.ReadDir(".")
+
+  err = os.Chdir("../../..")
+  if err != nil {
+    panic(err)
+  }
+  dir, err = os.Getwd() 
+  if err != nil {
+    panic(err)
+  }
+
+
+
+  // filepath .Walk .WalkDir
+    // .WalkDir is more performant, because of underlying system calls it uses is less that .Walk
+
+  // walkding directory
+  pathfile := "subdir/parent/child" 
+  err = filepath.WalkDir(pathfile, func(path string, d os.DirEntry, err error) error {
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(path)
+    return nil
+  })
+
+  if err != nil {
+    panic(err)
+  }
+````
