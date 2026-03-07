@@ -1,0 +1,54 @@
+temporary files and directories are needed 
+  where temporary storage is needed for data processing, caching or other transient operations 
+
+go functions provide functionality to create temporary files in the default location for temporary files 
+  and mostly it's the systems default temporary directory such as root tmp
+
+
+// creating a temporary file 
+  ````go
+    tempFile, err := os.CreateTemp("", "temporaryFile")
+      // first argument path name -> if we do not give any name, it's going to use default temp path
+      // second argument -> pattern -> go is going to use this pattern along with a random string to name this temporary file 
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println("Temporary file created: ", tempFile.Name())
+
+    defer tempFile.Close()
+    defer os.Remove(tempFile.Name())
+  ````
+  difference between os.Write and os.CreateTemp
+    os.Write creates a file in a specific directory 
+    os.CreateTemp creates in systems temp folder (if not speciified)
+
+    another difference 
+      when we create a file using os.Write, it creates file with that specific name that we used in the argument 
+      os.CreateTemp adds some random string at the end of the file name specified in the argument 
+        thus everytime we create a temp file with same file, it doesn't override the previous file, because of the random string
+
+    
+// creating a temporary directory
+  ````go
+    tempDir, err := os.MikdirTemp("", "tempDir")
+      // first argument path name -> if we do not give any name, it's going to use default temp path
+      // second argument -> pattern -> go is going to use this pattern along with a random string to name this temporary file 
+    if err != nil {
+      panic(err)
+    }
+
+defer os.RemoveAll(tempDir)
+  ````
+
+good practices
+  clean up temporary files after use 
+  
+  give unique names, like for ex, give prefix as the same name as you application
+    vscode names its temp files with prefix vscode
+
+
+
+  Temporary files are used in scenarios like file uploads where data needs temporary storage before being
+  processed.
+  Temporary directories are useful in testing scenarios to isolate test data or configurations, as temporary
+  files can also be used for caching computed results or intermediate data in our application.

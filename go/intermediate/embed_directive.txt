@@ -1,0 +1,72 @@
+the embed directive is used to embed static files or directories into go binaries at build time 
+it provides a convineant and efficient way to inlcude assets directly within your go application
+  eliminating the need to manage these assets seperately 
+
+embedding files into binaries makes distribution and execution straightforward without worrying about the paths or external dependencies, because all of the dependencies, 
+assets, external files that are needed will be combined into the final executable 
+
+another reason is security 
+  embedding files into binary executables, reduce exposure to external exposure 
+
+
+usage 
+  ````go
+    package main 
+
+    import _ "embed"
+      // when we import emed it gives us an error that we are not using it in our package 
+      // so we need to use something called side effects
+      //   because we are importing embed package for the sole reason of using it's side effects
+      //   i.e. we are not using an functions from that package, we are only using the directive 
+      // so that is why we discard it using the _, so that we can use the side effects of the package without directly using 
+      // the package via functions or so on ..
+      // 
+      // this is called a blank import 
+      //    a blank import prevents the compiler from complaining about an unused import
+
+
+        // embedding a file 
+
+    //go:embed example.txt
+    var content string 
+            the // is part of the directive 
+            it tells the compiler to include the example.txt in the final executable 
+              cuz by default it only includes the .go files in the executable
+
+            // using the contents of this file 
+              // if we are including a file, we must use it (go compiler will complain otherwise)
+                // because otherwise there is no point in including it in the final executable
+                  // the error -> go:embed directives must precede a "var" declaration
+
+            // What happens during compilation:
+            //   The compiler reads example.txt
+            //   It embeds the file's bytes into the binary
+            //   It initializes the variable content with that data
+
+      // simlarly instead of just a file, we can embed an entire directly
+      // then the variable which is declared right after the embed directory will store all the contents of that directory 
+      //   including all the sub directories and files
+
+
+
+          // embedding a folder 
+      //go:embed basics 
+      var basicsFolder embed.FS
+          
+          // now we don't need to do a blank import, since we are using embed 
+
+
+
+    func main() {
+      fmt.Println(content)
+
+      content, err := basicsFolder.ReadFile("basics/hello.txt")
+      if err != nil {
+        panic(err)
+      }
+      fmt.Println(string(content))
+
+
+      fs.WalkDir()
+    }
+   ````
