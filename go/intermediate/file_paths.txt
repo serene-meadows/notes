@@ -27,11 +27,20 @@ usefull functions
   filepath.Abs
     // returns absolute path of a relative path
 
+  filepath.IsAbs
+    // bool, if absulate path
+
   filepath.Base
     // retreives that last element of the path, which is the file, or maybe a directory
 
   filepath.Dir
     // retreives the directory part of the path
+
+  filepath.Ext 
+    // retreives extension of file
+
+  filepath.Rel
+    // gives a path that is relative from the perspective of a target to the perspective of a source
 
 
   os.Mkdir()
@@ -58,6 +67,29 @@ example
       // file -> "file.txt"
 
     base := filepath.Base("/home/user/docs/file.txt") // file.txt
+
+    fmt.Println(filepath.IsAbs(relativePath)) // false
+    fmt.Println(filepath.IsAbs(absulutePath)) // true
+
+    fmt.Println(filepath.Ext(file))
+
+
+    rel, err = filepath.Rel("a/b", "a/b/t/file")
+      // basepath -> a/b
+      // target -> a/b/t/file
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(rel) // t/file
+
+
+    rel, err = filepath.Rel("a/c", "a/b/t/file")
+      // basepath -> a/c
+      // target -> a/b/t/file
+    if err != nil {
+      panic(err)
+    }
+    fmt.Println(rel) // ../b/t/file
   ````
 
 

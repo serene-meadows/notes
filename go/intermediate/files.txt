@@ -2,6 +2,8 @@ the os package in go, provides functions for operating system functionally,
   including file operations 
   prefer buffered reader and writers
 
+
+
 key components 
   Create(name string) (*File, error)
   OpenFile(name string, flag int, perm FileMode) (*File, error)
