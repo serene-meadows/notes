@@ -1,0 +1,37 @@
+struct tags play a crucial role in controlling how data is encoded and decoded in go
+
+json use case 
+  struct tags can be used to map struct field names to specific JSON keys, which might not match field names 
+
+  struct tags can also indicate that certain fields should be omitted from json 
+    either 
+      when they have zero-values 
+      always
+
+
+````go
+  type Person struct {
+    FirstName string `json:"first_name,omitempty"` // NOTE: no space
+      // you can use multiple tags within `` 
+        // for example 
+          // `json:"first_name,omitempty" db:"first" xml:"first"`
+    LastName string `json:"last_name"`
+    Age int `json:"-"` // - means permanents omit this field
+  }
+
+  func main() {
+    person := Person {
+      FirstName: "Jane",
+      LastName: "Doe",
+      age: 21,
+    }
+
+    jsonData, err = json.Marshal(person)
+    if err != nil {
+      log.Fatalln("Error marshalling data", err)
+    }
+    fmt.Println(string(jsonData))
+  }
+````
+
+  
