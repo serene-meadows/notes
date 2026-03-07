@@ -1,0 +1,52 @@
+environment variables 
+  they are key value pairs that are part of the enviroment in which a process runs 
+
+  they provide a convineant way to pass configuration information, credentials and other runtime parameteres to applications 
+  without hardcoding those values into the application itself 
+
+  in go, they are acecssed using the os package 
+
+
+These environment variables are commonly used for application Configuration, such as database connection
+  strings, API keys, or service endpoints.
+They provide a way to configure applications across different environments like development, staging,
+  production, etc. they provide a way to configure applications across different environments without
+  modifying the source code.
+
+````go
+  func main() {
+    // get env
+    user := os.Getenv("USER")
+    home := os.Getenv("HOME")
+
+    fmt.Println(user)
+    fmt.Println(home)
+
+    // set env
+    err := os.Setenv("FRUIT", "APPLE")
+    if err != nil {
+      fmt.Println(err)
+    }
+    fmt.Println("FRUIT: ", os.Getenv("FRUIT"))
+
+    // unset env 
+    err = os.Unsetenv("FRUIT")
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+      // now 
+      // fmt.Println("FRUIT: ", os.Getenv("FRUIT"))
+      // gives empty value
+
+    for _, elem := range os.Environ() {
+      kvpair := strings.SplitN(elem, "=", 2)
+        // .SplitN divides the string into atmost N substring using the delim
+        // -1 means split into all possible substrings
+
+      fmt.Println(kvpair[0]) // key
+      fmt.Println(kvpair[1]) // value
+
+    }
+  }
+````

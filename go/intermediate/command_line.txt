@@ -1,0 +1,50 @@
+command line arguments/ flags are a common way to pass info to a program when it is executed from a terminal
+
+in go
+  the command line arguments are handled using the os package
+  flags are handled by the flag package
+
+// arguments
+  ````go
+    fmt.Println(os.Args[0])
+      // the first argument is the complete path of the exutable
+
+    fmt.Println(os.Args[1])
+      // the second argmument onwards is the arguments passed via terminal
+        // example `go run command_line.go 2`
+          // 2 -> os.Args[1]
+
+    // looping through the argumets
+      // os.Args returns a slice
+    for _, val := range os.Args {
+      fmt.Pritln(val)
+    }
+  ````
+
+// flags
+  ````go
+    var name string
+    var age int 
+    var male bool
+
+    flag.StringVar(&name, "name", "John", "user name")
+      // first argument is a pointer to a string, because it is going to store that value it receives from the command line in this string 
+      // second argument is the name of the flag
+      // third argument is the default value of the flag
+      // fourth argument is a short docs for this flag
+    flag.StringVar(&age, "age", "18", "user age")
+    flag.StringVar(&male, "gender", true, "user male?")
+
+
+    flag.Parse()
+
+    fmt.Println(name)
+    fmt.Println(age)
+    fmt.Println(male)
+  ````
+    example -> go run fileName.go -name "Vikas Goudar" -age 21 -male true
+          // we use double quotes for arguments that have a space
+      // note, if we go for command arguments route, using flags, it captures both the flags and their individual values as seperate arguments
+
+    to use the docs, do 
+      `go run filename --help`

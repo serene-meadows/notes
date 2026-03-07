@@ -1,0 +1,84 @@
+subcommands are a way to organize command line interfaces into hierarchical structures, allowing different functionalities functionalities or operations 
+  to be grouped under main commands 
+
+  this approach is useful for orgainzing and managing CLI applications where multiple actions or modes of operations are required 
+
+  subcommands are essentially secondary commands that extend the functionality of a main command    
+
+  they are specified after the main command and are typically used to perform specific actions or operations 
+
+  for example 
+      when we are using `go run`, go is the the first (main) command and run is the sub command
+      `git init`, git is the main command, and init is the sub command 
+          git push, git add 
+          
+          so when we are running git commands, we are running an executable file which runs the git command, and in that 
+          exutable there are sub commands that have been defined and these sub commands have their own flags 
+
+The advantages of using subcommands are.
+  Subcommands promote modularity by separating different functionalities into distinct units, and they
+    improve the clarity and organization of command line interfaces, especially for complex applications.
+
+  Along with clarity, we also get flexibility.
+  Users can invoke specific functionalities directly without needing to remember all options or flags.
+
+
+
+````go
+  func main() {
+    subcommand1 := flag.NewFlagSet("first sub", flag.ExitOnError)
+    subcommand2 := flag.NewFlagSet("second sub", flag.ExitOnError)
+
+    firstFlag := subcommand1.Bool("processing", false, "command processing status")
+    secondFlag := subcommand1.Int("bytes", 1024, "Byte length of result")
+    flagsc2 := subcommand2.String("language", "go", "Enter your language")
+      // these actually return a pointer
+
+    if len(os.args) < 2 {
+      fmt.Println("i want more than 2 arguments")
+      os.Exit(1)
+    }
+
+    // to have comman flags, we need to use the commands listed in the command_line.txt
+    stringFlag := flag.String("user", "Guest", "user name")
+    flag.Parse()
+    fmt.Println(stringFlag)
+    // var stringFlag string 
+    // flag.StringVar(&stringFlag, "user", "john", "user name")
+      // flag.StringVar -> stores value in existing variable 
+      // flag.String -> returns pointer to variable where it stored value
+
+    
+
+    switch os.Args[1] {
+      case "firstSub":
+        subcommand1.Parse(os.Args[2:])
+        fmt.Println("subcommand1")
+        fmt.Println("processing", *firstFlag)
+        fmt.Println("bytes", *secondFlag)
+
+      case "secondSub":
+        subcommand2.Parse(os.Args[2:])
+        fmt.Println("subcommand2")
+        fmt.Println("language", *flagsc2)
+
+      default:
+        fmt.Println("no subcommand entered")
+        os.Exit(1)
+    }
+  }
+  // for some reason when using subcommands you need to use = sign when more that flag
+
+  // example usage - non error cases
+    go run file.go firstSub -processing=true -byte=256
+    go run file.go secondSub -language=go
+
+  // the way we use --help here is a little different
+  // you have to specify the sub command and then use --help
+  // go run file.gofirstSub --help
+  // --help works directly with the non sub commands 
+    // the behaviour is a little wierd, it lists the flags not subcommands?
+
+````
+
+

@@ -1,5 +1,8 @@
 TODO:
   > quickly finish the first iteration of notes, 
       then restructure and populate with more details
-  
 
+
+  
+One of the main things is to check function signature, 
+  any type that includes the methods of the interface implements it 

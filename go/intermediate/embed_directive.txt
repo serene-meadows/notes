@@ -67,6 +67,18 @@ usage
       fmt.Println(string(content))
 
 
-      fs.WalkDir()
+      err = fs.WalkDir(basicsFolder, "basics", func(path string, fs.DirEntry, err error) error { 
+          // 2nd argument -> root
+        if error != nil {
+          panic(error)
+        }
+        fmt.Println(path)
+        return nil
+      })
+      if err != nil {
+        log.Fatal(err)
+      }
+
+
     }
    ````

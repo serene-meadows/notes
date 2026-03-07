@@ -1,0 +1,8 @@
+logging
+  is a critial aspect of software development and operations
+    it allows developers and system administrators to monitor and debug applications in go
+
+  log package
+  the standard library doesn't provide built-in support for logging levels like debug info, warn, error
+
+
