@@ -1,0 +1,32 @@
+it is a widely popular 3rd party logging tool
+
+
+to use this 3rd party package
+  ````terminal
+    go mod init somename // creates a go.mod file
+
+    go get go.uber.org/zap // installing logrus as a dependency for this project
+  ````
+
+````go
+  package main
+
+  import "go.uber.org/zap"
+
+  func main() {
+    logger, err := zap.NewProduction()
+    if err != nil {
+      log.Println("Error in initializing Zap logger")
+    }
+    // error in initializing zap logger may lead to some buffer remaining at the end of the function 
+      // to flush the buffer
+    defer logger.Sync()
+
+    logger.Info("This is an info message") // by default uses JSON formatting
+      // has default fields like level, timestamp, caller, msg
+
+    // custom fields 
+    logger.Info("User logged in", zap.String("username", "John Doe"), zap.String("method", "GET"))
+      // variadic parameter
+  }
+````

@@ -1,0 +1,38 @@
+it is a widely popular 3rd party logging tool
+
+
+to use this 3rd party package
+  ````terminal
+    go mod init somename // creates a go.mod file
+
+    go get github.com/sirupsen/logrus // installing logrus as a dependency for this project
+  ````
+
+  ````go
+    package main
+
+    import "github.com/sirupsen/logrus"
+
+    func main() {
+      log := logrus.New() 
+
+      // set log level
+      log.SetLevel(logrus.InfoLevel)
+
+      // set log format 
+      log.SetFormatter(&logrus.JSONFormatter)
+
+      // Logging examples 
+      log.Info("This is an info message")
+      log.Warn("This is a warning message")
+      log.Error("This is an error message")
+
+      log.WithFields(logrus.Fields{
+        "username": "John Doe",
+        "method": "GET",
+      }).Info("User logged in")
+    }
+      // display in JSON Formatter 
+        // run to see how it looks 
+          // basic -> level field, msg field, flags fields, then we have the custom fields we defined all in JSON format
+  ````

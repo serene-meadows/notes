@@ -1,0 +1,121 @@
+JSON - Java Script Object Notation
+  lightweight data interchange format that is easy for humans to read and write, and easy for machines to parse and generate
+
+commonly used 
+  in transmitting data in web applications and in go
+
+  the encoding JSON package provides functions to encode which is called marshal and decode which is called unmarshal JSON data 
+
+````go
+  package main 
+
+  type Person struct {
+    FirstName string `json:"first_name"` // the JSON key to use when struct marshalled to JSON
+    Age int `json:"age,omitempty"` // NOTE: no space
+    EmailAddress string `json:"email,omitempty"`
+    Address Address `json:address` // nested JSON 
+  }
+    // ` (backticks) in structs are primarily used for struct field tags which provide metadata about the fields 
+    // these tags are especially useful when you need to convert a struct to JSON or interact with databases
+    // suppose we wanted to export name field, we would name it Name according to go standards, but json keys have to be lowercase   
+      // When converting to JSON the JSON package looks for the JSON tag 
+      //   it wil use these tags when marshalling, when encoding the struct to JSON
+    // they can also be used to omit empty fields 
+
+    // ` (backticks) in structs, are not only used for json marshalling
+      //  struct tags can specify column names, priamry keys, etc when working with database ORMs
+      //  tags can also provide validation rules 
+
+  type Address struct {
+    City string `json:"city"`
+    State string `json:"state"`
+
+  }
+
+  func main() {
+    person := Person {
+      FirstName: "Vikas",
+      Age: 21,
+    }
+
+    // Marshalling 
+    jsonData, err := json.Marshal(person)
+    if err != nil {
+      fmt.Prtinln("error marshalling to JSON", err)
+      return
+    }
+    fmt.Println(string(jsonData))
+
+
+    person1 := Person {
+      FirstName: "Jane Doe",
+      Age: 23,
+      EmailAddress: "some@mail.com",
+      Address: Address {
+        City: "Ggn"
+        State: "Haryana"
+      }
+    }
+
+    jsonData1, err := json.Marshal(person1)
+    if err != nil {
+      fmt.Pritnln(err)
+      return
+    }
+    fmt.Pritnln(string(jsonData1))
+
+
+    // Unmarshall
+    jsonData1 := `{"full_name": "Jenny Doe", "emp_id": "0009", "age": 30, "address": {"city": "plano", "state": "texas"}}`
+
+    var employee employee
+    err = json.Unmarshall(byte[](jsonData1), &employee)
+    if err != nil {
+      fmt.Println("couldn't unmarshall", err)
+    }
+    fmt.Println(employee)
+  }
+
+  type Employee struct {
+    FullName string `json:"full_name"`
+    EmpID string `json:"emp_id"`
+    Age int `json:"age"`
+    Address Address `json:"address"`
+  }
+````
+    JSON package also with list, array, slices
+
+    ````go
+      listOfCityState := []Address {
+        {City: "New York", State: "NY"},
+        {City: "New York - a", State: "NY - a"},
+        {City: "New York - b", State: "NY - b"},
+        {City: "New York - c", State: "NY - c"},
+      }
+
+      // encoding the list of instances into a JSON String
+      jsonList, err := json.Marshal(listOfCityState)
+      if err != nil {
+        fmt.Prtinln("cannot marshal fam", err)
+      }
+      fmt.Println("JSON List:", string(jsonList))
+        // its a list of json objects 
+          // [{"city":"New York","NY"},{... so on},{... so on},{... so on}]
+    ````
+    
+ 
+    // handling unknown JSON data structures
+      // sometimes we use 3rd party API, whose structure isn't always known or in our control
+    ````go
+      // unknown JSON data structure
+      jsonData2 := `{"name": "John", "age": 30, "address": {"city": "new york", "state": "NY"}}`
+
+      var data map[string]interface{} 
+
+      err := json.Unmarshall([]byte(jsonData2), &data)
+      if err != nil {
+        log.Fatalln("boohoo", err)
+      }
+      fmt.Prtinln(data)
+        // it is a nested map
+    ````

@@ -4,5 +4,68 @@ logging
 
   log package
   the standard library doesn't provide built-in support for logging levels like debug info, warn, error
+    > you wil to create your own functions for that (written in this file)
+    > you will have to use 3rd party loggers for that (popular -> logrus, zap)
 
+best practices 
+  mention log levels
+  used structured format
+  add contextual details to log
+  implement log rotation -- archive old log to prevent buid up
+  use external centralized log analysis
+     
 
+````go
+  func main() {
+    log.Println("this is a log message") // this will add a datetime stamp as well
+
+    // adding prefix
+    log.SetPrefix("INOF: ") // adds the prefix before the timestamp
+    log.Println("This is an info message") 
+
+    // adding flags
+    log.SetFlags(log.Ldate) // date flag
+    log.Println("This is a log message with only date") // note the prefix is still there
+
+      // we can chain flags 
+    log.SetFlags(log.Ldate | log.Ltime) date flag, time flag
+    log.Println("This is a log message with only date and time")
+      // there are more flage 
+      //   log.Lshortfile -> name of the file 
+  }
+```` 
+
+we don't have builtin support for logging levels in go
+so we can define our custom logging functions to handle different levels of logging 
+
+  ````go
+    func main() {
+      infoLogger.Println("This is an info message")
+      warnLogger.Println("This is a warning message")
+      errorLogger.Println("This is an error message")
+
+    }
+
+    // variable declaration block
+    var (
+      infoLogger := log.New(os.Stdout, "INFO: ", log.Ldate | log.Ltime | log.Lshortfile) 
+      warnLogger := log.New(os.Stdout, "WARN: ", log.Ldate | log.Ltime | log.Lshortfile)
+      errorLogger := log.New(os.Stdout, "ERROR: ", log.Ldate | log.Ltime | log.Lshortfile)
+        // log.New returns a new logger
+    )
+  ````
+
+// logging to the file, instad of stdout
+  ````go
+    file, err := os.OpenFile("app.log", os.O_CREATE | os.O_WRONLY | os.O_APPEND, 0666) // 0666 -> permisions (read | write) 
+                                                                          // 0777 -> permisions (read | write | executable)
+    if err != nil {
+      log.Fatalf("Failed to open log file: ", err)
+        // log.Fataf prints to terminal and exits the program
+    }
+    
+    defer file.Close()
+
+    debugLogger := log.New(file, "INFO: ", log.Ldate | log.Ltime | log.Lshortfile) 
+    debugLogger.Println("This is a debug message")
+  ````
