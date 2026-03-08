@@ -1,0 +1,61 @@
+go routines are lightweight threads managed by the go runtime 
+
+they enable concurrent execution of functions allowing you to perform multiple tasks concurrently within a single go program, it is non-blocking
+  without us neededing the manage the threads
+
+  When a Go program starts, the runtime creates the main goroutine which runs the main() function.
+    main goroutine → runs main()
+
+  When we write:
+    go sayHello()
+  Go starts a new goroutine that will execute sayHello() concurrently.
+  Now two goroutines exist:
+    main goroutine
+    sayHello goroutine
+  However, the Go scheduler decides when each goroutine runs.
+
+  After starting the goroutine, the main() function keeps running.
+
+  In Go, when main() returns:
+    the entire program exits
+      When the program exits:
+        all goroutines are terminated 
+        all program memory is released by the OS
+
+goroutine scheduling in go
+  managed by the go runtime scheduler 
+
+  uses M:N scheduling model
+
+  
+declaration   
+  go keyword 
+    add the go keyword preceding the function and execute that function immediately in the main function
+
+````go
+  package main 
+
+  func main() {
+    // sayHello() // waits for 1 second and prints
+    go sayHello() // no output on the screen
+        // the reason nothing was printed is because
+          // After starting the goroutine, the main() function keeps running.
+          // But in our program, main() has nothing else to do, so it reaches the end immediately.
+
+             // In Go, when main() returns:
+             //   the entire program exits
+             //     When the program exits:
+             //       all goroutines are terminated
+             //       all program memory is released by the OS
+
+         // So the sayHello goroutine never gets a chance to finish.
+         // That is why no output appears.
+
+        // a very impractical sol'n for now would be to time sleep for 2 seconds in main after go routine call
+  }
+
+  func sayHello() {
+    time.Sleep(1 * time.Second)
+    fmt.Println("hello from Goroutine")
+  }
+````

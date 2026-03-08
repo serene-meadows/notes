@@ -1,0 +1,192 @@
+io package 
+  is a standard library package for input and output operations 
+
+  it provides interfaces for reading and writing data
+    io package is basically just a interface, which different packages implement 
+
+  it facilitates interactions with various data sources like files, networks, in-memory buffers 
+
+  for ex
+      io.Reader 
+        is an interface for reading data from a source, and the method is Read
+          for ex, it is implemented by 
+            os.File
+            strings.Reader
+            bytes.Buffer
+
+      io.Writer
+        is an interface for writing data to a destination, and the method is Write
+          for ex, it is implemented by 
+            os.File 
+            byte.Buffer
+            strings.Builder
+
+
+````go
+  // function that uses io.Reader to read data 
+    // this reader can be anything, file reader, string reader ...
+      // this is possible because io.Reader is an interface
+  func readFromReader(r io.Reader) {
+    buf := make([]byte, 1024)
+    n, err := r.Read(buf,)
+    if err != nil {
+      log.Fatalln("error reading from reader", err)
+    }
+
+    fmt.Println(string(buf[:n]))
+      // sliced the buf, because in the case where only part of the buffer was used, we don't want the whol buffer whic hincludes empty bytes
+  }
+
+  // function that uses io.Writer to write data 
+    // this writer can be anything, file writer, string builder ...
+      // this is possible because io.Writer is an interface
+  func writeToWriter(w io.Writer, data string) { 
+    _, err := w.Write([]byte(data)) 
+    if err != nil {
+      log.Fatalln("unable to write to writer", err)
+    }
+  }
+
+  // when we are accessign a resource from which we can read or write 
+  //  it means that it's a resource that can be opened and closed
+  func closeResource(c io.Closer) {
+    err := c.Close()
+    if err != nil {
+      log.Fatalln("unable to close resource")
+    }
+  }
+
+
+  // example using byte.Buffer 
+  func bufferExample() {
+    var buf bytes.Buffer
+    buf.WriteString("Hello world")
+      // it implements io.Writer under the hood
+    fmt.Println(buf.String())
+  }
+
+  // example - multi reader
+  func multiReaderExample() {
+    r1 := strings.NewReader("Hello")
+    r2 := strings.NewReader("World!")
+
+    mr := io.MultiReader(r1, r2)
+      // takes variadic parameter
+    buf := new(bytes.Buffer)
+      // new() allocates zero-valued memory and returns pointer 
+          // afaik, it doesn't necessarily mean its allocated on heap, that is decided by the go compiler 
+          // if the data escapes the function (that is, it is returned or something) it is allocated on the heap
+
+        // make() only works for slice, map, channel
+          // these require special attention, because they have underlying structures as well
+            // new() with slice would only allocate for header, not the underlying array
+
+
+    _, err := buf.ReadFrom(mr) // reads from io.Reader until EOF and appends to buffe
+    if err != nil {
+      log.Fatalln("couldn't read from multi reader")
+    }
+    fmt.Pritnln(buf.String())
+  }
+
+  // io.Pipe
+    // io.Pipe creates a pipe with a connected io.Reader and io.Writer
+      // it returns 2 values - reader, writer
+      // note that the reader and writer are connected, its basically a pipe connecting two ends 
+  func pipeExample() {
+    pr, pw := io.Pipe()
+    
+    // creating a go routine 
+    go func() {
+      pw.Write([]byte("Hello pipe"))
+      pw.Close()
+    }()
+
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(pr)
+    fmt.Println(buf.String())
+  }
+  
+  // write to file 
+  func writeToFile(filepath string, data string) {
+    file, err := os.OpenFile(filepath, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+    if err != nil {
+      log.Fatalln("error opening file")
+    }
+    defer closeResource(file)
+
+    // Method 1 - works 
+    // _, err = file.Write([]byte(data))
+    // if err != nil {
+    //   log.Fatalln("error", err)
+    // }
+
+    // Method 2 - works 
+      // method 1 is what will be used, since its more direct 
+      // this method is written to understand how packages implment the interfaces and why different readers and writers can be used
+      //    in place of io.Reader and io.Writer, spoiler -> because they implement Read Write method
+    writer := io.Writer(file) // file is of type os.File which implements io.Writer
+                              // so basically os.File can be used in places which expects io.Writer because os.File implements io.Writer
+    _, err = writer.Write([]byte(data))
+    if err != nil {
+      log.Fatalln("error", err)
+    }
+  }
+
+  // implementing io.Closer on a custom struct 
+  type myResource struct {
+    name string 
+  }
+    // io.Closer -> Close() error
+  func (m MyResource) Close() error {
+    fmt.Println("Closing resource :(")
+    return nil
+  }
+
+  func main() {
+    // using string readers
+    readFromReader(strings.NewReader("hello reader"))
+
+    // using bytes.Buffer
+    var writer bytes.Buffer
+    writeToWriter(&writer)
+      // Writer() method signature is something like -> func (b *Buffer) so it expects a pointer
+
+    bufferExample() // Hello world
+    multiReaderExample() // HelloWorld!
+    pipExample() // Hello pipe
+
+    filepath := "io.txt"
+    writeToFile(filepath, "Hello world")
+
+    resource := &MyResource{name:"vikas"}
+    closeResource(resource)
+  }
+````
+
+
+
+difference between io and bufio pacakge 
+
+  bufio wraps around io
+    it wraps types that implement io.Reader io.Writer
+
+  purpose 
+    io - basic interfaces and functions for i/o operations 
+
+    bufio - buffered i/o operations to improve efficient by reducing sys calls 
+
+  core interfaces/ types 
+    io - io.Reader, io.Writer, io.Closer
+
+    bufio - bufio.Reader, bufio.Writer, bufio.Scanner
+
+  common use cases 
+    io - direct i/o operations, simple data transfer, pipes 
+
+    bufio - buffered reading/ writing, line-by-line reading, chunked reading 
+
+  unique use cases 
+    io - abstract i/o
+
+    bufio - efficient i/o, tokenization

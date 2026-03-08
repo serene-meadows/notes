@@ -1,0 +1,34 @@
+type conversion is a fundamental concept that allows you to convert a value of one type into another type 
+  note: the types should be related 
+    you cannot convert types between int and bool
+    string and []byte are Ok
+
+  related types can be interfaces too, 
+    if one type implements all methods then it is related to that interface
+      so if a function accepts an argument which is of type of that interface, 
+        then any other type that implements that interface will also be accepted in place of that interface
+
+syntax is basically 
+  // Type(value)
+
+// numeric type conversions 
+  ````go
+    var a int = 32
+    b := int32(a)
+    c := float64(b)
+      // this behaviour isn't defined in the type 
+      // this behaviour is programmed into the compiler and runtime (mainly the compiler)
+    d := bool(1) // error -> cannot convert type int to bool
+      // so basically the types must be related
+
+    g := "hello" // we can convert string <-> slice of bytes
+    var h []byte
+    h = []byte(g)
+
+    i := []byte{255, 72}
+      // the elements are -> uint8, so you cannot make an element >255
+      // you can do -> []byte{'a', 'b'} as well 
+        // because characters are technically uint8?
+    j := string(i)
+  ````
+

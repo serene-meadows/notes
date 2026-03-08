@@ -2,6 +2,29 @@
 
 methods are functions that are associated with any specific type (not just structs)
 
+
+there is a major doubt with pointer and value receiver, on what type of variable do i call it 
+  the key is to sepereate two things 
+    1. how the method is defined (receiver type)
+    2. how you call it 
+
+  value receivers 
+    you can call it on  
+      a value 
+      a pointer 
+
+    go automatically converts
+
+  pointer receiver 
+    you can call it on 
+      a pointer 
+      a value (if addressable)
+    
+    go automatially converts
+    
+
+
+
 methods are declared with a receiver which specifies the type thta the method operates on
   there are two types of receiver
     value receiver
