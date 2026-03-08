@@ -1,0 +1,120 @@
+xml -> Extensible Markup Language
+  used for enoding documents in a format that is both human and machine readable
+
+  it is widely used for data exchange between systems and for configuration files 
+
+  go provides xml package 
+
+xml 
+  it is like HTML
+
+  XML has a root element 
+  and that root element encloses all the sub elements inside it 
+
+although REST is more popular now,
+  in the good old days when SOAP was famous, it used xml
+    SOAP -> Simple Object Access Protocol
+  afaik tell legacy important software like payment gatweways and what not.. which was built to last some time back
+  all use xml
+
+````go
+  import "encoding/xml"
+
+  type Person struct {
+    XMLName xml.Name `xml:"person"` // root element
+                                    // it is actually a struct in itself
+                                      // you will notice that when printing it, it appears as { person} with a leading space 
+                                      // that is because xml.Name has two elements namespace and localname
+                                      // and the person root element is stored as the localname
+    Name string `xml:"name"`
+    Age int `xml:"age,omitempty"`
+    Email string `xml:"-"`
+    Address Address `xml:"address"` // nested XML
+  }
+
+  // nested XML 
+    type Address struct {
+        // we didn't use XMLName here, because we are going to compose this struct into Person
+      City string `xml:city`
+      State string `xml:state`
+    }
+
+
+  func main() {
+    person := Person {
+      name: "John",
+      Age: 30,
+      Email: "something@somewhere.com"
+      Address: Address {
+        City: "Ggn",
+        State: "Haryana",
+      }
+    }
+
+    xmlData, err := xml.Marshal(person)
+    if err != nil {
+      log.Fatalln("oh no", err)
+    }
+    fmt.Println(string(xmlData))
+      // prints xml format in one long string
+    
+    // prettier printing 
+    xmlData, err = xml.MarshalIndent(person, "", " ")
+      // second argument -> prefix
+      // third argument -> indent
+    if err != nil {
+      log.Fatalln("oh no", err)
+    }
+    fmt.Println(string(xmlData))
+
+
+
+
+    // Unmarshal
+    // XML as raw string literal 
+    xmlRaw := `<person><name>John</name><age>21</age><address><city>ggn</city><state>haryana</state></address></person>`
+    var personXML Person
+
+    err = xml.Unmarshal([]byte(xmlRaw), &personXML)
+    if err != nil {
+      log.Fatalln(err)
+    }
+    fmt.Println(personXML)
+
+  }
+  ... 
+````
+
+by default fields are treated as child elements 
+we can create attributes as well
+  attribute is a property of an element   
+    ex -> <Person age = "21"></Person>
+      age is an attribute
+
+  to assign attributes to child elements, you need to create a seperate struct for the child element,
+    because in the same struct, all attributes that you define are going to be assigned to the primary element of that struct 
+
+  ````go
+    type Book struct {
+      XMLName xml.Name `xml:"book"`
+      ISBN string `xml:"isbn,attr"` // attribute
+      Title string `xml:"title,attr"` // attribute 
+      Author string `xml:"author,attr"` // attribute
+      Pseudo string `xml:"pseudo"`
+    }
+
+    func main() {
+      book := Book {
+        ISBN: "123-123-123",
+        Title: "Go bootcamp",
+        Author: "Someone",
+        Pseudo: "something?",
+      }
+    }
+
+    xmlData, err := xml.MarshalIndent(book, "", " ")
+    if err != nil {
+      log.Fatalln("Error marshalling data", err)
+    }
+    fmt.Println(string(xmlData))
+  ````
