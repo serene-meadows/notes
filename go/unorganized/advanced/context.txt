@@ -1,0 +1,233 @@
+// example - This is NOT the recommended use of TODO context (i.e. carrying values)
+```go
+  func main() {
+      // context can carry key value pairs
+      // these contexts are instances of structs
+    todoContext := context.TODO()
+    contextBkg := context.Background()
+
+
+      // first argument is a parent context
+      // second, third argument is key value pair to attach
+      // returns a new context
+    ctx := context.WithValue(todoContext, "name", "john")
+    ctx1 := context.WithValue(contextBkg, "city", "NY")
+
+    fmt.Println(ctx1) // context.Background.WithValue(type string, val NY)
+    fmt.Println(ctx1.Value("city")) // NY
+
+  }
+```
+
+
+context
+  context is a type from the context package // Type -> context.Context
+
+  contexts are used to carry information about deadlines, timeouts, cancellation signals, request scoped values
+    accross API boundaries and go routines
+
+
+context.TODO
+  used when you are unsure about which context to use or if you plan to use a proper context later on 
+
+  it acts as a placeholder and doesn't carry any deadlines cancellations 
+
+  go by convention doesn't want context.TODO to carry any information about cancellation signals or values 
+    even if technically it is possible to do so    
+
+  its simply a placeholder for using contexts when not sure which one to use
+
+
+context.Background 
+  used as a base, root context from which all other contexts derive
+  donot use context.TODO as the root context, since by convention that is not it's usecase
+
+  by convention, it also shouldn't carry any information, it is to be used as a blank slate from which other contexts are built on
+
+
+example
+```go
+  func checkEvenOrOdd(ctx context.Context, num int) string {
+
+      // // ctx.Done()
+      //   // returns <-chan struct{}  // receive-only channel
+      //     // chan struct{} is a normal channel that can send/receive values of type struct{}.
+      //     // The value sent would be struct{}{} (an empty struct).
+
+      //     // struct{} occupies 0 bytes, so it's ideal for signalling without carrying data.
+
+      //   // So how does <-ctx.Done() signal cancellation?
+      //     // When the context is cancelled, the Done() channel is closed.
+
+      //     // Receiving from a closed channel returns immediately (with the zero value),
+      //     // but the value itself is irrelevant here because we only care about the signal.
+
+      //   // Therefore:
+      //     //
+      //     //    <-ctx.Done()
+      //     //
+      //   // means: wait until the channel is closed (i.e., until the context is cancelled).
+      //   select {
+      //     case <-ctx.Done(): // case executes when the channel closes
+      //       return "Operatation cancelled"
+      //   }
+
+      
+      select {
+        case <-ctx.Done():
+          return "Operation cancelled"
+        default:
+          if num % 2 == 0 {
+            return fmt.Sprintf("%d is even", num)
+          } else {
+            return fmt.Sprintf("%d is odd", num) 
+          }
+      }
+  }
+
+  func main() {
+    ctx := context.TODO()
+
+    result := checkEvenOrOdd(ctx, 5)
+    fmt.Println("result with context.TODO", result)
+
+      // onlt context.TODO and context.Background do not need a parent background
+      // but dont use context.TODO as parent because of convention ?
+    ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second) // // timer of this context starts here 
+      // returns context, context.CancelFunc
+      // cancel function will send a cancellation signal
+      // context cancellation doesn't mean -> delete the context
+      //     it means to send a cancellation signal
+    defer cancel()
+      // if the context has already sent a cancellation signal 
+      // this doesn't send another cancellation signal
+      // this doesn't result in a runtime panic either
+      // conetxt are only cancelled once
+    result = checkEvenOrOdd(ctx, 10)
+    fmt.Println("Result from timeout context", result) // 10 is even
+
+    time.Sleep(2 * time.Second)
+    result = checkEvenOrOdd(ctx, 15)
+    fmt.Println("result after a timeout", result) // Operation cencelled
+
+  }
+```
+
+
+// context.WithTimeout
+```go
+  func doWork(ctx context.Context) {
+    for {
+      select {
+        case <-ctx.Done():
+          fmt.Println("Work Cancelled", ctx.Err())
+          return
+        default:
+          fmt.Println("Working...")
+      }
+      time.Sleep(500 * time.Millisecond)
+    }
+  }
+
+  func main() {
+    ctx := context.Background()
+    ctx, cancel := context.WithTimeout(ctx, 2 * time.Second) // timer of this context starts here 
+                                                             // after this time, the context will send a cancellation singal 
+                                                             // this doesn't not mean that the context is deleted or lost 
+                                                             // you can still access the data related to the context
+    defer cancel()
+
+    ctx = ctx.WithValue(ctx, "requestID", "234lisjfa0a")  
+
+    go doWork(ctx)
+
+    time.Sleep(3 * time.Second)
+
+    requestID := ctx.Value("requestID")
+    if requestID != nil {
+      fmt.Println(requestID)
+    } else {
+      fmt.Println("no requestID found")
+    }
+  }
+  // output 
+  // Working...
+  // Working...
+  // Working...
+  // Working...
+  // Work Cancelled: context deadline exceeded
+  // RequestID: 234lisjfa0a
+      // this means that the context still exists after sending cancellation signal
+      // that is why even though the context is cancelled, we can still access its values
+```
+
+
+
+// context.WithCancel
+  // we have to manually call cancel() to send cancellation signal
+```go
+  func doWork(ctx context.Context) {
+    for {
+      select {
+        case <-ctx.Done():
+          fmt.Println("Work Cancelled", ctx.Err())
+          return
+        default:
+          fmt.Println("Working...")
+      }
+      time.Sleep(500 * time.Millisecond)
+    }
+  }
+
+  func main() {
+    ctx := context.Background()
+    ctx, cancel := context.WithCancel(ctx)
+      // unlike context.WithTimeout 
+      // we have to manually call cancel() 
+      // 
+
+    go func() {
+      time.Sleep(2 * time.Second) // simulating a heavy task
+      cancel() // manually cancelling context
+    }()
+
+    ctx = ctx.WithValue(ctx, "requestID", "234lisjfa0a")  
+      // you can add more key value pairs too
+      // ctx = ctx.WithValue(ctx, "name", "john")  
+      // ctx = ctx.WithValue(ctx, "ip", "234.234.23.42.4324.23.423.42342.")  
+
+    go doWork(ctx)
+
+    time.Sleep(3 * time.Second)
+
+    requestID := ctx.Value("requestID")
+    if requestID != nil {
+      fmt.Println(requestID)
+    } else {
+      fmt.Println("no requestID found")
+    }
+    logWithContext(ctx, "This is test log message")
+  }
+  // contextual logging 
+  func logWithContext(ctx context.Context, message string) {
+    requestIDVal := ctx.Value("requestID")
+    log.Printf("RequestID %v - %v", requestIDVal, message)
+  }
+
+  // output 
+  // Working...
+  // Working...
+  // Working...
+  // Working...
+  // Work Cancelled: context cancelled
+  // RequestID: 234lisjfa0a
+      // this means that the context still exists after sending cancellation signal
+      // that is why even though the context is cancelled, we can still access its values
+  // <sometimestamp> RequestID: 234lisjfa0a - This is a test log message
+```
+
+
+
+
+
+

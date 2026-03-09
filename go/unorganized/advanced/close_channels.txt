@@ -1,0 +1,127 @@
+why close channels 
+  signal completion
+    a closed channel means that no more data will be sent on the channel
+    which helps go routines that are receiving data know when to stop waiting
+
+  closing channels 
+    ensures resources associated to that channel are properly cleaned up 
+
+  closing a channel 
+    close(ch)
+
+  once a channel is closed, no more values can be sent to it
+
+  receiving from closed buffered channel 
+    a buffered channel may have some values stored in its buffer, and those values can be received 
+    even if the channel is closed
+
+  closing channels more than once, results in a runtime panic
+    thus only one go routine should be responsible for closing a channel (ideally the sender and not the receiver)
+
+  sending to closed channels results in a runtime panic
+
+  
+  for closing channels we also have a worker pool pattern, covered in some other file
+
+
+best practices
+  close channel from sender not from receiver
+  
+
+
+
+// receiving from a closed channel
+```go
+  func main() {
+    ch := make(chan int)
+    close(ch)
+
+    val, ok := <-ch
+    if !ok {
+      fmt.Println("Channel is closed fam")
+    }
+    fmt.Println(val)
+  }
+  // output (since the channel is closed)
+  // ok -> false so "channel is closed fam"
+  // val -> 0, zero-value of int
+```
+
+
+// range over closed channel
+```go
+  func main() {
+    ch := make(chan int)
+
+    go func() {
+      for i := range 5{
+        ch <- i
+      }
+      close(ch)
+    }()
+
+    for val := range ch {
+      fmt.Println(val)
+    }
+  }
+  // output 
+  // 0
+  // 1
+  // 2
+  // 3
+  // 4
+    // the range quits once the channel closes
+```
+
+
+// runtime panic -> closing channel twice
+```go
+  func main() {
+    ch := make(chan int)
+    go func() {
+      close(ch)
+      close(ch) // runtime panic
+    }()
+  }
+```
+
+
+// closing channels is resonsbility of sender 
+// we need seperation of concerns because closing channel twice results in runtime panic
+```go
+  func producer(ch channel<- int) {
+    for i := range 5 {
+      ch <- i
+    }
+    close(ch) // closes the outgout channel
+  }
+
+  func filter(in <- chan int, out chan<- int) {
+    for val := range in {
+      // filter val
+      if val %2 == 0 {
+        out <- val
+      }
+    }
+    close(out) // closes the outgoing channel
+               // doesn't close the incoming channel, because its not a sender on that channel
+  }
+
+  func main() {
+    ch1 := make(chan int)
+    ch2 := make(chan int)
+
+    go producer(ch1)
+    go filter(ch1, ch2)
+
+    for val := range ch2 {
+      fmt.Println(val)
+    }
+    // output 
+    // 0 
+    // 2 
+    // 4
+  }
+```
+
+

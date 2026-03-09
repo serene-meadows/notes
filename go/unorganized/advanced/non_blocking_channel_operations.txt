@@ -1,0 +1,72 @@
+non blocking operations on channels allow a go routine to perform a channel operation like send or receive without getting stuck
+
+we need them 
+  to prevent deadlocks 
+  prevent go routines from waiting indefinetely on channel operations 
+  allow go routines to continue processing or handle other tasks if channels are not immediately ready
+  enhance concurrency
+    manage multiple concurrent operations by not blocking on individual channel operations
+
+
+```go
+  func main() {
+
+    // non blocking receive operation
+    // by using default operation in select
+    ch := make(chan int)
+    select {
+      case msg := <- ch:
+        fmt.Println("message:", msg)
+
+      default:
+        fmt.Println("No messages")
+    }
+
+
+    // non blocking send operations 
+    // 
+    select {
+      case ch <- 1:
+        fmt.Println("Send message")
+      
+      default:
+        fmt.Println("Channel is not ready to receive data")
+    }
+
+
+    // non blocking opeartion in real time systems
+    data := make(chan int)
+    quit := make(chan bool)
+
+    go func() {
+      for {
+        select {
+          case d := <-data:
+            fmt.Pritnln("Data received:", d)
+
+          case <-data:
+            fmt.Println("stopping")
+            return
+
+          default:
+            fmt.Println("Waiting for data")
+            time.Sleep(500 * time.Millisecond)
+        }
+      }
+    }()
+
+    for i := range 5 {
+      data <- i 
+      time.Sleep(i * time.Second)
+    }
+    quit <- true
+  }
+
+
+  // handle channel closures properly
+  // channel receive send two data data, ok(bool)
+  // if ok is false, that means that the channel has been closed
+  // closed channels do not block btw
+  // and closed channels return zero-value
+  // concept explored in some other file
+```

@@ -23,6 +23,11 @@ select
     fmt.Println(<-ch)
   ```
 
+  // NOTE: following select only uses receive operations, however you can use send operations too, its explained in non_blocking_channel_operations.txt
+  // byt basically 
+    // "wait until the channel is ready to accept a value,
+    // then send the value and run this case."
+  // and you can combine send and receive both in the same select statment
   // using select
     // a case is ready -> if it's channel operation can proceed without blocking
     // 
@@ -108,3 +113,30 @@ select
       }
     }
   ``` 
+
+
+```go
+  func main() {
+    ch := make(chan int)
+
+    go func() {
+      ch <- 1
+      close()
+    }()
+
+    for {
+      select {
+        case msg, ok := <-ch
+        if !ok {
+          fmt.Println("ch1 channel closed")
+          // do cleanup activities
+          return
+        }
+        fmt.Println(msg)
+      }
+    }
+    // if we didn't check for !ok condition
+    // once the channel is closed, it retunrns zero-value of type, false
+    // so the code would keep printing 0
+  }
+```
