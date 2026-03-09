@@ -1,0 +1,48 @@
+channel directions 
+  channels are by default bi-directional
+
+  specify the allowable operations on a channel 
+    either sending or receiving 
+
+    Type
+      chan T // bi-directional
+      chan<- T // sender 
+      <-chan T // receiver
+
+      go can implicitly cast bi-directional to sender, or receiver type
+      but sender type cannot be typed to receiver type, and vice versa
+
+  they are generally used in functions 
+    A bidirectional channel (chan T) can be passed to a function that
+    expects a directional channel (chan<- T or <-chan T).
+      
+      Inside the function, the channel variable has restricted access,
+      so the function can only send or only receive from the channel.
+
+```go
+
+  func main() {
+    ch := make(chan int)
+    
+    go func(ch chan<- int) {
+      for i := range 5 {
+        ch <- i 
+
+      close(ch)
+    }(ch) // passing the bi-directional channel, the function header is of type sender channel, so ch will be restricted 
+          // to just sending inside the function
+
+    receiveData(ch)
+
+  }
+
+  func receiveData(ch <-chan int) {
+      // passing the bi-directional channel, the function header is of type receive channel, so ch will be restricted 
+      // to just receiving inside the function
+    for value := range ch {
+      fmt.Println("Received: ", value)    
+    }
+  }
+```
+
+

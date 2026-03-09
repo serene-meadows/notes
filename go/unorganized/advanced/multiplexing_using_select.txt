@@ -1,0 +1,110 @@
+Multiplexing is the process of handling multiple channel operations.
+
+  It allows a goroutine to wait on multiple channel operations and
+  react to whichever operation becomes ready first.
+
+  Using multiplexing, a single goroutine can coordinate multiple
+  concurrent events coming from different channels.
+
+  Multiplexing is also commonly used to implement patterns such as
+  timeouts, cancellations, and fan-in communication.
+
+
+The select statement in Go facilitates multiplexing.
+  It allows a goroutine to wait on multiple channel operations
+  (send or receive) and executes the case whose channel operation
+  becomes ready first.
+
+select
+  // error case - deadlock
+  ```go
+    // this is a deadlock
+    ch := make(chan int)
+    fmt.Println(<-ch)
+  ```
+
+  // using select
+    // a case is ready -> if it's channel operation can proceed without blocking
+    // 
+    // if a case is ready
+    //     that case is executed and select exits
+    // if multiple cases are ready 
+    //     one of the cases is randomly selected and executed, then the select exits
+    // 
+    // if none of the cases are ready 
+    //   if there is no default, the select statement blocks until one of the cases is ready
+    //      if no goroutine can ever make one of those operations ready, the program eventually deadlocks.
+    //   but if there is a default case, it executes when no other case is ready, and this prevents a potential deadlock
+    // 
+    // 
+    // NOTE: 
+    //      since not every channel is read (only 1 is read)
+    //         only the goroutine blocked on that channel get unblocked
+    //            the rest of the goroutines remain blocked
+    // 
+    // NOTE: select executes only one case and then exits.
+    // If you want to keep reacting to channel events, wrap the select inside a loop.
+  ```go
+    ch1 := make(chan int)
+    ch2 := make(chan int)
+      
+    go func() {
+      ch1 <- 1 // goroutine gets blocked
+      ch2 <- 1 // in our case (select only runs once), this statment doesn't matter, because goroutine is blocked in the prev statemnet, so select will 
+               // never be affected by this statment
+               // and this goroutine will become blocked, until this channel is read
+    }()
+
+    go func() {
+      ch2 <- 1 // goroutine gets blocked
+    }()
+
+    go func() {
+      time.Sleep(time.Second)
+      ch2 <- 1
+    }()
+
+    select {
+    case msg := <- ch1:
+      fmt.Println("received msg from ch1", msg)
+
+    case msg := <- ch2:
+      fmt.Println("received msg from ch2", msg)
+
+
+    default:
+      fmt.Println("No channels ready")
+    }
+  ```
+
+
+
+
+// timeouts 
+  ```go
+    func main() {
+      ch := make(chan int)
+
+      go func() {
+        time.Sleep(2 * time.Second)
+        ch <- 1
+      }()
+
+
+      select {
+        case msg := <-ch:   // receive without capturing value
+          fmt.Println(msg)
+
+        case <- time.After(1 * time.Second): 
+          fmt.Println("timeout")
+            // time.After(d) returns a channel of type <-chan time.Time.
+            // After duration d passes, the runtime sends the current time on that channel.
+            //
+            // In other words, the channel will receive a value after d time.
+            //
+            // Therefore this case will become ready after d time.
+            // If no other select case becomes ready before that,
+            // this case will run and a "timeout" occurs.
+      }
+    }
+  ``` 

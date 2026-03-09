@@ -104,7 +104,8 @@ ranging over a channel
         data <- "hello" + string(i)
         time.Sleep(100 * time.Millisecond)
       }
-      close(data)
+      close(data) // don't place this close() outside the goroutine, because then there is a chance, it will run before the go rouine, and close the channel
+                  // and then no data will be passed into the channel
     }
 
     for value := range data {
