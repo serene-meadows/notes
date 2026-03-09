@@ -1,0 +1,87 @@
+channels are a way for go routines to communicate with each other and synchronize their execution
+  they provide a means to send and receive values between go routines 
+
+
+we use channels to enable safe and efficient communication between concurrent go routines 
+using channels helps synchronize and manage the flow of data in concurrent programs 
+
+
+
+creation of channel 
+  use make function to create a channel
+
+  ````go
+    // var := make(chan Type)
+    greeting := make(chan string)
+    greetString := "hello"
+
+    // making an intentional mistake
+      ````go - mistake case
+        // send value into a channel
+        greeting <- greetString // Error here
+
+        // receive value from channel 
+        receiver := <- greeting
+
+        fmt.Prtinln(receiver)
+      ````
+      this gives error 
+        this error happens during runtime, the compiler doesn't complain
+          because techincally the syntax is right (compiler doesn't gaf) but the the program fails during runtime execution because 
+          of logical bug
+
+        all goroutines are asleep - deadlock!
+        
+        channels are a blocking operations, meaning The goroutine stops and waits until the operation can complete.
+
+        send 
+          ch <- value 
+            this blocks until some goroutine receives the value 
+
+        receive 
+          value := <- ch
+            this blocks until some go routine sends a value
+
+        when we reach the line 
+          greeting <- greetString
+          because channels are blocking
+            go checks, is there a go routine ready to recieve value 
+            since no, it blocks the goroutine(in our example - main thread)
+
+            since the main thread is now blocked, it never reaches the 
+              receive line `receiver := <- greeting`
+          
+        the go runtime checks, is there any goroutine which is able to continue right now
+          the only goroutine in our example is the main thread, which is blocked, so deadlock error raised
+
+    // the fix 
+      // works beacause the goroutine is blocked, the main thread continues executing, it receives the data from the channel
+      // the goroutine is unblocked since data is read from channel 
+    go func() {
+      greeting <- greetString
+    }
+    receiver := <- greeing
+      // Right now the goroutine ends after sending the data.
+      // The channel itself is still open.
+      //
+      // It's just that the sending goroutine finished, so no more values
+      // will be sent unless another goroutine sends something.
+      //
+      // We can design the program to keep sending data over the channel.
+      // For example, we could run a goroutine with a loop that continuously
+      // sends values into the channel.
+      //
+      // On the receiving side, when a value is sent the receiver unblocks,
+      // processes the value, and then blocks again waiting for the next one.
+
+    // another case
+    go func() {
+      greeting <- greetString
+      greeting <- "another string"
+    }
+    receiver := <- greeing
+      // since we are only receivng once, only the first value is received, so goroutine remains blocked until another goroutines reads from the channel
+      //    in our example, the main thread continues on while the the goroutine would stay blocked
+          
+
+  ````

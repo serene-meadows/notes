@@ -1,0 +1,110 @@
+unbuffered channel
+  `greeting := make(chan string)`
+  this is an ubuffered channel
+
+  as soon as you send data into an unbuffered channel it immediately blocks and waits for a receiver
+    now if all other go routines terminate, or are also in hold, the go runtime realizes that there is a deadlock and throws an error
+
+  // covered in channels.txt
+
+buffered channel
+  it is a channel with an associated storage
+  it allows channels to hold a limited number of values before blocking the sender
+    thus we can manage the rate of data transfer
+
+  thus buffered channels allow asynchronous communication
+  thus senders can continue working without blocking until buffer is full
+
+  buffered channels also help with load balancing, handling bursts of data without immediate synchronization
+
+
+  buffered channels 
+    block on send
+      only if the buffer is full
+
+    block on receive 
+      only if the buffer is empty
+
+
+
+ ````go 
+  func main() {
+    // make(chan Type, capacity)
+    ch := make(chan int, 2)
+      
+              // example to show difference between buffered and unbuffered channel 
+                // ch := make(chan int)
+                // ch <- 1
+                // fmt.Println("something")
+                  // if ch was unbuffered it would have been in deadlock - since there is not receiver to consume
+                  // but it since ch is buffered, main goroutine sends data to channel and moves ahead
+
+      // we can still make this deadlock in buffered channels
+        // ch := make(chan int, 2)
+        // ch <- 1
+        // ch <- 1
+        // ch <- 1
+          // capacity was 2, we sent 3 units of data
+          // so now the sender blocks
+          // deadlock - since there is no receiver to consume
+
+
+      // deadlock - because go routine statement is never reached, because main routine blocks before it reaches there
+        // ch := make(chan int, 2)
+        // ch <- 1
+        // ch <- 2
+        // ch <- 3
+        // go func() {
+        //   fmt.Println("received", <- ch)
+        // }()
+
+
+      // no deadlock - because go routine statement is run before the main routine blocks itself
+        // ch := make(chan int, 2)
+        // ch <- 1
+        // ch <- 2
+        // go func() {
+        //   fmt.Println("received", <- ch)
+        // }()
+        // ch <- 3
+
+
+      // deadlock - receiving data from empty channel buffer and no sender
+        // ch := make(chan int, 2)
+        // fmt.Println("Receving", <-ch) 
+
+
+      // basically deadlock is thrown when go runtime knows yeah this goroutine is fucked, no one can help it out
+        // ch := make(chan int, 2)
+        // go func() {
+        //   time.Sleep(2 * time.Second)  
+        // }
+        // fmt.Println("received", <- ch)
+        
+        // this doesn't deadlock immediately, because for 2 seconds there is another goroutine running, when that finishes
+        // then deadlock is thrown, because there is running go routine that can send data to main go routine
+
+
+      // intersting phenomenon
+        // ch := make(chan int, 2)
+        // go func() {
+        //   time.Sleep(2 * time.Second)  
+        //   fmt.Println("received", <-ch)
+        // }
+        // ch <- 1
+        
+          // now, when we run this file, 
+            // we sometimes see "received 1"
+            // sometimes not
+            // the reason is, 
+            // so the statement fmt.Println("received", <-ch)
+            // <-ch executes,so the channel is unblocked
+            // now the main go routine is unblocked, so its a matter of chance if goroutine has time to execute the full fmt.Println()
+            // before the main go routine finishes execution
+  }
+ ````
+
+
+
+
+  

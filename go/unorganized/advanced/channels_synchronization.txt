@@ -1,0 +1,113 @@
+channely synchronization refers to the coordination of go routines using channels to ensure orderly execution and data execution
+  we need to avoid race conditions 
+  deadlocks
+
+
+ranging over a channel 
+  // ranging over a channel 
+    // for v := range ch {
+    //     fmt.Println(v)
+    // }
+  // is equivalent to 
+    // for {
+    //     v, ok := <-ch
+    //     if !ok {
+    //         break
+    //     }
+    //     fmt.Println(v)
+    // }
+
+    // there is a concept of open and closed channels
+    // receiving from a channel:
+      // v, ok := <-ch
+      // receive blocks if:
+        // - the channel is open
+        // - and there are no values available
+      // if the channel is closed, receive does not block.
+      // instead it immediately returns:
+        // v  -> zero value of the channel type
+        // ok -> false
+
+    // so far we often write:
+      // val := <-ch
+      // but the full form is:
+        // val, ok := <-ch
+          // which allows us to detect if the channel was closed
+
+    // example pattern:
+      // v, ok := <-ch
+      // if !ok {
+      //     break
+      // }
+
+    // to close a channel:
+
+    // closing a channel means:
+    // no more values will be sent on this channel
+      // close(ch)
+
+
+
+// sending a struct{}{} 
+  // empty struct -> use it when just need to signal
+```go
+  func main() {
+    done := make(chan struct{})
+      // struct{} is empty struct type (struct with no fields)
+        // takes 0 bytes of memory, so useful when we only want signaling and no data exchange  
+          // example 
+            // `done <- struct{}{}`
+        // we would use bool to do the same, bool will consume some memory tho
+
+    
+    go func() {
+      fmt.Println("Running...")
+      time.Sleep(2 * time.Second)
+      done <- struct{}{}
+    }()
+
+    <-done
+    fmt.Println("Finished")
+  }
+```
+
+// using multiple go routines
+// synchronizing signals
+  ```go
+    numGoRoutines := 3
+    done := make(chan int, 3)
+
+    for i := range numGoRoutines {
+      go func(id int) {
+        fmt.Printf("Goroutine %d working...", id) 
+        time.Sleep(time.Second)
+        done <- id // signal completion
+      }(i)
+    }
+
+    // receivers = senders
+      // if range was less here, there might be a chance that main go routine finishes before other go routines 
+    for range numGoRoutines {
+      <-done // wait for each go routine to finish
+    }
+
+    fmt.Println("all go routines are finished")
+  ```
+
+// synchronizing data
+// ranging over a channel
+  ```go
+    data := make(chan string)
+    
+    go func() {
+      for i := range 5 {
+        data <- "hello" + string(i)
+        time.Sleep(100 * time.Millisecond)
+      }
+      close(data)
+    }
+
+    for value := range data {
+      fmt.Println("received value:", value, ":", time.Now())
+    }
+  ```

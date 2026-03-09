@@ -3,6 +3,44 @@ go routines are lightweight threads managed by the go runtime
 they enable concurrent execution of functions allowing you to perform multiple tasks concurrently within a single go program, it is non-blocking
   without us neededing the manage the threads
 
+  Go encourages concurrent design, But whether it becomes parallel depends on:
+    go runtime, number of cores
+
+  concurrency vs parallelism 
+    Concurrency = dealing with many tasks at once
+    Parallelism = doing many tasks at the exact same time
+
+    Concurrency means a program is structured to handle multiple tasks that overlap in time, but they might not run simultaneously.
+      The system switches between tasks.
+      example 
+        Task A
+        Task B
+        Execution timeline:
+          time →
+            A A A
+                  B B
+                       A A
+                            B
+        Only one task runs at a time, but the program switches between them.
+        This is called interleaving.
+
+    Parallelism means tasks are literally running at the same time.
+      This requires multiple CPU cores.
+
+      Example:
+        Task A → Core 1
+        Task B → Core 2
+
+        Execution timeline:
+          time →
+            A A A A
+            B B B B
+
+        Both tasks execute simultaneously.
+
+
+
+
   When a Go program starts, the runtime creates the main goroutine which runs the main() function.
     main goroutine → runs main()
 
@@ -22,10 +60,19 @@ they enable concurrent execution of functions allowing you to perform multiple t
         all goroutines are terminated 
         all program memory is released by the OS
 
+  so if main thread finishes before the goroutine is finished, the goroutine is also terminated
+  
+  
+
 goroutine scheduling in go
   managed by the go runtime scheduler 
 
   uses M:N scheduling model
+    goroutines are not OS threads
+    a goroutine is a lightweight user-space thread managed by the Go runtime.
+
+    M:N means Goroutine : os threads
+      many goroutines : fewer OS threads
 
   
 declaration   
@@ -59,3 +106,37 @@ declaration
     fmt.Println("hello from Goroutine")
   }
 ````
+
+
+error handling in go routines 
+  go routines execute functions concurrently 
+  errors need to be communicated back to them main thread
+
+  use 
+    return values, shared error variables, channels 
+
+````go
+  func doWork() error {
+    // work 
+
+    return fmt.Errorf("an error occured T_T")
+  }
+
+  func main() {
+    var err error 
+    err = doWork() // works - normal function
+
+
+    err = go doWork() // doesn't work
+    // workaround 
+      // not really safe, creates race condition
+      // here race condition is between the goroutine and the main thread
+      // suppose in the next lines, we check err, it may or may not be nil even if goroutine returns error
+      // because of race condition
+    go func() {
+      err = doWork()
+    }()
+  }
+````
+
+
