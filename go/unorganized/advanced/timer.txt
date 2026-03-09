@@ -1,0 +1,86 @@
+timer 
+  a timer in go allows you to schedule an event to occur after a specified duration 
+
+  it is useful for implementing timeouts, scheduling periodic tasks and delaying operations 
+
+```go
+  func main() {
+    timer := timer.NewTimer(2 * time.Second)
+      // this timer sends the current time on it's channel
+    
+     // to stop the timer manually
+     stopped := timer.Stop()
+     // returns bool 
+     // true -> call stopped the timer 
+     // false -> timer had already expired
+     // Note: this stops the timer 
+     // so calling <- timer.C after timer.Stop() will result in a deadlock
+     // since timer won't send anything on the channel after stopping
+
+     // restarting a timer that has been expired or stopped
+     reset := timer.Reset(time.Second)
+     // returns a bool
+     // true -> timer had been active
+     // false -> timer had been expired / stopped
+
+    // waiting on the timer 
+    <- timer.C // waits for the channel to send a value
+               // blocking in nature 
+    fmt.Println("timer expired")
+  }
+```
+
+
+// timeouts 
+```go
+  func longRunningOperation() {
+    for := range 20 {
+      fmt.Println(i)
+      time.Sleep(time.Second) // simulate heavy task
+    }
+  }
+
+  func main() {
+    timeout := time.After(2 * time.Second)
+      // returns a channel time.Time
+    done := make(chan bool)
+
+    go func() {
+      longRunningOperation()
+      done<- true 
+    }()
+
+    select {
+      case <-timeout:
+        fmt.Println("Operation timed out") 
+
+      case <-done:
+        fmt.Println("Operation Completed")
+    }
+  }
+      // output 
+      // 0
+      // 1
+      // Operation timed out
+```
+
+
+
+
+// scheduling delayed operations
+```go
+  func main() {
+    timer := timer.NewTimer(2 * time.Second)
+      // this statement in itself is not blocking 
+      // time.Sleep() is blocking in itself
+
+    go func() {
+      <-timer.C // this is blocking
+      fmt.Println("Delayed operation executed")
+    }()
+
+    fmt.Println("Waiting...")
+    time.Sleep(3 * time.Second) // this statement is blocking in itself
+    fmt.Println("program over yay")
+  }
+```
