@@ -1,0 +1,476 @@
+1. single server setup
+  web app, databases, cache all run on 1 web server
+
+                                              domain
+    /                                   /   --------- >   /       /
+    /  User - (Web Browser, Mobile App) /                 /  DNS  /
+    /                                   /   < ---------   /       /
+        |   K                                   ip
+        |   |
+        |   |
+        |   |
+        |   |
+        J   |
+    /              /
+    /  Web Server  /
+    /              /
+
+  current workflow
+  1. Users access websites through domain names, the domain names are resolved by a DNS
+  which is a paid service provided by 3rd parties and not hosted by our servers
+
+  2. The DNS returns an IP address to the user
+
+  3. Once the IP address is obtained, HTTP requests are sent directly to the web server
+
+  4. The web server returns HTML pages/ JSON responses
+
+2. adding a database server 
+  web server -> handles web/ mobile traffic (web tier)
+  database server -> handles data traffic (data tier)
+
+                                              domain
+    /                                   /   --------- >   /       /
+    /  User - (Web Browser, Mobile App) /                 /  DNS  /
+    /                                   /   < ---------   /       /
+        |   K                                   ip
+        |   |
+        |   |
+        |   |
+        |   |
+        J   |        read/write/update
+    /              /   -------- >   /            /
+    /  Web Server  /                /  Database  /
+    /              /   < --------   /            /
+                      return data
+
+  Choosing between relational and non-relational database
+    Relational/ SQL [MySQL, Oracle, PostgreSQL]
+      Relational dabases represent and store data in tables and rows
+      You can perform join operations using SQL across different database tables
+  
+    Non-relational/ NoSQL [CouchDB, Neo4j, Cassandra, HBase, Amazon DynamoDB]
+      These databases are typically grouped into four categories:
+        key-value stores
+        graph stores
+        column stores
+        document stores
+
+      NoSQL generally don't support join operations
+    
+    Non-relational might be the right choice if
+      > application requires super low latency
+      > data is unstructured, or you don't have relatioanal data
+      > you only need to serialize and de-serialize data (JSON, XML, YAML, etc)
+      > you need to store a massive amount of data
+
+
+vertical scaling vs horizontal scaling
+  vertical scaling 
+    vertical scaling, "scale up", means the process of adding more power (CPU, RAM, etc) to servers
+  horizontal scaling
+    horizontal scaling, "scale out", means adding more servers into your pool of resources
+
+  vertical scaling is more simple
+  however
+    > vertical scaling has a hard limit, it is impossible to add unlimited CPU and memory to a single server
+    > vertical scaling does not have failover and redundancy, if one server goes down, the website/ app goes down with it 
+
+  thus for large scal applications, horizontal scaling is more desirable
+
+3. Adding a load balancer
+  In the design so far 
+    users are connected to the single web server directly, users will be unable to access the website 
+      if the webserver is offline
+    if many users access the web server simultaneously and it reaches the web server's load limit, users
+       generally experience slower response or fail to connect to the server
+
+
+                                              domain
+    /                                   /   --------- >   /       /
+    /  User - (Web Browser, Mobile App) /                 /  DNS  /
+    /                                   /   < ---------   /       /
+                    |   K                       ip
+                    |   |
+                    |   |
+                    |   |   Public IP
+                    |   |
+                    J   |
+              /                 /
+              /  Load balancer  /
+              /                 /
+
+                  /       \
+                 /         \              
+    Private IP  /           \  Private IP
+               /             \
+              J               J
+
+  . . . . . . . . . . . . . . . . . . . . . . . 
+  .                                           .
+  .   /              /    /              /    .
+  .   /   Server 1   /    /   Server 2   /    .   [ Web Tier ]
+  .   /              /    /              /    .
+  .                                           .
+  . . . . . . . . . . . . . . . . . . . . . . . 
+
+                K              K 
+                 \            /  
+                  \          /   K send data        
+                   \        /    J read/write/update
+                    \      / 
+                     J    J 
+
+              /                   /
+              /     Database      /
+              /                   /
+
+
+
+  Users connect to the public IP of the load balancer 
+  Web servers become unreachable directly to clients
+  for security
+    private IPs are used for communication between servers
+      // private IP -> IP address reachable only between servers in the same network
+                       however, it is unreachable over the internet
+  The load balancer communicates with web servers through private IPs
+
+
+  After adding a load balancer and a second web server 
+    > we solve no failover issue (we have a secondary if primary fails)
+      thus improved availability
+
+    > if server 1 goes offline, all the traffic will be routed to server 2
+      this prevents the website from going offline, we can also add a new healthy web server 
+      to the server pool to balance the load 
+
+    > if the website traffic grows rapidly, and two servers are not enough to handle the traffic
+      the load balancer can handle this problem gracefully, you add more servers to the web
+      server pool, and the load balancer automatically starts to send requests to them
+
+  the current design has one database, so it does not support failover and redundancy (data)
+  database replication is a common technique to address those problems
+
+
+4. Database Replication
+  Database replication can be used in many database management systems, usually with a maser/ slave
+  relationship between the original (master) and the copies (slaves)
+
+  A master database generally only supports write operations.
+  A slave database gets copies of the data from the msater database and only supports read
+    operations.
+  All the data-modifying commands like insert, delete, or update must be sent to the master 
+    database.
+
+  Most applications require a much higher ratio of reads to writes 
+    thus the number of slave databases in a system is usually larger than the number of master
+    dabases
+
+  
+  Advantages of database replication
+    Better performance 
+      in the master slave model, all writes and updates happen in master nodes
+      whereas, read operations are distributed across slave nodes
+      this model improves performance because it allows more queries to be processed in parallel
+
+    Reliability
+      If one of the database servers is destroyed, data is still reserved because it is replicated
+      across different database servers
+
+    High availability
+      If one of the database goes offline, you can access data storedin another database
+      server
+
+  What happens if a database server goes offline 
+    slave database goes offline
+      If only one slave database is available, and it goes offline. Read operations will be 
+      directed to the master database temporarily.
+
+      In case multiple slave databases are available, read operations are redirected to the other 
+      healthy slave databases.
+        
+      A new database server replaces the old slave database
+
+    master database goes offline (single master)
+      if the master database goes offline, a slave database will be promoted to be he new 
+      master. All the databsae operations will be temporarily executed on the new master database
+      A new slave database will replace the old one for data replication immediately.
+
+      In practice, it is more complicated to promote a slave to master, since the data 
+      in a slave database might not be up to date, the missing data needs to be updated
+      by running data recovery scripts
+
+
+                                              domain
+    /                                   /   --------- >   /       /
+    /  User - (Web Browser, Mobile App) /                 /  DNS  /
+    /                                   /   < ---------   /       /
+                    |   K                       ip
+                    |   |
+                    |   |
+                    |   |   Public IP
+                    |   |
+                    J   |
+              /                 /
+              /  Load balancer  /
+              /                 /
+
+                  /          \
+                 /            \              
+    Private IP  /              \  Private IP
+               /                \
+              J                  J
+
+  . . . . . . . . . . . . . . . . . . . . . . . 
+  .                                           .
+  .   /              /    /              /    .
+  .   /   Server 1   /    /   Server 2   /    .   [ Web Tier ]
+  .   /              /    /              /    .
+  .                                           .
+  . . . . . . . . . . . . . . . . . . . . . . . 
+                               
+          |        \          /       |
+          |         \        /        |
+          |          \__  __/         |
+          |             \/            |
+          |             /\            |
+          |           _/  \_          |
+          |          /      \         |
+          |  write  /        \  read  |
+          |        /          \       |
+          J      J              J     J
+
+   . . . . . . . . . . . . . . . . . . . . . . 
+   .                                         .
+   .  /           / replicate /           /  .
+   .  / Master DB / <-------> / Slave DB  /  .   [ Data Tier ]
+   .  /           /           /           /  .
+   .                                         .
+   . . . . . . . . . . . . . . . . . . . . . .
+
+    Current workflow
+      > A user gets the IP address of the load balancer from DNS
+      > A user connects the load balancer with this IP
+      > The HTTP request is routed to either Server 1 or Server 2
+      > A web server reads user data from a slave database
+      > A web server routes and data-modifying operations to the master database
+        This includes write, update, delete operations
+
+
+
+5. Caching
+  A cache is a temporary storage area that stores the result of expensive responses or frequently 
+  accessed data in memory so that subsequent requests are served more quickly.
+  
+  In current architecture, every time a web page loads, one or more database calls 
+  are executed to fetch data. The appliaction performance is greatly affected by calling the database
+  repeatedly
+
+  Cache Tier
+    The cache tier is a temporary data store layer, much faster than the database
+    having a seperate cache tier has benefits
+      > better system performance
+      > ability to reduce database workloads
+      > ability to scale the cache tier independently
+            
+          [ Web Server ]      < -------- >      [ Cache ]      < ------- >      [ Database ]
+                     1. if data exists in cache,        2.1 If data doesn't exist in cache
+                        read data from cache                save data to cache
+
+                      2.2 return data to the web server 
+
+    
+    After receiving a request, a web server first check if the cache has the available response
+    if it has, it sends data back to the client, if not, it queries the database, stores the response
+    in cache, and sends it back to the client
+
+    This caching strategy is called a read-through cache
+
+
+  Considerations while using cache
+    > Consider using cache where data is read frequently but modified infrequently
+      Since cache data is stored in volatile memory, a cache server is not ideal for persisting
+      data. If a cache server restarts, all the data in memory is lost
+    
+    > Expiration policy, once cached data is expired, it is removed from the cache
+      If no expiration, cache keeps filling up memory
+      If expiration date is too short, the system will query data from database too frequently
+      If expiration date is too long, the data can become stale (meaning no longer up-to-date)
+
+    > Consistency, involves keeping data store and the cache in sync
+      Inconsistency can happen because data-modifying operations on the data store and cache
+      are not in a single transaction
+        when scaling to multiple regions, maintaining consistency between the data store
+        and cache is challenging
+
+    > Single cache server is a SPOF (Single Point Of Failure)
+
+    > Overprovision the required memory by a few percentages to provide a buffer if memory
+      usage increases
+
+    > Eviction policy: Once the cache is full, any requests to add items to the cache
+      might cause existing items to be removed, this is called cache eviction.
+      Some popular strategies are 
+        LRU (Least Recently Used) 
+        LFU (Leaset Frequently Used)
+        FIFO (First In First Out)
+
+
+                                              domain
+    /                                   /   --------- >   /       /
+    /  User - (Web Browser, Mobile App) /                 /  DNS  /
+    /                                   /   < ---------   /       /
+                    |   K                       ip
+                    |   |
+                    |   |
+                    |   |   Public IP
+                    |   |
+                    J   |
+              /                 /
+              /  Load balancer  /
+              /                 /
+
+                  /          \
+                 /            \              
+    Private IP  /              \  Private IP
+               /                \
+              J                  J
+
+  . . . . . . . . . . . . . . . . . . . . . . . 
+  .                                           .
+  .   /              /    /              /    .
+  .   /   Server 1   /    /   Server 2   /    .   [ Web Tier ]
+  .   /              /    /              /    .
+  .                                           .
+  . . . . . . . . . . . . . . . . . . . . . . . 
+                               
+          |   \               /          \
+          |    \___          /            \
+          |        \      __/              \ 
+          |         \___ /                  \
+          |             /\____               \
+          |           _/      \___    read    J /         /
+          |          /            \__________>  /  Cache  /      
+          |  write  /                           /         /
+          |        /                                K
+          J      J                                  |
+                                                    |  read
+   . . . . . . . . . . . . . . . . . . . . . .      | 
+   .                                         .      |
+   .  /           / replicate /          /   .  <---|
+   .  / Master DB / <-------> / Slave DB /   .   
+   .  /           /           /          /   .       
+   .                                         .   [ Data Tier ]
+   . . . . . . . . . . . . . . . . . . . . . .
+        
+
+6. CDN (Content Delivery Network) [Static]
+  A CDN is a network of geographically dispersed servers used to deliver static content 
+  CDN servers cache static content like images, vidoes, CSS, JS files, etc
+
+  High level working of CDN
+    when a user visits a website, a CDN server closes to the user will deliver static content
+    the further the user is from a CDN server, the slower the website loads
+
+      [ User ]  < ------- >  [ CDN ]  < ---------- >  [ Server ]
+       1. get image.png (->)          2. if not in CDN, get image.png from server (--->)
+       4. return image.png(<-)   K    3. store image in CDN (<---)
+                                 | 
+                                 |
+                                 |
+                                 |
+                                 J
+
+                              [ User ]
+
+      1. User tries to get image.png via image url
+         The URL's domain is provided by the CDN provider
+            ex (cloudflare CDN) :
+               https://mysite.cloudfront.net/logo.jpg
+
+      2. If the CDN server does not have image.png in the cache, the CDN server requests
+         the file from the origin, which can be a web server or online storage like S3
+
+      3. The origin returns image.png to the CDN server, which includes optional HTTP header
+         TTL which describes how long the image is cached
+
+      4. The CDN caches the image and returns it to the user. The image remains cached in the CDN
+         until the TTL expires
+
+      5. Now if another user sends a request to get the same image
+         The image is return from the cache as long as the TTL has not expired
+
+  Considerations of using a CDN 
+    Cost 
+      CDNs are run by third-party providers, and you are charged for data transfers in and out of the CDN
+      Caching infrequently used assets provides no significant benefits so you should consider moving them out 
+      of the CDN
+    
+    Setting an appropriate cache expiry
+      For time-sensitive content, setting a cache expiry time is important. The cache expiry time should neither 
+      be too long, nor too short. If it is too long, the content may no longer be fresh, if it is too short, it can 
+      cause repeat reloading of content from origin server to CDN
+    
+    CDN fallback
+      you should consider how your website/ application copes with CDN failure. If there is a temporary CDN outage,
+      clients should be able to detect the problem and request resources from the origin
+
+    Invalidating files 
+      you can remove a file from the CDN before it expires by 
+        > Invalidate the CDN object using APIs provided by the CDN vendors
+        > Use object versioning to server a different version of the object
+          To version an object, you can add a parameter to the URL, such as a versioning number
+            ex 
+              version number 2 is added to the query string -> image.png?v=2
+              
+
+
+                   domain                                             
+      /       /  --------- >  /                                   /              /       /
+      /  DNS  /               /  User - (Web Browser, Mobile App) /  --------- > /  CDN  /
+      /       /  < ---------  /                                   /              /       /
+                      ip                    |   K                   
+                                            |   |
+                                            |   |
+                                            |   |   Public IP
+                                            |   |
+                                            J   |
+                                      /                 /
+                                      /  Load balancer  /
+                                      /                 /
+
+                                          /          \
+                                         /            \              
+                            Private IP  /              \  Private IP
+                                       /                \
+                                      J                  J
+
+                          . . . . . . . . . . . . . . . . . . . . . . . 
+                          .                                           .
+                          .   /              /    /              /    .
+                          .   /   Server 1   /    /   Server 2   /    .   [ Web Tier ]
+                          .   /              /    /              /    .
+                          .                                           .
+                          . . . . . . . . . . . . . . . . . . . . . . . 
+                                                       
+                                  |   \               /          \
+                                  |    \___          /            \
+                                  |        \      __/              \ 
+                                  |         \___ /                  \
+                                  |             /\____               \
+                                  |           _/      \___    read    J /         /
+                                  |          /            \__________>  /  Cache  /      
+                                  |  write  /                           /         /
+                                  |        /                                K
+                                  J      J                                  |
+                                                                            |  read
+                           . . . . . . . . . . . . . . . . . . . . . .      | 
+                           .                                         .      |
+                           .  /           / replicate /          /   .  <---|
+                           .  / Master DB / <-------> / Slave DB /   .   
+                           .  /           /           /          /   .       
+                           .                                         .   [ Data Tier ]
+                           . . . . . . . . . . . . . . . . . . . . . .
+
+
+
