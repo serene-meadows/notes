@@ -1,0 +1,60 @@
+concurrency 
+  the ability of a system to handle multiple tasks simultaenously 
+  it involves managing multiple tasks that are in progress at the same time but not necessarily executed at the same time
+
+parallelism
+  the simultaenous execution of multiple tasks, typically using multiple processors or cores, to improve performance 
+  by running operations at the same time  
+
+// concurrency design
+// go's runtime scheduler can execute go routines in parallel, taking advantage of multiple core processors
+```go
+  func printNumbers() {
+    for i := range 5 {
+      fmt.Println(i)
+      time.Sleep(500 * time.Millisecond)
+    }
+  }
+
+  func printLetters() {
+    for _, letter := range "ABCDE" {
+      fmt.Println(string(letter))
+      timer.Sleep(500 * time.Millisecond)
+    }
+  }
+
+  func main() {
+    go printNumbers()
+    go printLetters()
+
+    time.Sleep(3 * time.Second)
+  }
+```
+
+```go
+  func heavyTask(id int, wg *sync.WaitGroup) {
+    defer wg.Done()
+    fmt.Printf("Task %d is starting", id)
+
+    for range 100_000_000 {
+    }
+    fmt.Println(time.Now())
+
+    fmt.Printf("Task %d is finished \n", id)
+  }
+
+  func main() {
+    numThreads := 4
+
+    runtime.GOMAXPROCS(numThreads)
+    // sets the maximum number of CPUs that we can use simultaenously
+
+    var wg sync.WaitGroup
+    for i := range numThreads {
+      wg.Add(1)
+      go heavyTask(i, &wg)
+    }
+
+    wg.Wait()
+  }
+```

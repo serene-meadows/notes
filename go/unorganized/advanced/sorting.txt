@@ -1,0 +1,176 @@
+built-in functions
+  sort.Ints([]int)
+    modifies the original slice
+
+  sort.Sort(sort.Interface)
+
+  sort.Strings([]string)
+    modifies the original slice
+
+  sort.Slice
+
+
+```go
+  func main() {
+    numbers := []int{1,2,3,4,5}
+    sort.Ints(numbers)
+    fmt.Println(numbers)
+
+    stringSlice := []string{"vikas", "goudar"}
+    sort.Strings(stringSlice)
+    fmt.Println(stringSlice)
+  }
+```
+
+// sorting by functions in go
+// sorting by functions involves using custom sorting criteria by defining functions that determine the order of elements in go
+// this is done by implementing the sort.Interface 
+// the sort.Interface has 3 methods 
+//   Len() int
+//   Less(i, j int) bool 
+//   Swap(i, j int)
+
+```go
+  type Person struct {
+    Name string
+    Age int
+  }
+
+  type ByAge []Person
+  // Define a new type called ByAge
+  // whose underlying type is []Person
+  //   you cannot attach methods to unnamed types like []Person
+  //   you can only attach methods to named types like ByAge 
+  //   that is why you need to do this, so you can implement the sort interface on ByAge type
+  type ByName []Person
+
+  func (a ByAge) Len() int {
+    return len(a)
+  }
+  func (a ByName) Len() int {
+    return len(a)
+  }
+
+  func (a ByAge) Less(i, j int) bool {
+    return a[i].Age < a[j].Age 
+  }
+  func (a ByName) Less(i, j int) bool {
+    return a[i].Name < a[j].Name
+  }
+
+  func (a ByAge) Swap(i, j int) {
+    a[i], a[j] = a[j], a[i]
+  }
+  funct (a ByName) Swap(i, j int) {
+    a[i], a[j] = a[j], a[i]
+  }
+  
+  func main() {
+    people := []Person {
+      {"vikas", 21},
+      {"rajani", 27}
+    }
+
+    sort.Sort(ByAge(people))
+    fmt.Println(people)
+    sort.Sort(ByName(people))
+    fmt.Println(people)
+  }
+  // the problem with this approach is, it works with just 1 field
+  // to sort by other fields, i have to create a new type and do this all over again
+
+  // solution 
+  type By func(p1, p2 *Person) bool
+  // define a new type called By whose underlying type is a function
+  // so By is a function type
+  
+  type personSorter struct {
+    people []Person
+    by func(p1, p2 *Person) bool
+  }
+
+  func (s *personSorter) Len() int {
+    return len(s.people)
+  }
+
+  func (s *personSorter) Less(i,j int) bool {
+    return s.by(&s.people[i], &s.people[j])
+  }
+
+  func (s *personSorter) Swap(i, j int) {
+    s.people[i], s.people[j] = s.people[j], s.people[i]
+  }
+
+  func (by By) Sort(people []Person) {
+    ps := &personSorter{
+      person : person,
+      by: by
+    }
+    sort.Sort(ps)
+  }
+
+  // usage 
+  age := func(p1, p2 *Person) bool {
+    return p1.age < p2.age 
+  }
+  By(age).Sort(people)
+  fmt.Println(people)
+
+  // explanation
+  // crazy shit
+  // type By func(p1, p2 *Person) bool
+  //   creates a function type
+  //   so any function with that signature can be assigned to By 
+  //   example 
+  //     func AgeLess(p1, p2 *Person) {
+  //       return p1.age < p2.age
+  //     }
+  //     var cmp By = AgeLess
+  //         
+  //     // OR
+  //     cmp := By(func(p1, p2 *Person) bool {
+  //       return p1.age < p2.age
+  //     })
+  // 
+  // 
+  // because By is a named type
+  // go rule: methods can be defined on named types
+  // example
+  // func (by By) Sort(people []Person) {
+  //   ps := &personSorter{
+  //   person : person,
+  //   by: by
+  //   }
+  //   sort.Sort(ps)
+  // }
+  //
+  // crazy shit
+  // we passed the function itself as an argument to the personSorter
+  // and called sort.Sort() on the personSorter instance
+  // the personSorter instance implements the Less, Swap, Len methods
+  // the Less method uses the By() function, which calls the function assigned to it
+
+  // so to sort by name all i need to do is
+  name := func(p1, p2 *Person) bool {
+    return p1.Name < p2.Name
+  }
+  By(name).Sort(people)
+
+  // to sort by name DESC
+  nameDesc := func(p1, p2 *Person) bool {
+    return p1.Name > p2.Name
+  }
+  By(nameDesc).Sort(people)
+
+```
+
+
+
+// Sort by slice
+```go
+  stringSlice := []string{"vikas", "goudar"}
+  sort.Slice(stringSlice, func(i, j int) bool {
+    return stringSlice[i][len(stringSlice[i]-1)] < stringSlice[j][len(stringSlice[j] - 1)]
+  })
+    // second argument is a function for Less()
+```

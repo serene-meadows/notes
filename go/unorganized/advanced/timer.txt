@@ -6,16 +6,25 @@ timer
 ```go
   func main() {
     timer := timer.NewTimer(2 * time.Second)
-      // this timer sends the current time on it's channel
-    
-     // to stop the timer manually
-     stopped := timer.Stop()
-     // returns bool 
-     // true -> call stopped the timer 
-     // false -> timer had already expired
-     // Note: this stops the timer 
-     // so calling <- timer.C after timer.Stop() will result in a deadlock
-     // since timer won't send anything on the channel after stopping
+    // this timer sends the current time on it's channel
+
+    // to stop the timer manually
+    stopped := timer.Stop()
+    // returns bool 
+    // true -> call stopped the timer 
+    // false -> timer had already expired
+    // Note: this stops the timer, this doesn't close the channel tho
+    // so calling <- timer.C after timer.Stop() will result in a deadlock
+    // since timer won't send anything on the channel after stopping
+    // so basically
+    // timer.Stop() cancels the timer so it will not fire in the future.
+    // But it does not close the channel and it does not remove a value if the timer already fired.
+    // the reason you don't close the channel is because, a closing the channel can be misinterpretted as a signal by `<-timer.C`
+    // since it doesn't remove the value, and you would want to drain the channel so that `<-timer.C` doesnt give a value
+    //   if !timer.Stop() {
+    //     <-timer.C
+    //   }
+
 
      // restarting a timer that has been expired or stopped
      reset := timer.Reset(time.Second)
@@ -84,3 +93,88 @@ timer
     fmt.Println("program over yay")
   }
 ```
+
+
+// mutliple timers
+```go
+  func main() {
+    timer1 := time.NewTimer(1 * time.Second)
+    timer2 := time.NewTimer(2 * time.Second)
+
+    select {
+      case <-timer1.C:
+        fmt.Println("timer1 expired")
+      case <-timer2.C:
+        fmt.Println("timer2 expired")
+    }
+  }
+```
+
+
+
+best practices
+  always stop timers to prevent resource leaks
+    use defer to ensure proper cleanup
+
+
+
+// cleanup is important 
+  stopping a timer cleans up resources,
+    because it removes the timer from the runtime's timer queue 
+
+  when you create a timer 
+    the following get allocated
+      Go heap memory
+          |
+          |-- Timer struct
+          |-- channel timer.C
+
+            AND 
+
+      Runtime timer system
+          |
+          |-- timer registered in runtime timer heap
+
+
+    Go heap -> managed by the garbage collector)
+    Runtime timer heap -> scheduler managed
+
+    now, suppose you write 
+    ```go
+      for {
+        select {
+          case <-work:
+            return
+          case <-time.After(10*time.Second):
+            fmt.Println("timeout")
+        }
+      }
+    ```
+    every loop creates 
+       a new timer 
+       and adds it to the runtime heap
+    and as a result you can accumulate thousands of timers
+
+
+    timer.Stop()
+      tells the runtime to remove the timer from the runtime timer heap
+
+
+    this is different from go heap garbage collection
+      timer = nil // this emasn that the timer is no longer referenced and is cleaned up in go heap
+                  // but this alone doesn't clean up the runtime heap
+                  // as a result the timer is still tracked in runtime
+                  // so timer.Stop() is needed too
+
+    this is also why prefer timer.NewTimer()
+    which allows you yo reuse timers
+    ```go
+      timer := timer.NewTimer(time.Second)
+
+      for {
+          <-timer.C
+          fmt.Println("tick")
+          timer.Reset(time.Second) // reuses the old timer
+        }
+      }
+    ```

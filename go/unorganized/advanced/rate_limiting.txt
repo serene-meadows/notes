@@ -1,0 +1,277 @@
+it is a technique used to control the amount of incoming or outgoing traffic to or from a system
+
+rate limiting is a architectural design, it's not a feature offered by go
+
+generally used with APIs
+  You need to provide informative responses when rate limits are exceeded, such as HTTP status codes
+  like 429, which is for too many requests along with relevant and understandable error messages.
+
+common rate limiting algorihms
+  token bucket algorithm
+  leaky bucket algorithm
+  fixed winow counter
+  sliding window log
+  sliding window counter
+
+
+  token bucket algorithm
+      a bucket holds tokens
+      each request consumes a token
+      tokens are added at a fixed rate over time
+
+      how it works
+        bucket has capacity N tokens
+        tokens are added at rate R tokens/sec
+        a requests is allowed only if a token is available
+
+      properties
+        allows bursts
+
+  leaky bucket algorithm
+      requests enter a bucket but leave at a fixed rate
+
+      how it works
+        incoming requests go into queue
+        requests are processed at constant rate
+        if bucket is full -> requests
+
+      properties
+        doesn't allow burst
+        produces constant output rates
+
+  fixed window counter
+      count requests in a fixed time window
+      after the window ends, counter resets
+
+      problem
+        burst problem
+          suppose we want 100 requests per minute
+          however in the following scenario
+            100 requests at 12:00:59
+            100 requests at 12:01:01
+          200 requests done in 2 seconds
+
+      properties
+        poor burst control
+
+  sliding window log
+      store timestamp of each request
+
+      for each request
+          remove timestamps older than window
+          check number of remaining timestamps
+          allow or reject request
+
+      properties
+          very accurate
+          prevent burst issues
+          high memory usage
+
+  sliding window counter
+      approximation of sliding log but more memory efficient
+
+      uses two counters
+          current window
+          previous window
+
+      then compute weighted average
+
+      example
+        limit : 100 requests per minute
+
+        windows:
+          current window: current minute
+          previous window: previous minute
+
+        suppose:
+          previous window: 80 requests
+          current window: 30 requests
+
+        and we are currently 30 seconds into the current window
+
+          weight = remainin/ total = 30/60 = 0.5
+
+        effective_count = current_count + previous_count * weigth
+                        = 30 + 80 * 1/2
+                        = 70
+
+
+
+// token bucket algorithm
+```go
+  type RateLimiter struct {
+    tokens chan struct{}
+    refillTime time.Duration
+  }
+
+  func NewRateLimiter(rateLimit int, refillTime time.Duration) *RateLimiter {
+    rl := &RateLimiter {
+      tokens: make(chan struct{}, rateLimit)
+      // we send empty struct{} {} in go, when we want to send signal not data
+      // empty structs in go, take up zero bytes
+
+      refillTime: refillTime
+    }
+
+    for range rateLimit {
+      rl.tokens <- struct{}{}
+    }
+
+    go rl.startRefill()
+  }
+
+  func (rl *RateLimiter) startRefill() {
+    ticker := time.NewTicker(rl.refillTime)
+    defer ticker.Stop()
+
+    for {
+      select {
+        case <-ticker.C:
+          select {
+            case rl.token <- struct{}{}:
+            default:
+          }
+      }
+    }
+  }
+
+  func (rl *RateLimiter) allow() bool {
+    select {
+      case <- rl.tokens:
+        return true
+      default:
+        return false
+    }
+  }
+
+  func main() {
+    
+  }
+
+  func main() {
+    rateLimiter := NewRateLimiter(5, time.Second)
+
+    for range 10 {
+      if rateLimiter.allow() {
+        fmt.Printf("request %d allowed", i)
+      } else {
+        fmt.Printf("request %d not allowed, i")
+      }
+    }
+  }
+```
+
+
+
+// fixed window counter
+```go
+  type RateLimiter struct {
+    mu sync.Mutex
+    count int 
+    limit int
+    window time.Duration
+    resetTime time.Time
+  }
+
+  func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
+    return &RateLimiter {
+      limit: limit,
+      window: window,
+    }
+  }
+
+  func (rl *RateLimiter) Allow() bool {
+    rl.mu.Lock()
+    defer mu.Unlock()
+
+    now := time.Now()
+    if now.After(rl.resetTime) {
+      rl.resetTime = now.Add(rl.window)
+      rl.count = 0
+    }
+
+    if rl.count < rl.limit {
+      rl.count++
+      return true
+    }
+    return false
+  }
+
+  func main() {
+    rateLimiter := NewRateLimiter(5, time.Second)
+
+    for range 10 {
+      // since we have used mutex, we can use concurrent go routines as well
+      if rateLimiter.Allow() {
+        fmt.Println("request allowed")
+      } else {
+        fmt.Println("request denied")
+      }
+    }
+  }
+```
+
+
+
+
+// leaky bucket algrithm
+```go
+  type LeakyBucket struct {
+    capacity int
+    leakRate time.Duration
+    tokens int 
+    lastLeak time.Time
+    mu sync.Mutex
+  }
+
+  func NewLeakyBucket(capacity int, leakRate time.Duration) *LeakyBucket {
+    return &LeakyBucket{
+      capacity: capacity,
+      leakrate: leakrate,
+      tokens: capacity,
+      lastLeak: time.Now(),
+    }
+  }
+
+  func (lb *LeakyBucet) Allow() bool {
+    lb.mu.Lock()
+    defer lb.mu.Unlock()
+
+    now := time.Now()
+    elapsedTime := now - lb.lastLeak
+    tokensToAdd := int(elapsedTime / lb.leakRate)
+    lb.tokens = lb.tokens + tokenToAdd
+
+    if lb.tokens > lb.capacity {
+      lb.tokens = lb.capcity
+    }
+
+    lb.lastLeak = lb.lastLeak.Add(time.Duration(tokensToAddO) * lb.leakRate)
+
+    if lb.tokens > 0 {
+      lb.tokens--
+      return true
+    }
+    return false
+  }
+
+  func main() {
+    LeakyBucketInst := NewLeakyBucket(5, 5*time.Millisecond)
+
+    wg := sync.WaitGroup()
+      
+    for range 10 {
+      wg.Add(1)
+      go func() {
+        defer wg.Done()
+        if leakyBucketInst.Allow() {
+          fmt.Println("Accepted")
+        } else {
+          fmt.Println("Rejected")
+        }
+      }()
+    }
+
+    wg.Wait()
+  }
+```

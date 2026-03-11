@@ -1,0 +1,137 @@
+reflection is a mechanism that allows a program to inspect and manipulate its own structure and behaviour at runtime
+
+we use reflection for dynamic type inspection
+
+reflection is also used in generic programming where we implement functions and data structures that operate on any type
+reflection is used for serialization and deserialization 
+used by ORM libraries
+it is slower compared to direct code
+reflection bypasses static type checks which can cause runtime errors
+
+few important methods 
+  reflect.TypeOf
+  reflect.Value
+  reflect.ValueOf
+  reflect.ValueOf().Elem()
+
+
+```go
+  func main() {
+    x := 42
+
+    v := reflect.ValueOf(x)
+    t := v.Type() // we cannot do x.Type()
+                  // because int Tyoe doesn't have a method .Type()
+
+    fmt.Println("value: ", v) // represents the value 43   // 43
+    fmt.Println("type: ", t)  // represents the type of x  // int
+    fmt.Println("Kind", t.Kind()) // represent the underlying category of the type // reflect.Int
+    //   example to understand difference between kind and type
+    //        type MyInt int
+    //        Type -> MyInt
+    //        Kind -> int
+    fmt.Println("Is Int", t.Kind() == reflect.Int) // true
+    fmt.Println("Is String", t.Kind() == reflect.String) // false
+    fmt.Println("Is Zero", v.IsZero()) // false
+
+    
+    y := 10
+    v1 := reflect.ValueOf(&y).Elem()
+    //   Elem() returns the value that the interface contains / pointer points to
+    v2 := reflect.ValueOf(&y)
+    fmt.Println("V2 type", v2.Type())  // *int
+
+    fmt.Println("Original value:", v1.Int()) // 10
+    //    returns int value of the reflected value 
+    //    panics if not type int
+
+    v1.SetInt(18) 
+
+    fmt.Println("modified value", v1.Int()) 18
+
+
+
+
+
+
+
+
+
+
+    var itf interface{} = "Hello"
+    v3 := reflect.ValueOf(itf)
+
+    fmt.Println(v3.Type()) // string
+    if v3.Kind() == reflect.String { // true
+      fmt.Println("String value", v3.String())
+    }
+
+
+
+
+
+
+
+    // structs 
+    type person struct {
+      Name string  // BUG possibility, if the following code snipped changes the value of field Name
+      age int      // that is only possible if the field has visibility public i.e. first letter UPPER
+                   // because if it is lower case, then it is only visible within the package
+                   // So, unexported fields , those starting with lower case letter are not accessible via reflection
+    }
+
+              func main() {
+                p := Person {Name: "alice", age: 21}
+                v := reflect.ValueOf(p)
+
+                for i := range v.NumField() {
+                  fmt.Println("Field %d: %v", i, v.Field(i))
+                }
+              }
+              
+              v1 := reflect.ValueOf(&p).Elem() // need to do this so that we can modify the struct
+              nameField := v1.FieldByName("Name")
+              if nameField.CanSet() {
+                nameField.SetString("Jane")
+              }
+
+              fmt.Println("modified person", p)
+            }
+
+  // methods with reflect
+  type Greeter struct {}
+
+  func (g Greeter) Greet(fname, lname string) string {
+    return "hello" + fname + " " + lname
+  }
+
+  func main() {
+    g := Greeter{}
+    t := reflect.TypeOf(g)
+    v := reflect.ValueOf(g)
+    var method reflect.Method
+
+    fmt.Println("Type ". t)
+
+    for i := range t.NumMethod() {
+      method := t.Method(i)
+      fmt.Printf("method %d: %s",i, method.Name)
+    }
+
+    m := v.MethodByName(method.Name)
+    results := m.Call([]reflect.Value{reflect.ValueOf("alice"), reflect.ValueOf("borderland")})
+    fmt.Println(results[0].String())
+      // [0] because return is of type slice, because functions can return mutliple values in go, so the type something somethign
+  }
+    
+
+
+  // Because type of only contains the type and the number of methods and things like that, but not an executable 
+  // thing.
+  // So for getting the tangible asset of any type and using those values, using those tangible assets of
+  // that type, we need to use the value of method.
+
+```
+
+
+

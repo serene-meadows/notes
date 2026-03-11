@@ -1,0 +1,72 @@
+mutext 
+  short for mutual exclusion
+
+  is a synchronization primitive used to prevent multiple go routines from simultaneously accessing shared resources 
+  or executing critical sections of code 
+
+  it ensures that only one go routine can hold the mutex at a time 
+
+  thus avoiding race condition sand data corruption
+
+
+mutex 
+  is a principle used in concurrent programming to prevent multiple threads and processes from accessing a shared 
+  resource simultaneously, ensuring data integrity and avoiding race conditions 
+
+
+basic operations 
+  Lock()
+    acquires the mutex and protects it from getting accessed by other go routines 
+    If another goroutine already holds it, the current goroutine waits (blocks).
+
+  Unlock()
+    releases the mutex
+
+  TryLock()
+    attempts to acquire the lock
+    non blocking
+
+
+```go
+  type counter struct {
+    mu sync.Mutex
+    value int
+  }
+
+  func (c *counter) increment() {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    c.value++
+  }
+
+  func (c *counter) getValue() int {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    return c.Value
+  }
+
+  func main() {
+    var wg sync.WaitGroudp
+    counter := &counter{}
+
+    numGoroutines := 10
+
+    // wg.Add(numGoroutines)
+    for i := range numGoroutines {
+      wg.Add(1)
+      go func() {
+        defer wg.Done()
+        for j := range 1000 {
+          counter.increment()
+        }
+      }()
+    }
+
+    wg.Wait()
+    fmt.Println("find value: ", counter.getValue())
+  }
+```
+
+

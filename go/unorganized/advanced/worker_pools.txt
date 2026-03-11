@@ -1,0 +1,65 @@
+a worker pool
+  is a concurrency pattern where you have 
+    a fixed number of worker goroutines 
+    a queue of jobs 
+    workers pull jobs from the queue and process them
+
+  instead of creating a go routine for each task
+
+the problem that worker pools solve 
+  suppose you have 10_000 tasks 
+  
+  // naive approach
+  ```go
+    for _, job := range jobs {
+      go process(job)
+    }
+    // problem
+    // 10_000 go routines
+    // memory overhead, scheduler overhead
+    // possible resource exhaustion
+  ```
+
+```go
+  func worker(id int, jobs <-chan int, results chan<- int) {
+    for task := range tasks {
+      fmt.Printf("Worker %d processing task %d", id, task)
+      // simulate work 
+      time.Sleep(time.Second)
+      result <- task * 2
+    }
+  }
+
+  func main() {
+    numWorkers := 3
+    numJobs := 10
+      
+    tasks := make(chan int, numJobs)
+    results := make(chan int, numJobs)
+
+    // create workers
+    for i := range numWorkers {
+      go worker(i, tasks, results)
+    }
+
+    // send tasks to the tasks channel
+    for i := range numJobs {
+      tasks <-i
+    }
+
+    close(tasks)
+
+    // collect the results 
+    for i := range numJobs {
+      result := <-results
+      fmt.Prinln("result:", result)
+    }
+
+  }
+``` 
+
+best practices 
+  avoid creating too many workers
+  properly start and clean up workers 
+  implement timeouts
+  monitor and log the performance of worker pools

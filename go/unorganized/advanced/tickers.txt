@@ -1,0 +1,94 @@
+a ticker in go is a mechanism for producing ticks at regular intervals 
+  tickers are useful for performing periodic tasks or operations on a consistent schedule 
+
+  often used in scenarious where tasks need to be repeated at fixed intervals
+    polling 
+    periodic logging 
+    regular updates
+
+// stopping a ticker 
+unlike a timer, a ticker doesn't have an expiry
+
+ticker.Stop()
+
+  // Note just like timer .Stop() doesn't close the channel so be weary of deadlocks
+  we do cannot close this channel as well, since .C is of type receive only
+    we can only close send channels
+
+    the runtime is responsible for cleaning up channels
+
+  the reason for this is, closing channels are meant to be sent as a type of signalling
+
+
+// Simple ticker example (runs forever).
+// Note: ticker.Stop() does not close ticker.C,
+// so `for range ticker.C` will not terminate automatically.
+// Use select with a done/context channel if you need graceful shutdown.
+      ```go
+        func main() {
+          ticker := time.NewTicker(time.Second)
+          defer ticker.Stop() // always defer ticker.Stop(), because if there a situation where our code panics, resources are cleaned up 
+
+          for tick := range ticker.C { // bad method because if ticker.Stop() // the channel will never send anything, so deadlock chances unless handled
+            fmt.Println("Tick at", tick)
+          }
+        }
+
+        // output 
+        // infinite loop 
+        //   timestamp every 1 second
+      ```
+
+      // doing a task every 1 second 
+      ```go
+        func main() {
+          ticker := time.NewTicker(time.Second)
+          defer ticker.Stop() // always defer ticker.Stop(), because if there a situation where our code panics, resources are cleaned up 
+
+          for range ticker.C { // bad method because if ticker.Stop() // the channel will never send anything, so deadlock chances unless handled
+            // code block
+          }
+        }
+      ```
+
+// handling graceful shutdown
+  ```go
+    func main() {
+      ticker := time.NewTicker(time.Second)
+      defer ticker.Stop() // always defer ticker.Stop(), because if there a situation where our code panics, resources are cleaned up 
+      
+      for {
+        select {
+          case <-ticker.C:
+            periodicTask()
+
+          case <-ctx.Done():
+            return
+        }
+      }
+    }
+  ```
+
+
+so we can use timeout for periodic polling, peridic logging
+
+
+// scheduling logging, peridic tasks, polling for updates
+```go
+  func main() {
+    ticker := time.NewTicker(time.Second)
+    defer ticker.Stop()
+
+    stop := time.After(5 * time.Second)
+
+    for {
+      select {
+        case tick := <-ticker.C:
+          fmt.Println("Tick at", tick)
+        case <-stop:
+          fmt.Println("Stopping ticker")
+          return
+      }
+    }
+  }
+```

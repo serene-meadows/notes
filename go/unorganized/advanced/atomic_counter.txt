@@ -1,0 +1,75 @@
+an atomic counter is a type of counter used in concurrent programming to manage or track counts or values in a thread safe 
+manner, without the need for explicit locking
+  it uses atomic operations 
+
+atomic operations are performant
+  atomic operatants are faster than mutex because of lower overhead
+
+it is offered by the sync atomic package in go which provides low level atomic operations for synchronizing access to shared variables
+  if offers functions for performing atomic operations on integers and pointers 
+
+  some comme functions are 
+    atomic.AddInt32
+    atomic.AddInt64
+
+    atomic.LoadInt32
+    atomic.LoadInt64
+
+    atomic.StoreInt32
+    atomic.StoreInt64
+
+    atomic.CompareAndSwapInt32
+    atomic.CompareAndSwapInt64
+
+atomic operations means
+  indivisible 
+  uninterruptible 
+    
+    indivisible
+      it means that once the operation starts, it runs to completion without being interrupted or observed
+      in an intermediate state by other threads
+
+    uninterruptible
+      operation is performed without the possibility of interruption
+
+  once an atomic operation beings, it runs to completion without any other thread being able to observe or interfere with its intermediate states
+
+  atomic operations are typically implemented using low level hardware instructions that ensure mutual exclusion without
+  requiring traditional locking mechanism
+
+```go
+  type AtomicCounter struct {
+    count int64
+  }
+
+  func (ac *AtomicCounter) increment() {
+    atomic.AddInt64(&ac.count, 1)
+      // second argument is the value to add to variable
+  }
+
+  func (ac *AtomicCounter) getValue() int64 {
+    return atomic.LoadInt64(&ac.count)
+  }
+
+  func main() {
+    var wg sync.WaitGroup
+    numGoroutines := 10
+    counter := &AtomicCounter{}
+
+    for range numGoroutines {
+      wg.Add(1)
+      go func() {
+        defer wg.Done()
+        for range 1000 {
+          counter.increment()
+        }
+      }()
+    }
+    wg.Wait()
+
+    fmt.Println(counter.getValue()) // 10_000
+  }
+```
+
+
+

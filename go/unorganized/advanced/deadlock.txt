@@ -1,0 +1,81 @@
+a deadlock is a situation in concurrent computing where two or more processes or go routines are unable to proceed because each is waiting 
+for the other to release resources
+
+this results in a state where none of the processes/ go routines can make progress
+
+
+4 conditions of deadlock
+  mutual exclusion 
+    a resource can only be used by 1 process/ go routine at a time
+
+  hold and wait 
+    a process or go routine holding atleast one resource is waiting to acquire resource held by other processes or go routines 
+
+  no preemption
+    resources cannot be forcibly taken away from their processes/ go routines 
+
+  circular wait
+    a set of processes/ go routiens are waiting for each other in a circular chain  
+
+  
+Deadlock
+```go
+  func main() {
+    var mu1, mu2 sync.Mutex 
+
+    go func() {
+      mu1.Lock()
+      fmt.Println("goroutine 1 blocked mu1")
+      time.Sleep(time.Second)
+      mu2.Lock()
+      fmt.Println("goroutine 1 locked mu2")
+
+      mu1.Unlock()
+      mu2.Unlock()
+    }()
+
+    go func() {
+      mu2.Lock()
+      fmt.Println("goroutine 2 blocked mu2")
+      time.Sleep(time.Second)
+      mu1.Lock()
+      fmt.Println("goroutine 2 locked mu1")
+
+      mu2.Unlock()
+      mu1.Unlock()
+    }()
+
+    select {}
+  }
+```
+
+
+
+No Deadlock
+```go
+  func main() {
+    var mu1, mu2 sync.Mutex 
+
+    go func() {
+      mu1.Lock()
+      fmt.Println("goroutine 1 blocked mu1")
+      time.Sleep(time.Second)
+      mu2.Lock()
+      fmt.Println("goroutine 1 locked mu2")
+
+      mu1.Unlock()
+      mu2.Unlock()
+    }()
+
+    go func() {
+      mu1.Lock()
+      fmt.Println("goroutine 2 blocked mu1")
+      time.Sleep(time.Second)
+      mu2.Lock()
+      fmt.Println("goroutine 2 locked mu2")
+
+      mu1.Unlock()
+      mu2.Unlock()
+    }()
+  }
+```

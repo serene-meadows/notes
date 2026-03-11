@@ -1,0 +1,62 @@
+Struct Fields and Methods
+  In go, pointers to structs can access fields and methods without explicit dereferencing   
+  the language automatically dereferences pointers in these situations for convineance 
+
+  example 
+    ```go
+      v := &StructType{}
+      //   StructType{} 
+
+      // here v: *StructType
+      // v holds the memory address of a StructType variable
+
+      // accessing a field
+      v.field
+
+      // even though v is a pointer, this works.
+      // go internally writes it as 
+      (*v).field
+
+      // so the following are equivalent
+      v.field
+      (*v).field
+
+      // go allows the shorter syntax to keep the code clean
+
+
+      // Methods receivers behave the same way
+      func (u* user) Rename(name string) {
+        u.name = name
+      }
+      // inside the method
+      // u := *User
+      // you can still access fields normally inside the method
+      // u.name
+      // go interprets this as 
+      // (*u).name
+
+      // Method calls also automatically convert between pointer and value receivers when possible.
+      // Example:
+      //  func (u *User) Rename() {}
+      //  var u User
+      //  u.Rename()
+      //
+      // Go automatically converts this to:
+      //  (&u).Rename()
+      // 
+      // The reverse also works:
+      //  func (u User) Print() {}
+      //  u := &User{}
+      //  u.Print()
+      //  Go automatically dereferences the pointer.
+    ```
+
+
+limitation
+  Automatic dereferencing only applies to struct fields and methods.
+
+  example requiring manual dereference
+    ```go
+      p := new(int)
+      *p = 5
+    ```

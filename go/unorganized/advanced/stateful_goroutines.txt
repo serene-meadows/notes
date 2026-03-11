@@ -1,0 +1,74 @@
+a stateful go routine is a go routine that maintains and updates its own internal state across multiple invocations or interactions 
+unlike stateless go routine which perform operations without retaining any information between executions 
+
+
+stateful go routines are used in scenarious where tasks need to remember their progress or context
+  such as managing a queue of jobs or processing streams of data
+
+
+key concepts of statefull go routines 
+  state preservation  
+    stateful go routines keep track of data or context that affects their execution over time
+
+  the data is stored in variables or fields within go routines scope
+
+Stateful go routines have a life cycle that includes initialization, execution, and termination.
+  Managing this lifecycle effectively ensures that state is correctly handled throughout the goroutines
+    execution.
+
+```go
+  type StatefulWorker struct {
+    count int 
+    ch chan int
+  }
+
+  func (w *StatefulWoker) Start() {
+    go func() {
+      for {
+        select {
+          case value := <-w.ch:
+            w.count += value
+            fmt.Println(w.count)
+        }
+      }
+    }()
+  }
+
+  func (w* StatefulWorker) Send(value int) {
+    w.ch <- value
+  }
+
+  func main() {
+    stWorker := &StatefulWorker{
+      ch := make(chan int),
+    }
+    
+    stWorker.Start()
+    for val:= range 5 {
+      stWorker.Send(val)
+    }
+  }
+```
+
+
+
+Generally, in stateful go routines, we handle concurrency and synchronization by using mutexes and
+  locks to protect shared state and ensure that only one goroutine accesses it at a time.
+
+So for simple integer counters or flags, the sync atomic package provides efficient and lock free state
+  management.
+
+We can use channels to communicate state changes and synchronize between goroutines, especially when
+  the state needs to be shared or updated concurrently.
+
+
+
+Some common use cases of stateful goroutines include.
+  Task processing.
+    Stateful go routines can manage tasks that require maintaining state, such as processing items from
+      a queue or managing job execution progress, etc. and when it comes to stateful services, we can implement
+      services that maintain session information, user state or application context across multiple requests
+      or interactions.
+
+    And finally, in case of data stream processing, we handle and process streams of data where each item
+    depends on the previous state, such as real time analytics or data transformation.

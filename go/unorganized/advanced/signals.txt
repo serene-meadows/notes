@@ -1,0 +1,145 @@
+signals are a form of inter-process communication used to notify processes of certain events or states 
+
+they are commonly used to handle asynchronous events such as interruptions or terinations
+
+we use signals for graceful shutdowns 
+and also for inter process communication
+
+
+package 
+  os/signal
+
+// interrupt
+```go
+  func main() {
+
+    // signals are channels
+    sigs :=  make(chan os.Signal, 1)
+
+    // notify channel on interrupt or terminal singals
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+
+    // this handles all signals covered together, not seperate
+    go func() {
+      sig := <-sigs
+      fmt.Println("received signal: ", sig)
+      fmt.Println("Graceful exit")
+      os.Exit(0)
+    }()
+
+
+    // simulate work
+    for {
+      time.Sleep(time.Second)
+    }
+  }
+  
+
+  // running the program
+  // to send interrupt signal -> <C-c>
+  // output
+  // received signal: interrupt
+  // Graceful exit
+```
+
+
+// terminate
+```go
+  func main() {
+
+    // signals are channels
+    pid := os.Getpid()
+    fmt.Println("proess id", pid)
+    sigs :=  make(chan os.Signal, 1)
+
+    // notify channel on interrupt or terminal singals
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+
+    // this handles all signals covered together, not seperate
+    go func() {
+      sig := <-sigs
+      fmt.Println("received signal: ", sig)
+      fmt.Println("Graceful exit")
+      os.Exit(0)
+    }()
+
+
+    // simulate work
+    for {
+      time.Sleep(time.Second)
+    }
+  }
+  
+
+  // running the program
+  // to send kill signal - `kill -s SIGTERM <pid>` // can also send SIGINT for interrupt
+  // output
+  // received signal: terminated
+  // Graceful exit
+```
+
+
+types of singals 
+  send using kill -s <signal> <pid>
+
+  interrupts - SIGINT
+  terminate  - SIGTERM
+  stop/continue - SIGCONT, SIGSTOP
+  hangup - SIGHUP 
+    // terminal has been disconnected, relaod configuration
+    example 
+      ssh session ends
+      terminal window closed
+      user logs out
+    many daemons like nginx repurpose SIGHUP to reload config without restart 
+  
+
+
+
+
+```go
+  func main() {
+
+    // signals are channels
+    pid := os.Getpid()
+    fmt.Println("proess id", pid)
+    sigs :=  make(chan os.Signal, 1)
+
+    // notify channel on interrupt or terminal singals
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR)
+
+
+    // handling the signal via a switch, to processs them seperately
+
+    go func() {
+      sig := <-sigs
+      switch sig {
+        case syscall.SIGINT:
+          fmt.Println("SIGINT")
+        case syscall.SIGNTERM:
+          fmt.Println("SIGTERM")
+
+        // userdefined signal
+        case syscall.SIGUSR1:
+          fmt.Println("received SIGUSR1 (user defined signal 1)")
+
+      }
+      os.Exit(0)
+    }()
+
+
+    // simulate work
+    for {
+      time.Sleep(time.Second)
+    }
+  }
+```
+
+
+when we handle a signal call ourselves we are overriding the signals 
+we can choose to not os.Exit(0)
+but if you call
+  `kill -9 <pid>`
+it forcefully kills the process

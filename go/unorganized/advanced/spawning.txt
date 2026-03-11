@@ -1,0 +1,151 @@
+spawning refers to creating/ managing seperate operating system processes from within a Go package
+
+this involves starting new processes to run tasks concurrently or in isolation from the main program
+
+we use process spawning for cocurrency, isolation, resource management for concurrency
+process spawning runs tasks in parallel to utilize multiple CPU cores for isolation
+
+process spawning executes tasks in seperate environments to avoid interference and improve stability and for resource management
+
+process spawning offloads resource intensive tasks to seperate processes to manage system resources more effectively
+
+
+
+package os/exec
+it provides functionality to run external commands and run subprocesses
+
+
+
+
+```go
+  func main() {
+    cmd := exec.Command("echo", "Hello World!")
+    // first argument -> command
+    // subseqent arguments -> values for the command
+
+    // cmd.Output()
+    //   starts the command
+    //   waits for it to finish
+    //   capture stdout
+    //   returns the output
+    output, err := cmd.Output()
+    if err != nil {
+      fmt.Println("error", err)
+      return
+    }
+
+    fmt.Println("output", string(output))
+  }
+```
+
+
+```go
+  func main() {
+    cmd := exec.Command("grep", "foo")
+
+    // setting input for cmd
+    cmd.Stdin = strings.NewReader("foo is the word i want\nbar\nbaz\n")
+    // grep returns the line that contains the word we want
+
+    output, err := cmd.Output()
+    if err != nil {
+      fmt.Println("error", err)
+      return
+    }
+    fmt.Println("output", string(output))
+  }
+```
+
+
+// time consuming commands
+```go
+  func main() {
+    cmd := exec.Command("sleep", "5")
+
+    // cmd.Start()
+    //   only launches the process
+    //   it does not wait for it to finish
+    err := cmd.Start()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+
+    // Wait for the command the finish
+    err = cmd.Wait()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+  }
+```
+
+
+// killing the command the process before it finishes
+```go
+  func main() {
+    cmd := exec.Command("sleep", "5")
+
+    err := cmd.Start()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+
+    time.Sleep(2 * time.Second)
+
+    // kill a process before it finishes
+    err = cmd.Process.Kill()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+
+    err = cmd.Wait()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+  }
+```
+
+
+
+// environment variables
+```go
+  cmd := exec.Command("printenv", "SHELL")
+  output, err := cmd.Output()
+  if err != nil {
+    fmt.Println(err)
+    rerturn
+  }
+
+  fmt.Println(string(output))
+```
+
+
+// pipes
+// a pipe in OS is a mechanism for inter-process communication
+// it connects the output of one process to input of another process
+```go
+  func main() {
+    pr, pw := io.Pipe()
+
+    cmd := exec.Command("grep", "foo")
+    cmd.Stdin = pr
+
+    go func() {
+      defer pw.CLose()
+
+      pw.Write([]byte("foo is the word\nbar\baz\n"))
+    }()
+
+    output, err := cmd.Output()
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+
+    fmt.Println("output", string(output))
+  }
+```

@@ -1,0 +1,163 @@
+// testing
+  go provides functionality for testing 
+
+    create a file with any name 
+      but the suffix has to be _test.go
+
+
+    define functions with names starting with Test 
+      i.e. the prefix has to be Test
+
+      we also need a pointer to testing.T as a parameter
+
+// to run the file 
+// `go test file`
+
+```go
+  func Add(a, b int) int {
+    return a + b
+  }
+
+  func TestAdd(t *testing.T) {
+    result := Add(2, 3)
+    expected := 5
+    if result != expected {
+      t.Errorf("Add(2, 3) = %d; we want %d", result, expected)
+    }
+  }
+
+```
+
+// table driven testing 
+```go
+  func Add(a, b int) int {
+    return a + b
+  }
+
+  func TestAddTableDriven(t *testing.T) {
+    test := []struct {
+      a, b, expected int
+    } {
+      {2, 3, 5}, {0, 0, 0}, {-1, 1, 0}
+    }
+
+    for _, test := range tests {
+      result := Add(test.a, test.b)
+      if result != test.expected {
+        t.Errorf("Add(%d, %d) = %d; we want %d", test.a, test.b, test.result, test.expected)
+      }
+    }
+  }
+```
+
+
+// subtest
+allows grouping related tests and provides better test organization and reporting 
+```go
+  func TestAddSubtests(t *testing.T) {
+    tests := []struct {a, b, expected int} {
+      {2, 3, 5}, 
+      {0, 0, 0}, 
+      {-1, 1, 0}, 
+    }
+
+    for _, test := range tests {
+
+      // first argument -> name of the subtest (main test is the TestAddSubtests function call)
+      t.Run(fmt.Sprintf("Add(%d, %d)", test.a, test.b, test.c), func(t *testing.T) {
+        result := Add(test.a, test.b)
+        if result != test.expected {
+          t.Errorf("result = %d; want %d;", result, test.expected)
+        }
+      })
+    }
+  }
+```
+
+
+// benchmarking
+we write benchmark functions with function names starting with prefix Benchmark
+  we also need a pointer to testing.B as a parameter
+  we need to loop over b.N
+
+  to run the file 
+    `go test -bench=. fileName`
+    `go test -bench=. -memprofile mem.pprof fileName`
+
+      -bench=.
+        . is a regex that matches everything  
+        so run all benchmarks
+
+      -memprofile
+        record memory allocation 
+
+        saved memory profile to
+          mem.pprof
+
+            go tool pprof mem.pprof
+              
+              commands
+                top
+                  get top memory consuming function
+                list <function>
+                  list the source code of the function and its memory profile
+                    
+
+
+
+
+```go
+  fun BenchmarkAdd(b *testing.B) {
+    // for i := 0; i < b.N; i++
+    for i := range b.N {
+      Add(2, 3)
+    }
+  }
+```
+
+
+```go
+  func GenerateRandomSlice(size int) []int {
+    slice := make([]int, size)
+    for i := range slice {
+      slice[i] = rand.Intn(100)
+    }
+
+    return slice
+  }
+
+  func SumSlice(slice []int) int {
+    sum := 0
+    for _, v := range slice {
+      sum += v
+    }
+
+    return sum
+  }
+
+  func TestGenerateRandomSlice(t *testing.T) {
+    size := 100
+    slice := GenerateRandomSlice(size)
+    if len(slice) != size {
+      t.Errorf("expected slice size %d, received %d", size, len(slice))
+    }
+  }
+
+  func BenchmarkGenerateRandomSlice(b *testing.B) {
+    for range b.N {
+      GenerateRandomSlice(1000)
+    }
+  }
+
+  func BenchmarkSumSlice(b *testing.B) {
+    slice := GenerateRandomSlice(1000)
+    b.ResetTimer() // in the context of benchmarking
+                   // the time taken for setup steps (setting up data and so on... )
+                   // an be significant and can skew the actual results of the benchmark
+                   // 
+                   // by resetting the timer, we measure only the time taken by the operation
+    for b.N {
+      SumSlice(slice)
+    }
+  }
+```

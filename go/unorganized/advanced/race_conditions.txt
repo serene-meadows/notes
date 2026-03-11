@@ -1,0 +1,16 @@
+a race condition occurs when the outcome of a program depends on the relative timing of uncontrollable events such as threads or go routine scheduling
+
+it happens when multiple threads or go routines access shared resources concurrently without proper synchronization 
+  leading to unpredictable and incorrect behaviour
+
+go run -race file.go
+  // go runtime will tell if there is a possibility of data race
+
+to fix data races   
+  use mutexes 
+  stateful goroutines 
+  atomic operations
+
+
+
+
