@@ -1,1 +1,20 @@
-// NOTE: Too boring, will do later
+epoch
+  referes to a specific point in time that serves as a reference 
+
+  often used in computing and programming to represent time as a single number (seconds/ milliseconds / etc) since a defined starting point
+
+  the epoch time is genreally defined as the Unix epoch which is 0 hours, 0 minutes and 0 seconds UTC on Jan 1st, 1970 (not counting leap seconds)
+
+```go
+  now := time.Now()
+  unixTime := now.Unix()
+
+  fmt.Println("current unix time", unixTime) // large number
+
+  t := time.Unix(unixTime, 0)
+  // second argument is something regarding nanoseconds
+  fmt.Println(t) // time readable format
+```
+
+
+

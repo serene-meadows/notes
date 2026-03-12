@@ -1,0 +1,89 @@
+sync.Pool
+  implmements a pool of reusable objects
+
+the primary use of sync.Pool is to reduce the overhead of allocating and deallocating objects frequently
+by providing a pool of objects that can be reused
+
+its important
+  because in high performance applications
+    object allocation, garbage collection can be expensive
+
+  ex, maintaining a pool of db connections
+
+sync pools are thread safe
+  i mean it is part of the sync package
+
+
+the objects in the pool
+  may be garbage collected if not used frequently
+
+
+
+key methods
+  Get()
+  Put(interface{})
+  New(Optional)
+
+
+  Get()
+    retreive objeccts from the pool
+    if the pool is empty, go may create a new object if a the New() function is provided to the pool
+      otherwise it returns nil
+
+    works on LIFO
+      last object to be put into the pull is the first one to come out
+
+  Put()
+    return object back to the pool
+
+
+  New()
+    optional
+    provided during the creation of the pool
+    allows generating new objects if pool is empty
+
+
+```go
+  type Person struct {
+    name string
+    age int
+  }
+
+  func main() {
+    var pool = sync.Pool{
+      New: func() interface{} {
+        fmt.Println("Creating a new Person")
+        return &person{}
+      }
+    }
+  }
+
+  // get an object from the pool
+  person1 := pool.Get().(*person)
+  //                    .Get() returns interface{}
+  //                    .(*person) enforces type safety
+  //                          it asserts that is is type *person
+  //                          returns the *person value
+  person1.Name = "vikas"
+  person1.Age = 21
+  fmt.Println("got person 1", person1)
+
+  // putting back to the pool
+  pool.Put(person1)
+  fmt.Println("returned person to the pool")
+
+  person2 := pool.Get().(*person)
+  fmt.Println("Got person 2", person2)
+  //  this reuses the object we created previously
+
+  person2 := pool.Get().(*person)
+  fmt.Println("Got person 3", person2)
+
+
+  // returning objects to the pool
+  pool.Put(person2)
+  pool.Put(person3)
+
+  fmt.Println("Returns persons to pool")
+```
+

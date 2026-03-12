@@ -1,0 +1,129 @@
+sync.NewCon
+  is a function in go's sync package that creates a condition variable
+    a condition variable is a synchronization primitive that allows go routines to wait for certain conditions to be met while holding a lock
+
+
+  it allows go routines to block on a lock until a particular condition is met and be notified when the condition changes
+
+  condition mutex is always associated with a mutex
+  go routines must acquire the mutex before waiting on or signaling the condition variable
+
+common methods
+  Wait()
+  Signal()
+  Broadcast()
+
+
+  Wait()
+    releases the associated mutex and waits for a signal to be received
+
+    the go routine blocks and releases the mutex allowing other go routines to acquire the mutex and potentially change the condition
+    once notified, it re-acquires the mutex before resuming execution
+
+  Signal()
+    Signal wakes up another goroutine waiting on the condition variable
+
+  Broadcast()
+    wakes up all go routines waiting on the condition variable
+    each woken up go routine must acquire the the mutex before continuing
+
+
+
+
+```go
+  const bufferSize = 5
+
+  type buffer struct {
+    items []int
+    my sync.Mutex
+    cond *sync.Cond
+  }
+
+  func newBuffer(size int) *buffer {
+    b := &buffer{items: make([]int, 0, size)}
+    b.cond = sync.NewCond(&b.mu)
+    // we create this here not during b:= statement 
+    // because b.cond needs b.mu 
+    // which is not known until b := is executed
+
+    return b
+  }
+
+
+  func (b *buffer) produce (item int) {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+
+    for len(b.items) == bufferSize {
+      b.cond.Wait()
+        // 3 things happen
+        //   unlock - it releases the underlying lock, this allows other goroutines to acquire the lock and change the state
+        //   suspend - the go routine is put to sleep 
+        //   relock - the go routine is woken up via Signal() or Broadcast()
+        //            it re-acquires the lock before Wait() returns
+    }
+
+    b.items = append(b.items, item)
+
+    fmt.Println()
+    fmt.Println("produced item", item)
+    b.cond.Signal() // signalling consumer that item is added
+                    // signalling before we release the lock
+  }
+
+  func (b *buffer) consume() int {
+    b.mu.Lock()
+    defer b.mu.Unlock()
+
+    for len(b.items) == 0 {
+      b.cond.Wait()
+    }
+
+    item := b.items[0]
+    b.items = b.items[1:]
+
+    fmt.Println("consumed", item)
+
+    b.cond.Signal() // singnalling producer that itme is consumed
+                    // signalling before we release the lock
+    return item
+  }
+
+
+  func producer (b *buffer, wg *sync.WaitGroup) {
+    defer wg.Done()
+
+    for range 10 {
+      b.produce(i * 100)
+
+      time.Sleep(100 * time.Millisecond)
+    }
+  }
+
+  func consumer (b *buffer, wg *sync.WaitGroup) {
+    defer wg.Done()
+
+    for range 10 {
+      b.consume()
+      time.Sleep(200 * time.Millisecond)
+    }
+  }
+
+
+  func main() {
+    buffer := newBuffer(bufferSize)
+
+    var wg sync.WaitGroup
+
+    wg.Add(2)
+    go producer(buffer, &wg)
+    go consumer(buffer, &wg)
+
+    wg.Wait()
+  }
+
+```
+
+
+
+

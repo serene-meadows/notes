@@ -25,7 +25,72 @@ example
     fmt.Println("Specific time: ", specificTime)
 
     // parse time 
-    parsedTime := time.Parse()
-  ````
+    parsedTime, _ := time.Parse()
+    //   second argumet -> value string
+    //   first argument -> layout string (template)
+    //     in other languages you use %Y for year 
+    //     go is special, you have to use actual numbers as space holders
+    //        for the Month (numeric), you must use 01
+    //        for the Month (short name), you must use Jan
+    //        for the Month (long name), you must use January
+    //        for the Day  , you must use 02
+    //        for the Hour , you must use 03 (or 15 for 24H)
+    //        for the Minute, you must use 04
+    //        for the Second, you must use 05
+    //        for the Year , you must use 06 (or 2006)
+    //        for the timezone (numeric offset from UTC), -0700
+    //        for the timezone (named zones) - MST
+    //        for the timezone (ISO 8601/Z) - Z07:00
+    //        the extra 0 at the start is to signify double digit representation
+    //            i.e. in value string time -> 04:20:02 instead of 4:20:2
+    //          if was a single digit, dont put the prefix 0
+    // 
+    //     the reference time to remember thus is 
+    //       01 / 02 / 03:04:05 / 2006 / -0700
+    // 
+    //     imagine you have a date string 12/03/2026
+    //       to parse this, you create a layout by using our magic numbers
+    //       the first part is the day, our magic number for day is 02
+    //       the next part is the month, our magic number for month is 01
+    //       the last part is the year, our magic number for year is 2006
+    //     so the layout is 02/01/2006
+    //
+    //     another example Mar-12-26
+    //     the layout is Jan-02-06
+    //
+    
+    
+    // formatting time
+    t := time.Now()
+    fmt.Println(t.Format("01/02/2006"))
+    // first argument -> layout string 
+    //   follows the same bs as explained in parse time
 
-// NOTE: TOO BORING, will do later
+
+    oneDayLater := t.Add(time.Hour * 24) // + or - time.Duration
+    diff := oneDayLater.Sub(t)  
+    // difference between two time
+
+    fmt.Println(oneDayLater)
+    fmt.Println(oneDayLater.Weekday()) // tells the day Monday/ Tuesday ... 
+
+    
+    // round to the nearest housr
+    fmt.Println(t.Round(time.Hour))
+
+    // converting time to another timezon
+    // it doesn't change the time, it only changes how it is displayed
+    t := time.Date(2024, time.July, 8, 14, 16, 40, 00, time.UTC)
+    loc, _ := time.LoadLocation("Asia/Kolkata")
+
+    tLocal := t.In(loc)
+
+    // truncate time 
+    t.Truncate(time.Hour)
+
+    
+    // compare time
+    fmt.Println("t2 after t1?", t2.After(t1))
+
+  ```
+

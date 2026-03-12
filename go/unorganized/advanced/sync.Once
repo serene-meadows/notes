@@ -1,0 +1,27 @@
+sync.Once
+  ensure that a piece of code is executed only once, regardless of how many go routines attempt to execute it 
+
+useful for performing setup tasks
+
+```go
+  var once sync.Once
+
+  func initializeSomething() {
+    fmt.Println("This will not be repeated no matter how many times you call this function using once.Do")
+  }
+
+  func main() {
+    var wg sync.WaitGroup
+    for i := range 5 {
+      wg.Add(1)
+      go func() {
+        defer wg.Done()
+
+        fmt.Println("Goroutine", i)
+        ocne.Do(initialize)
+      }()
+    }
+
+    wg.Wait()
+  }
+```
