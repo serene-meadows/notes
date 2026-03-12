@@ -79,3 +79,7 @@ No Deadlock
     }()
   }
 ```
+
+
+unlike race coditions, go does not have built in detectino for deadlock code
+

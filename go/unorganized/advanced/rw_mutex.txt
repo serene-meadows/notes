@@ -1,0 +1,63 @@
+rw mutex 
+  read write mutex is a synchronization primitive in go, that allows multiple read and write operations
+  it is useful in scenarious when multiple go routines need to concurrently read data, and the write operatiosn and less frequent 
+    otherwise go for mutex, if the overhead of rmutex isn't needed
+
+read lock - rlock
+write lock - lock
+  
+  rlock/ runlock
+    allows multiple readers to acquire the read lock simulaneously 
+    it is used when a goroutine needs to read shared data 
+
+  lock/ unlock
+    it is the "write" lock
+
+  only one go routine can hold the "write" lock at a time. 
+
+  multiple go routines can acquire the read lock, provided there is no write lock
+
+
+```go
+  var (
+    rwmu sync.RMutex
+    counter int
+  )
+
+  func ReadCounter(wg *WaitGroup) {
+    defer wg.Done()
+
+    rwmu.Rlock()
+    fmt.Println("Reading ...", counter)
+
+    rwmu.RUnlock()
+  }
+
+  func writeCounter(wg *WaitGroup, value int) {
+    defer wg.Done()
+
+    rw.Lock()
+    counter = value
+    fmt.Println("Written")
+
+    rwmu.Unlock()
+  }
+
+  func main() {
+    var wg sync.WaitGroup
+
+    for range 5 {
+      wg.Add(1)
+      go readCounter(&wg)
+    }
+    
+    wg.Add(1)
+    go writeCounter(&wg, 19)
+
+    wg.Wait()
+  }
+```
+
+
+prevent lock starvation
+  if read locks are too long, write locks will get starved
