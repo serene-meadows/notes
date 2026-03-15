@@ -55,6 +55,32 @@
 
 
 
+untyped const overflow check
+  When you write a constant without a type, 
+  Go keeps it as an untyped constant with arbitrary precision until it is used.
+    ex, const x = 1000000000000
+  Here x has no fixed type yet
+  When you assign it:
+    var y int32 = x
+  Now the compiler checks:
+    “Can 1000000000000 fit into int32?”
+    If not -> compile-time error.
+
+type const overflow check
+  since you explicitly define a type
+  The compiler error occurs right at the constant declaration, not later.
+
+
+
+so untyped consts dont have a type and can be implicitly typed when needed 
+typed consts have a typed and thus behave like variables, and need explicit type casting
+
+
+
+
+
+
+
 
 -- memory
 --

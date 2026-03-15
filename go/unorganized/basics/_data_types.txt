@@ -107,8 +107,58 @@ default/ zero values
 
 
 
+assignable meaning
+  if x = y is legal
+  we can say type y is assignable to type x
+    that means
+      type y is identical to type x
+      type y can be implicitly converted to type x
+      x is the blank identifier
 
-In Go, two typed values of two different basic types can't be assigned to each other.
-the types of the destination and source values in an assignment must be identical if the two values are both basic values
-If the type of the source basic value is not same as the type of the destination basic value,
-  the source value must be explicitly converted to the type of the destination value. 
+
+
+
+
+
+// Go does NOT do implicit type conversion.
+// you need to do it explicitly
+// If types differ → you must convert explicitly.
+//   this doesn't apply to un typed consts because well they are "untyped" until they are in a scenario which requires a type
+//   and it implicitly converts to the expected type, it should still be similar tho, cannot assign numeric unsigned typed const to a string
+//   however for typed consts, you need to explicitly ocnvert to another type if need so
+  ```go
+    // In Go, values of different basic types cannot be assigned to each other.
+      var a int = 10
+      var b float64 = 20.5
+      a = b // error
+
+    // You must explicitly convert the source value to the destination type.
+      var a int
+      var b float64 = 20.5
+
+      a = int(b) // OK
+
+    // The same rule applies to operations between different types.
+    var x int = 10
+    var y float64 = 5.5
+
+    z := x + y // error 
+
+    // Convert one value so both operands have the same type.
+
+    var x int = 10
+    var y float64 = 5.5
+
+    z := float64(x) + y // OK
+
+    // tldr
+    
+    // Key rule in Go:
+    // Basic types must match for:
+      // 1. Assignments
+      // 2. Arithmetic operations
+      // 3. Comparisons
+  ```
+
+
+

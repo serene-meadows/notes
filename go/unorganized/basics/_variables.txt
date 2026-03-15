@@ -239,13 +239,6 @@ assignment
 
 
 
-assignable meaning
-  if x = y is legal
-  we can say type y is assignable to type x
-    that means
-      type y is identical to type x
-      type y can be implicitly converted to type x
-      x is the blank identifier
 
 
 each local declared variable must be used atleast once
@@ -256,3 +249,89 @@ this restriction doesn't take place for package variables
 
 
 
+
+
+assignable meaning
+  if x = y is legal
+  we can say type y is assignable to type x
+    that means
+      type y is identical to type x
+      type y can be implicitly converted to type x
+      x is the blank identifier
+
+
+
+
+
+
+// Go does NOT do implicit type conversion.
+// you need to do it explicitly
+// If types differ → you must convert explicitly.
+//   this doesn't apply to un typed consts because well they are "untyped" until they are in a scenario which requires a type
+//   and it implicitly converts to the expected type, it should still be similar tho, cannot assign numeric unsigned typed const to a string
+//   however for typed consts, you need to explicitly ocnvert to another type if need so
+  ```go
+    // In Go, values of different basic types cannot be assigned to each other.
+      var a int = 10
+      var b float64 = 20.5
+      a = b // error
+
+    // You must explicitly convert the source value to the destination type.
+      var a int
+      var b float64 = 20.5
+
+      a = int(b) // OK
+
+    // The same rule applies to operations between different types.
+    var x int = 10
+    var y float64 = 5.5
+
+    z := x + y // error 
+
+    // Convert one value so both operands have the same type.
+
+    var x int = 10
+    var y float64 = 5.5
+
+    z := float64(x) + y // OK
+
+    // tldr
+    
+    // Key rule in Go:
+    // Basic types must match for:
+      // 1. Assignments
+      // 2. Arithmetic operations
+      // 3. Comparisons
+  ```
+
+
+
+
+
+
+
+
+// Non-constant numeric conversions in Go behave differently from constants.
+  Overflow is allowed when converting NON-constant values.
+    var x int16 = 130
+    var y int8
+
+    y = int8(x)      
+    // result overflows because int8 range is -128..127
+    // value wraps around (implementation-defined but allowed)
+
+  Converting a floating-point value to an integer may round by discarding the fraction.
+  // rouding is towards zero
+    var f float64 = 8.9
+    var ff float64 = -8.9
+    var i int
+
+    i = int(f)      
+    // i becomes 8
+    i = int(ff) 
+    // i become -8
+
+  This rule applies only to NON-constant values.
+    // Constants are checked strictly at compile time.
+    const f = 300.0
+    var x int8 = int8(f)  // error
