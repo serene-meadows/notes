@@ -1,0 +1,233 @@
+overview of compilation pipeline
+  what happens internally:
+    1. go reads the main package
+    2. resolves all imports // Resolve = locate, download (if needed), and load the imported package so the compiler can use it.
+    3. compiles all required packages
+    4, links them to a binary
+
+    compilation pipeline:
+      source code
+        J
+      package resolution
+        J
+      compile each package separately
+        J
+      create object files
+        J
+      linker combines them
+        J
+      final executable binary 
+
+  > step 1: source code
+    the build starts from the main package.
+
+    example project:
+      chatapp/
+        go.mod
+        main.go
+        user/
+          user.go
+
+    main.go:
+      ```go
+        package main
+
+        import (
+          "fmt"
+          "chatapp/user"
+          "github.com/gin-gonic/gin"
+        )
+      ```
+    go starts from the main package because
+      it contains the program entry point:
+
+        func main()
+
+  > step 2: package resolution
+    go reads all imports and determines where each package exists.
+
+    package types:
+      standard library packages
+        example packages:
+          fmt
+          strings
+          net/http
+
+        located in:
+          GOROOT/src
+
+        example resolution:
+          GOROOT/src/fmt
+          GOROOT/src/strings
+          GOROOT/src/net/http
+
+      user-defined packages
+        // special - main package
+        main package
+        entry point of the program
+
+        // others
+        example:
+          chatapp/user
+
+        located in:
+          inside the current module directory
+
+
+      external modules
+        example:
+          github.com/gin-gonic/gin
+
+        resolved through:
+          go.mod
+
+        located in:
+          GOPATH/pkg/mod
+        
+        example resolution:
+          github.com/gin-gonic/gin
+            J
+          resolved using go.mod
+            J
+          located in module cache:
+            $GOPATH/pkg/mod/github.com/gin-gonic/gin@version
+
+
+    > step 3: dependency graph
+
+      go builds a dependency graph of all packages.
+      packages must be compiled in dependency order (i.e. start from lowest dependencies and build up)
+      example:
+          main
+           |
+           |-- fmt
+           |-- chatapp/user
+           |      |-- database
+           |-- gin
+                 |-- net/http
+
+   > step 4: package compilation
+     go compiles packages independently.
+     each package becomes compiled machine code.
+
+     example compilation order:
+       compile fmt
+       compile chatapp/user
+       compile gin
+       compile main
+
+     important rule:
+     a package is compiled exactly once.
+
+     if multiple packages import fmt,
+     it is compiled only one time.
+
+  > step 5: object files
+    after compilation each package produces an object file.
+
+    object file contents:
+      compiled machine code
+      metadata about the package
+      symbol tables for linking
+
+    these are intermediate artifacts used by the linker.
+  
+  > step 6: linker
+    the linker combines all compiled packages into
+    a single executable program.
+
+    it connects:
+      function calls
+      package references
+      runtime components
+
+    example:
+      main → calls fmt.Println
+
+    the linker connects the compiled fmt code with main.
+
+
+  > step 7: final binary
+    after linking the final executable is produced.
+
+    example:
+      go build
+
+    output:
+      chatapp  ← executable binary
+
+    this binary contains:
+      compiled main package
+      compiled user-defined packages
+      compiled standard library packages
+      compiled external modules
+      go runtime (scheduler, garbage collector)
+
+
+  > go runtime
+    the go runtime is included inside the final binary.
+
+    it provides:
+      goroutine scheduler
+      garbage collector
+      memory management
+      panic/recover system
+
+    this is why go binaries are usually larger than binaries
+    produced by some other languages.
+
+
+  > build cache
+    go caches compiled packages to make builds faster.
+    if a package has not changed,
+    go reuses the cached compiled version.
+
+    cache location:
+      ~/.cache/go-build
+
+    this is why subsequent builds are extremely fast.
+  
+  > IMP note
+    Go compiles per package, not per file.
+    So:
+      package = compilation unit
+
+  > ignored source files ( _ and . prefixes )
+
+  the go toolchain ignores source files whose names start with:
+      _
+      .
+  these files are not considered during compilation.
+
+  example directory:
+      project/
+        main.go
+        utils.go
+        _temp.go
+        .draft.go
+
+    when running:
+      go build
+      go run
+      go test
+      go install
+
+    go will only compile:
+      main.go
+      utils.go
+
+    the following files are ignored:
+      _temp.go
+      .draft.go
+
+
+    example use cases
+      temporary code
+      old implementations
+      work-in-progress files
+      backup copies
+
+      _experiment.go
+      _old_parse.go
+      and so on ...
+

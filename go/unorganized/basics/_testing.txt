@@ -1,0 +1,620 @@
+The test file can be in the same package as the one being tested, or in a corresponding package with the suffix "_test".
+
+
+
+go test
+  go test runs tests written for go packages.
+
+  tests are written in special files whose names end with:
+    _test.go
+
+  the go toolchain automatically detects these files
+  and compiles them together with the package being tested.
+
+
+
+
+
+running tests:
+  // current package
+  go test
+
+  // run tests for the current directory
+  // and ALL subdirectories.
+  go test ./...
+
+  ```go
+    func TestAdd(t *testing.T) {}
+    func TestSub(t *testing.T) {}
+    func TestMultiply(t *testing.T) {}
+  ```
+  // run specific test by test function name
+  go test -run TestAdd
+  // run also match patterns
+  // this runs all tests whose name contains "Add".
+  go test -run Add
+
+  go test -v // -v means verbose.
+  //            it prints each test as it runs.
+
+  // controls how many tests run in parallel
+  // default is number of CPUs 
+  go test -parallel 4
+
+  // Go provides a powerful race detector to catch data races in parallel tests. 
+  // Always run your parallel tests with the -race flag during development:
+  go test -race ./...
+
+  // disable caching
+  go test -count=1
+
+  // list test functions
+  go test -list .
+
+  // stop tests if they exceed a timeout
+  go test -timeout 30s
+
+
+test file naming
+  test files must follow this naming convention:
+    *_test.go
+
+  example:
+    math.go
+    math_test.go
+
+  files not matching this pattern are ignored by go test.
+
+
+
+
+
+test function naming
+  test functions must:
+    start with Test
+    take a parameter of type *testing.T
+
+  example:
+    func TestAdd(t *testing.T)
+
+
+
+
+
+example project structure
+  calculator/
+    go.mod
+    math.go
+    math_test.go
+
+  math.go:
+    ```go
+      func Add(a, b int) int {
+        return a + b
+      }
+    ```
+
+  math_test.go:
+    ```go
+      package calculator
+      func TestAdd(t *testing.T) {
+      result := Add(2, 3)
+        if result != 5 {
+          t.Errorf("expected 5, got %d", result)
+        }
+      }
+    ```
+
+If the test file is in the same package, it may refer to unexported identifiers within the package, as in this example:
+  ```go
+    package abs
+
+    import "testing"
+
+    func TestAbs(t *testing.T) {
+      got := abs(-1)
+      if got != 1 {
+        t.Errorf("abs(-1) = %d; want 1", got)
+      }
+    }
+  ```
+
+If the file is in a separate "_test" package, 
+the package being tested must be imported explicitly and only its exported identifiers may be used. 
+This is known as "black box" testing.
+  ```go
+    package abs_test
+
+    import (
+      "testing"
+
+      "path_to_pkg/abs"
+    )
+
+    func TestAbs(t *testing.T) {
+        got := abs.Abs(-1)
+        if got != 1 {
+            t.Errorf("Abs(-1) = %d; want 1", got)
+        }
+    }
+  ```
+
+
+
+
+
+
+
+
+
+
+how go test works internally
+    1. finds *_test.go files
+    2. compiles the package
+    3. compiles test files
+    4. generates a temporary test binary
+    5. runs the test binary
+
+  the binary includes:
+    package code
+    test functions
+    go testing runtime
+
+
+
+
+
+test results
+  if tests pass:
+    ok   calculator   0.002s
+
+  if tests fail:
+    --- FAIL: TestAdd (0.00s)
+        math_test.go:10: expected 5, got 4
+    FAIL
+
+
+
+
+
+testing helper methods
+  common methods of *testing.T:
+    t.Error()
+      report error but continue test
+
+    t.Errorf()
+      formatted error message
+
+    t.Fatal()
+      report error and stop the test
+
+    t.Fatalf()
+      formatted fatal error
+
+  example:
+    ```go
+      if result != 5 {
+        t.Fatalf("expected 5, got %d", result)
+      }
+    ```
+
+
+
+
+
+table-driven tests
+// use .Run() for sub tests
+  go commonly uses table-driven tests to test multiple cases.
+  example:
+    ```go
+      func TestAdd(t *testing.T) {
+
+      tests := []struct {
+          name   string
+          number int
+          want   bool
+        }{
+          {"Even number", 4, true},
+          {"Odd number", 3, false},
+        }
+        for _, tt := range tests {
+          t.Run(tt.name, func(t *testing.T) {
+            if got := IsEven(tt.number); got != tt.want {
+              t.Errorf("IsEven() = %v, want %v", got, tt.want)
+            }
+          })
+        }
+      }
+    ```
+
+
+
+
+
+running tests in parallel
+  go allows tests to run in parallel to speed up test execution.
+  this is useful when:
+    tests are independent
+    tests do not share mutable state
+    tests perform slow operations (network, disk, etc.)
+
+  to run a test in parallel use:
+    t.Parallel()
+
+  go test controls how many tests run in parallel using:
+    -parallel flag
+
+  example:
+    go test -parallel 4
+
+  // Go provides a powerful race detector to catch data races in parallel tests. 
+  // Always run your parallel tests with the -race flag during development:
+  go test -race ./...
+
+  example:
+    ```go
+      func TestA(t *testing.T) {
+        t.Parallel()
+        fmt.Println("running TestA")
+      }
+
+      func TestB(t *testing.T) {
+        t.Parallel()
+        fmt.Println("running TestB")
+      }
+    ```
+
+    this allows at most 4 tests to run simultaneously.
+    default value:
+      number of CPUs on the machine.
+
+  
+  // parallel testing with sub-tests functions
+    putting t.Parallel outside the range loop (inside the outer function)
+      
+      TestCalculate (parallel with other tests)
+         ├─ case1 (sequetial)
+         ├─ case2 (sequetial)
+         └─ case3 (sequetial)
+  
+      ```go
+        func TestCalculate(t *testing.T) {
+          t.Parallel()
+          for _, tt := range tests {
+            tt := tt
+            t.Run(tt.name, func(t *testing.T) {
+            })
+          }
+        }
+      ```
+  
+
+    putting t.Parallel inside the range loop
+      // note: Subtests can run in parallel with each other.
+      // TestFunction itself runs sequentially with other tests.
+
+      TestCalculate
+      ├─ case1 (parallel)
+      ├─ case2 (parallel)
+      └─ case3 (parallel)
+
+      ```go
+        func TestCalculate(t *testing.T) {
+          for _, tt := range tests {
+            tt := tt
+            t.Run(tt.name, func(t *testing.T) {
+              t.Parallel()
+            })
+          }
+        }
+      ```
+
+
+
+    putting t.Parallel in the outer function and the range loop
+      TestCalculate (parallel with other tests)
+         ├─ case1 (parallel)
+         ├─ case2 (parallel)
+         └─ case3 (parallel)
+
+      ```go
+      func TestCalculate(t *testing.T) {
+        t.Parallel()
+        for _, tt := range tests {
+          tt := tt
+          t.Run(tt.name, func(t *testing.T) {
+              t.Parallel()
+            })
+          }
+        }
+      ``` 
+
+      common pitfalls when using t.Parallel() with table-driven tests.
+      In Go, the loop variable tt is shared across all iterations. 
+      When subtests run in parallel, they may all reference the same tt variable, which gets overwritten as the loop continues
+      This leads to race conditions and unpredictable test failures.
+
+      The tt := tt assignment creates a new variable scoped to the loop iteration, 
+      ensuring each goroutine has its own copy of the test case data.
+
+        example - WRONG
+          ```go
+            for _, tt := range tests {
+              t.Run(tt.name, func(t *testing.T) {
+                t.Parallel()
+                // All subtests may see the same tt value!
+                result := Calculate(tt.a, tt.b, tt.op)
+              })
+            }
+          ```
+
+        example - CORRECT 
+        // capture the variable to make a copy
+          ```go
+            for _, tt := range tests {
+              tt := tt // Capture the loop variable
+              t.Run(tt.name, func(t *testing.T) {
+                t.Parallel()
+                // Each subtest has its own copy of tt
+                result := Calculate(tt.a, tt.b, tt.op)
+              })
+            }  
+          ```
+
+    when NOT to run tests in parallel
+      avoid parallel tests when they share:
+        global variables
+        databases
+        files
+        network ports
+        environment variables
+
+
+      example problem:
+        two tests writing to the same file
+          TestA → writes to file
+          TestB → writes to file
+
+      running in parallel may cause race conditions.
+
+test caching
+  go caches successful test results.
+  if code and dependencies have not changed,
+  go may reuse previous test results instead of running tests again.
+
+  example:
+    go test
+
+  output:
+    ok   calculator   (cached)
+
+  to disable caching:
+    go test -count=1
+
+
+
+benchmarks
+  go test can also run benchmarks.
+  benchmark functions:
+    start with Benchmark
+    take a parameter of type *testing.B
+
+  A sample benchmark function looks like this:
+    ```go
+      func BenchmarkRandInt(b *testing.B) {
+        for b.Loop() {
+          rand.Int()
+        }
+      }
+    ```
+    Only the body of the loop is timed, so benchmarks may do expensive setup before calling b.Loop, 
+    which will not be counted toward the benchmark measurement:
+    ```go
+      func BenchmarkBigLen(b *testing.B) {
+        big := NewBig()
+        for b.Loop() {
+        big.Len()
+        }
+      }
+    ```
+
+
+
+
+  
+  // Prior to the introduction of B.Loop, benchmarks were written in a different style using B.N. For example:
+  example:
+    ```go
+      func BenchmarkRandInt(b *testing.B) {
+          for range b.N {
+              rand.Int()
+          }
+      }
+    ```
+  // In this style of benchmark, the benchmark function must run the target code b.N times.
+  // The benchmark function is called multiple times with b.N adjusted until the benchmark function lasts long enough to be timed reliably.
+  // This also means any setup done before the loop may be run several times.
+  // If a benchmark needs some expensive setup before running, the timer should be explicitly reset:
+  ```go
+    func BenchmarkBigLen(b *testing.B) {
+      big := NewBig()
+      b.ResetTimer()
+      for range b.N {
+        big.Len()
+      }
+    }
+  ```
+  
+  // New benchmarks should prefer using B.Loop, which is more robust and more efficient.
+
+
+
+
+run benchmarks:
+  // Run all tests and benchmarks in the current package
+  // '.' is a regex meaning "match everything"
+    go test -bench .
+
+  // Run benchmarks in the current directory AND all subdirectories
+    go test -bench ./...
+
+  // Run a specific benchmark
+    go test -bench BenchmarkName
+
+  // Run a benchmark multiple times
+    go test -bench BenchmarkName -count=5
+
+  // Run a benchmark for a fixed time (e.g., 5 seconds)
+    go test -bench BenchmarkName -benchtime=5s
+
+  // Run a benchmark for a fixed number of iterations
+    go test -bench BenchmarkName -benchtime=100000x
+
+  // Show memory allocations during benchmarks
+    go test -bench . -benchmem
+
+  // Skip tests and run only benchmarks
+    go test -bench . -run=^
+
+  // Run benchmarks with CPU profiles
+    go test -bench . -cpuprofile cpu.out
+
+  // Run benchmarks with memory profiles
+    go test -bench . -memprofile mem.out
+
+  // parallel benchmarking, no. of CPUs to use
+  // default -> num of CPUs on system
+  go test -bench . -cpu 1,2,3,4
+  //                once with 1 cpu, then 2 ...
+
+
+running benchmarks in parallel
+  go benchmarks can simulate concurrent workloads using:
+    b.RunParallel()
+
+  this is useful for benchmarking concurrent code
+  such as servers, locks, caches, and concurrent algorithms.
+
+  Parallel benchmarks (b.RunParallel) measure throughput—how the code performs when multiple CPUs are hitting it simultaneously.
+
+
+  example:
+    ```go
+    func BenchmarkParallelAdd(b *testing.B) {
+      b.RunParallel(func(pb *testing.PB) {
+      for pb.Next() { // pb.Next(): Coordinates between goroutines to ensure the total number of iterations equals b.N.
+        Add(2, 3)
+        }
+      })
+    }
+    ```
+
+  explanation:
+    RunParallel launches multiple goroutines
+    each repeatedly executing the benchmark code.
+    pb.Next() controls how many iterations run.
+
+  this simulates real concurrent workloads.
+
+
+
+sub-benchmarks
+
+  similar to subtests (t.Run), benchmarks can also be split into
+  multiple named benchmarks using:
+
+    b.Run()
+
+  this allows benchmarking multiple scenarios within one benchmark
+  function while sharing setup code.
+
+
+  example:
+
+    func BenchmarkAddVariants(b *testing.B) {
+
+      b.Run("SmallNumbers", func(b *testing.B) {
+        for b.Loop() {
+          Add(1, 2)
+        }
+      })
+
+      b.Run("LargeNumbers", func(b *testing.B) {
+        for b.Loop() {
+          Add(1000000, 2000000)
+        }
+      })
+
+    }
+
+
+
+    sub-benchmarks allow sharing expensive setup.
+
+    example:
+
+      func BenchmarkDatabase(b *testing.B) {
+
+        db := SetupDatabase()
+
+        b.Run("Insert", func(b *testing.B) {
+          for b.Loop() {
+            db.Insert()
+          }
+        })
+
+        b.Run("Read", func(b *testing.B) {
+          for b.Loop() {
+            db.Read()
+          }
+        })
+      }
+
+
+    func BenchmarkAddCases(b *testing.B) {
+
+      tests := []struct{
+        name string
+        a int
+        b int
+      }{
+        {"small",1,2},
+        {"medium",100,200},
+        {"large",1000000,2000000},
+      }
+
+      for _, tt := range tests {
+
+        tt := tt
+
+        b.Run(tt.name, func(b *testing.B) {
+
+          for b.Loop() {
+            Add(tt.a, tt.b)
+          }
+
+        })
+      }
+    }
+
+
+    func BenchmarkCache(b *testing.B) {
+
+      cache := NewCache()
+
+      b.Run("Sequential", func(b *testing.B) {
+        for b.Loop() {
+          cache.Get("key")
+        }
+      })
+
+      b.Run("Parallel", func(b *testing.B) {
+
+        b.RunParallel(func(pb *testing.PB) {
+          for pb.Next() {
+            cache.Get("key")
+          }
+        })
+
+      })
+    }

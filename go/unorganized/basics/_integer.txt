@@ -1,0 +1,41 @@
+Integer value literals  (unnamed constants)
+  There are four integer value literal forms, 
+    the decimal (base 10) form, 
+    the octal (base 8) form, 
+    the hex (base 16) form 
+    the binary form (base 2).
+
+    ```go
+      0xF // the hex form (starts with a "0x" or "0X")
+      0XF
+
+      017 // the octal form (starts with a "0", "0o" or "0O")
+      0o17
+      0O17
+
+      0b1111 // the binary form (starts with a "0b" or "0B")
+      0B1111
+
+      15 // the decimal form (starts without a "0")
+    ```
+
+Use _ in numeric literals for better readability
+  > any _ is not allowed to be used as the first or the last character of the literal,
+  > the two sides of any _ must be either literal prefixes (such as 0X) or legal digit characters.
+  
+  ```go
+    // Legal ones:
+    6_9          // == 69
+    0_33_77_22   // == 0337722
+    0x_Bad_Face  // == 0xBadFace
+    0X_1F_FFP-16 // == 0X1FFFP-16
+    0b1011_0111 + 0xA_B.Fp2i
+
+    // Illegal ones:
+    _69        // _ can't appear as the first character
+    69_        // _ can't appear as the last character
+    6__9       // one side of _ is a illegal character
+    0_xBadFace // "x" is not a legal octal digit
+    1_.5       // "." is not a legal octal digit
+    1._5       // "." is not a legal octal digit
+  ```

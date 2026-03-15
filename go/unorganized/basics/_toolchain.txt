@@ -1,0 +1,752 @@
+-- PATH
+--
+  The PATH is a system-level configuration used by the OS
+
+  When you execute a command in your terminal (e.g., $ go build), 
+  the OS does not perform a global search of your entire hard drive, that would be too slow.
+    > It intercepts the string go.
+    > It iterates through a delimited list of directory paths stored in the PATH variable.
+    > In each directory, it looks for an executable file named go (or go.exe).
+    > The first match it finds, it loads into memory and executes.
+
+  For go
+    You must include the Go Binary Distribution folder (where the Go compiler itself lives) in your PATH.
+    Unix: /usr/local/go/bin
+
+
+
+
+
+-- GOPATH 
+--
+  GOPATH defines the Workspace Root for go
+  GOPATH is where the compiler stores the results of its work and the dependencies it fetches.
+
+  A standard Go workspace is organized into a specific hierarchy that the Go toolchain expects:
+    > /bin
+    > /pkg
+    > /src (legacy)
+
+    /bin (executable binaries)
+      this directory stores compiled executables.
+
+      go build
+        compile program
+        binary → current directory
+
+      go install
+        compile program
+        binary → $GOPATH/bin
+
+        keep binaries meant to be run not just inside one project.
+
+      What Kind of Binaries to Put in /bin
+        > Development Tools
+          Tools used while writing Go code.
+          Examples:
+            golangci-lint — checks code quality  
+        > CLI Applications
+          After installing:
+            $GOPATH/bin/hugo
+            $GOPATH/bin/k9s
+
+          you can write your own cli tools, and run `go install` and go places it in $GOPATH/bin/<module-name>
+
+      when you run `go install`
+        1. go compiles the source code         
+        2. produces machine code
+        3. links required libraries 
+        4. outputs a statically linked binary executable
+
+        // statically linked binary 
+        // all the libraries your program needs are built inside the binary itself.
+        // [ your code + libraries + dependencies ] → one executable file
+        // since go compiles to machine code to create a binary
+        // the cpu can run it directly -> ./binary // a binary = a ready-to-run executable program made of machine instructions.
+        //                                            it’s called binary because the program is stored as binary digits (bits): 010101010110011010101
+        //                                                                                                these bits represent cpu instructions, memory operations, program logic 
+        // 
+        //   languages like python, javascript work differently
+        //   they are interpretted languages
+        //     python -> to run it -> python script.pt
+        //       because python code is not machine code, it needs the python interpretter to read and execute it
+        //       the pyton interpretter 
+        //         1. reads the source code
+        //         2. converts it to bytecode
+        //         3. executes inside python vm
+        //     javascript -> to run it -> node app.js
+        //       it needs the node.js runtime to execute the js code
+
+    /pkg (package cache and module storage)
+
+      this directory stores cached packages and downloaded dependencies.
+      it mainly exists to make builds faster and to share dependencies across projects.
+
+      inside pkg the most important directory today is:
+        pkg/mod (module cache)
+          when you run commands like:
+            go build
+            go get
+            go mod download
+
+          go downloads external dependencies and stores their source code here.
+          example:
+            $GOPATH/pkg/mod/github.com/gin-gonic/gin@v1.9.0
+          this directory contains the actual source code of the dependency.
+
+          if your program imports a package:
+            import "github.com/gin-gonic/gin"
+          the go toolchain resolves it by looking in the module cache:
+            $GOPATH/pkg/mod/github.com/gin-gonic/gin@v1.9.0
+
+          so your project itself does NOT store dependency source code.
+          instead it stores only:
+            go.mod
+            go.sum
+
+          // why dependencies are stored here
+          multiple projects may use the same dependency.
+          example:
+            projectA → gin v1.9.0
+            projectB → gin v1.9.0
+
+          instead of downloading the dependency twice,
+          go stores it once in the module cache:
+            $GOPATH/pkg/mod
+          both projects reuse that copy.
+
+          // dependencies are read-only
+          the files inside pkg/mod are marked read-only.
+          this prevents accidental modification of dependency code.
+          if dependencies were editable:
+            projectA modifies a dependency
+            projectB unexpectedly breaks
+          read-only ensures dependency integrity.
+
+          // important note
+          this directory stores the SOURCE CODE of dependencies,
+          not the compiled binaries.
+
+          compilation happens during go build,
+          and compiled results are stored in the go build cache
+          (usually in ~/.cache/go-build).
+
+
+    /src (source code workspace - legacy)
+      this directory was used in older versions of go (before go modules).
+      it stored the source code of go projects and their dependencies.
+      go expected projects to follow a strict directory structure inside src.
+
+      example workspace:
+        $GOPATH/
+          bin/
+          pkg/
+          src/
+
+      inside src projects were organized using their import path.
+      example:
+        $GOPATH/src/github.com/user/chatapp
+
+      if your program imported a package like:
+        import "github.com/user/chatapp/service"
+      the go compiler would look for it at:
+        $GOPATH/src/github.com/user/chatapp/service
+
+      this meant your filesystem had to mirror the import path.
+      example project layout:
+        $GOPATH/src/github.com/vikas/chatapp
+          main.go
+          service/
+          db/
+
+      build command:
+        go build github.com/vikas/chatapp
+
+      go would locate the code inside src using the import path.
+
+      // dependencies in the old system
+      external libraries were also placed inside src.
+      example:
+        $GOPATH/src/github.com/gin-gonic/gin
+
+      so your workspace contained BOTH:
+        your projects
+        third-party libraries
+
+      // why this system had problems
+      all projects shared the same workspace.
+
+      example:
+        projectA → needs gin v1.8
+        projectB → needs gin v1.9
+
+      src could only contain ONE version of a dependency.
+      this caused version conflicts.
+
+      // modern go (go modules)
+      starting in go 1.11, go introduced modules.
+      now projects are no longer required to live inside GOPATH/src.
+      a project can exist anywhere:
+        ~/projects/chatapp
+        ~/work/backend/api
+
+      dependencies are now managed using:
+        go.mod
+        go.sum
+
+      and dependency source code is stored in:
+        $GOPATH/pkg/mod
+
+  how go resolves imports (gopath vs modules)
+    when go sees an import like:
+      import "github.com/gin-gonic/gin"
+
+    it must determine where the source code for that package exists
+    on the filesystem.
+
+    the mechanism used depends on whether go is using:
+      1. the old GOPATH system
+      2. the modern Go modules system
+
+    1. import resolution in the GOPATH system (old)
+      in the GOPATH workspace model,
+      import paths directly mapped to directories inside:
+        $GOPATH/src
+      example:
+        import "github.com/gin-gonic/gin"
+
+      go would resolve it by looking at:
+        $GOPATH/src/github.com/gin-gonic/gin
+
+      example workspace:
+        $GOPATH/
+          src/
+            github.com/
+              gin-gonic/
+                gin/
+
+      when building your program:
+        go build
+      the compiler reads imports and simply finds the corresponding
+      directories inside src.
+      // key idea
+      import path == filesystem path inside src
+
+      // limitations
+      only one version of a dependency could exist.
+      example:
+        $GOPATH/src/github.com/gin-gonic/gin
+
+      if multiple projects needed different versions,
+      conflicts would occur.
+
+    2. import resolution with go modules (modern)
+      with modules, go does not look in src anymore.
+      instead it uses:
+        go.mod
+      to determine which version of a dependency should be used.
+
+      example go.mod:
+        module github.com/vikas/chatapp
+        go 1.22
+        require github.com/gin-gonic/gin v1.9.0
+
+      when go sees:
+        import "github.com/gin-gonic/gin"
+
+      it follows this process:
+        1. read go.mod
+        2. determine the required version of the module
+        3. locate the module in the module cache
+
+      example module cache location:
+        $GOPATH/pkg/mod/github.com/gin-gonic/gin@v1.9.0
+
+      so the import is resolved to:
+        pkg/mod/github.com/gin-gonic/gin@v1.9.0
+
+      // if the module is not already downloaded
+      go automatically downloads it from the module source
+      (usually a git repository such as github).
+
+    example resolution process
+      project:
+        chatapp/
+          go.mod
+          main.go
+
+      main.go:
+        import "github.com/gin-gonic/gin"
+
+      go performs:
+        read go.mod
+            J
+        find required version (v1.9.0)
+            J
+        check module cache -> pkg/mod/github.com/gin-gonic/gin@v1.9.0
+            J
+        if not present -> download module
+            J
+        compile using that version
+
+
+
+    import paths still look like repository URLs:
+      github.com/gin-gonic/gin
+
+    but go does not directly use the network every time.
+    the code is cached locally in:
+      pkg/mod
+
+
+    summary
+      GOPATH system:
+        import path → src directory
+          github.com/gin-gonic/gin
+            J
+          $GOPATH/src/github.com/gin-gonic/gin
+
+      modules system:
+        import path → version in go.mod → module cache
+
+          github.com/gin-gonic/gin
+            J
+          go.mod version
+            J
+          $GOPATH/pkg/mod/github.com/gin-gonic/gin@version
+
+
+
+
+
+-- GOROOT (go installation directory)
+-- 
+  GOROOT is the directory where the Go toolchain itself is installed.
+
+  it contains:
+    the go compiler
+    the go standard library
+    go build tools
+
+  example location:
+    /usr/local/go
+  you can check it with:
+    go env GOROOT
+
+  example structure:
+    GOROOT/
+      bin/
+      pkg/
+      src/
+
+  GOROOT/bin
+    contains the go toolchain executables.
+    examples:
+      go
+      gofmt
+
+    when you run commands like:
+      go build
+      go run
+      go test
+
+    you are executing the binary:
+      GOROOT/bin/go
+
+  GOROOT/src
+    contains the source code of the go standard library.
+
+    example packages:
+      fmt
+      net/http
+      strings
+      sync
+      io
+
+    example directory:
+      GOROOT/src/fmt
+
+    when your code imports:
+      import "fmt"
+    the compiler resolves it here:
+      GOROOT/src/fmt
+
+  GOROOT/pkg
+    stores compiled versions of the standard library packages.
+
+    these compiled packages make builds faster since the
+    standard library does not need to be recompiled each time.
+
+    example:
+      compiled fmt package
+
+    modern go also uses a separate build cache to speed up builds.
+
+
+  relationship between GOROOT and GOPATH
+    GOROOT
+      location of the go installation and standard library.
+
+    GOPATH
+      workspace for user-installed tools and module cache.
+
+    example:
+      GOROOT = /usr/local/go
+      GOPATH = /home/user/go
+
+  example import resolution
+    code:
+      import "fmt"
+      import "github.com/gin-gonic/gin"
+      import "chatapp/user"
+
+    go resolves them as follows:
+      standard library
+        fmt
+          ↓
+        GOROOT/src/fmt
+
+      external module
+        github.com/gin-gonic/gin
+          ↓
+        GOPATH/pkg/mod/github.com/gin-gonic/gin@version
+
+      user-defined package
+        chatapp/user
+          ↓
+        located inside your module directory
+
+
+
+
+
+-- GO commands
+--
+  go run
+    go run compiles the program and immediately executes it.
+
+    it is mainly used during development when you want to quickly run
+    a program without creating a permanent binary.
+
+    example:
+      go run main.go
+
+    compile program
+    execute temporary binary
+    binary not saved
+
+  go build
+    go build compiles the program and creates an executable binary.
+    unlike go run, the binary is saved in the current directory.
+
+    example:
+      go build
+
+    compile program
+    create executable in current directory
+
+
+  go install
+    go install builds the program and installs the binary into:
+      $GOPATH/bin
+
+    this is mainly used for command-line tools that you want to run
+    globally from your terminal.
+    example:
+      go install
+
+    resulting binary:
+      $GOPATH/bin/chatapp
+
+    if $GOPATH/bin is in PATH,
+    the program can be run from anywhere:
+      chatapp
+
+    compile program
+    place executable in $GOPATH/bin for global use
+
+
+  go fmt
+    go fmt formats go source code according to the official
+    go formatting rules.
+
+    example - go fmt ./...
+
+    go uses the formatter implemented in:
+      gofmt
+
+
+  go vet
+    go vet performs analysis to detect suspicious code.
+
+    it looks for patterns that compile successfully
+    but are likely bugs or mistakes.
+
+
+    example command:
+      go vet ./...
+
+    example
+      incorrect formatting function usage
+        This happens when the format specifier in a print function doesn’t match the variable type
+            
+        functions like 
+          Printf
+          Sprintf
+          Errorf
+
+        examples
+          ```go
+            name := "vikas"
+            fmt.Printf("%d", name)
+          ```
+          // go vet warning 
+          // printf format %d has arg name of wrong type string
+
+          ```go
+            fmt.Printf("%d %d", 10)
+          ```
+          // problem
+          // two format specifiers
+          // one argument
+
+
+      unreachable code
+        example:
+          ```go
+            func test() {
+              return
+              fmt.Println("this will never run")
+            }
+          ```
+          ```go
+            func f() {
+              panic("error occurred")
+              fmt.Println("never executed")
+            }
+          ```
+
+      misuse of struct tags
+        struct tags must follow a specific format.
+        go vet checks that struct tags are valid.
+
+        example correct struct tag:
+          ```go
+            type User struct {
+              Name string `json:"name"`
+            }
+          ```
+
+        incorrect example:
+          ```go
+            type User struct {
+              Name string `json:name`
+            }
+          ```
+        problem:
+          struct tags must follow the format:
+            key:"value"
+
+
+        It does not validate the content or semantics of the tag
+          the library that reads the struct tag decides how to validate and interpret it.
+          In Go, struct tags are just metadata strings attached to fields. 
+          The compiler stores them but does not interpret them. 
+          When a library needs them, it reads the tag using reflection.
+
+          example - encoding/json expects json:"name"
+
+        The Go compiler only ensures:
+          Tag is a string literal
+          Syntax of struct field is valid
+
+        Example that does fail compilation:
+        ```go
+          type User struct {
+            Name string json:"name"
+          }
+        ```
+        // Error because the tag is not a string literal.
+
+
+      incorrect use of locks
+        go vet detects patterns that misuse mutexes.
+        common mistake:
+          forgetting to unlock a mutex.
+
+        example:
+          ```go
+            var mu sync.Mutex
+
+            func update() {
+              mu.Lock()
+              fmt.Println("updating data")
+            }
+          ```
+          problem: mu.Unlock() is missing.
+          this can cause a deadlock.
+
+          correct version:
+          ```go
+            func update() {
+              mu.Lock()
+              defer mu.Unlock()
+              fmt.Println("updating data")
+            }
+          ```
+
+      copy of mutex values 
+        mutexes should never be copied.
+        copying them breaks synchronization guarantees.
+
+        incorrect example:
+          ```go
+            type Counter struct {
+              mu sync.Mutex
+              value int
+            }
+
+            func increment(c Counter) {
+              c.mu.Lock()
+              c.value++
+              c.mu.Unlock()
+            }
+          ```
+        problem:
+          Counter is passed by value
+          which copies the mutex.
+
+        this can lead to undefined synchronization behavior.
+
+        correct version:
+        ```go
+          func increment(c *Counter) {
+            c.mu.Lock()
+            c.value++
+            c.mu.Unlock()
+          }
+        ```
+        mutexes should always be used through pointers.
+
+      suspicious assignments
+        go vet detects assignments that look like mistakes.
+
+        common example:
+          accidentally shadowing variables.
+
+        example:
+        ```go
+          x := 10
+          if x := 5; x > 0 {
+            fmt.Println(x)
+          }
+        ```
+
+        problem:
+          inner x shadows outer x.
+        this may be intentional but often causes confusion.
+
+  
+  go test
+    go test runs tests written for go packages.
+
+    test files must follow this naming convention:
+      *_test.go
+
+    example:
+      math.go
+      math_test.go
+
+    the go toolchain automatically detects these files
+    and compiles them together with the package being tested.
+                            
+
+    test functions must:
+      start with Test
+      take a parameter of type *testing.T
+
+      example:
+        func TestAdd(t *testing.T) { ... }
+
+    example 
+      ```go
+        // project 
+        //    calculator/  
+        //      go.mod
+        //      math.go
+        //      math_test.go
+
+        // math.go
+        func Add(a, b int) int {
+          return a + b
+        }
+
+        // math_test.go
+        func TestAdd(t *testing.T) {
+          result := Add(2, 3)
+
+          if result != 5 {
+            t.Errorf("expected 5, got %d", result)
+          }
+        }
+      ```
+
+
+  go docs 
+    go doc displays documentation for go packages,
+    functions, types, methods, and fields.
+
+    it reads documentation comments written in source code.
+
+    example:
+      ```go
+        // Add adds two integers.
+        func Add(a, b int) int {
+          return a + b
+        }
+      ```
+
+    running:
+      go doc Add
+
+    prints the documentation comment and declaration.
+
+  go doc accepts zero, one, or two arguments.
+    zero arguments
+      go doc
+
+      shows documentation for the package
+      in the current directory.
+
+      example:
+        project/
+          math.go
+
+      running:
+        go doc
+
+      prints:
+        package description
+        exported functions
+        exported types
+        constants
+        variables
+
+    one argument
+      // A symbol can be:
+      //   function
+      //   type
+      //   variable
+      //   constant
+
+      go doc <pkg>                            
+      go doc <sym>[.<methodOrField>]          
+      go doc [<pkg>.]<sym>[.<methodOrField>]  
+      go doc [<pkg>.][<sym>.]<methodOrField>
+
+      The first item in this list that succeeds is the one whose documentation is printed.
+       if the argument begins with a capital letter it is always assumed to be a symbol in the current directory.   
+
+    Two arguments:
+      go doc <pkg> <sym>[.<methodOrField>]
+      // TODO: similar to one argument no?  

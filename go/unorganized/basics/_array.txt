@@ -1,0 +1,263 @@
+-- array
+--
+  an array is a numbered sequence of elements of a specific(fixed) length and of the same type in contiguous memory locations
+
+  continguous memory locations allows go to access each element quickly, since their address can be calculated based on the
+    starting address of the array
+
+    ```go
+      func main() {
+        arr := [5]byte{0, 1, 2, 3, 4}
+        println("arr", &arr)
+
+        for i := range arr {
+          println(i, &arr[i])
+        }
+      }
+      // output
+      // arr 0x1400005072b
+      // 0 0x1400005072b
+      // 1 0x1400005072c
+      // 2 0x1400005072d
+      // 3 0x1400005072e
+      // 4 0x1400005072f
+    ```
+    there a couple of things to notice here
+      > the address of arr is the same as the address of the first element
+      > The address of each element is 1 byte apart from each other because our element type is byte.
+
+    // using unsafe pointer to traverse the array using
+    //    > address of the first element
+    //    > size of the element
+    // uses unsafe pointers ( DONT do this in prod code )
+    ```go
+      func main() {
+        a := [3]int{99, 100, 101}
+
+        p := unsafe.Pointer(&a[0])
+
+        a1 := unsafe.Pointer(p + 8) // int -> 8 bytes
+        a2 := unsafe.Pointer(p + 16)
+
+        fmt.Println(*(int*)(p))
+        fmt.Println(*(int*)(a1))
+        fmt.Println(*(int*)(a2))
+      }
+      // output
+      // 99
+      // 100
+      // 101
+
+    ```
+
+
+
+
+
+-- stack or heap residence
+--
+  not every array is allocated on the stack. If it’s too big, it gets moved to the heap.
+
+  As of Go 1.23, if the size of the variable, not just array, exceeds a constant value MaxStackVarSize,
+  which is currently 10 MB, it will be considered too large for stack allocation and will escape to the heap.
+
+
+
+
+
+-- type
+--
+  `[size]elementType` is an array of 'size' values of type 'elementType'
+  the type of the element and number of elements are both part of the array's type
+
+  ```go
+    a := [5]int{}
+    b := [6]int{}
+
+    fmt.Printf("%T \n", a)
+    fmt.Printf("%T \n", b)
+
+    // CANNOT do
+    // since both size and elem type count towards the type of an array
+    // a = b  // Error
+  ```
+  // Output
+  // [5]int
+  // [4]int
+
+
+
+
+-- comparison
+--
+  array1 := [3]int{1, 2, 3}
+  array2 := [3]int{1, 2, 3}
+
+  // true condition
+  array1 == array2
+
+
+
+
+
+-- declaration
+--
+  ```go
+    // var arrayName [size]elementType
+    // zero-initialized
+    // zero value of an array is an array where each element is initialized to it's zero value
+    var arr1 [10]int // [0 0 0 0 0 0 0 0 0 0]
+
+    // var arrayName [size]elementType = [size]elementType{elem1, elem2 ...}
+    // var arrayName = [size]elementType{elem1, elem2 ...}
+    // arrayName := [size]elemenetType{elem1, elem2 ...}
+
+    // With value, infer-length
+    arr2 := [...]int{1, 2, 3, 4, 5} // [1 2 3 4 5]
+
+    // With index
+    // 'index:value'
+    // the indices that are skipped, are assigned zero value
+    arr3 := [...]int{11: 3} // [0 0 0 0 0 0 0 0 0 0 0 3]
+    // Combined index and value
+    arr4 := [5]int{1, 4: 5} // [1 0 0 0 5]
+    arr5 := [5]int{2: 3, 4, 4: 5} // [0 0 3 4 5]
+
+    // multi-dimensional
+    // var arrayName [sizeA][sizeB]int
+    arrayName := [2][2]int {
+      {1, 1},
+      {2, 2},
+    }
+  ```
+
+
+
+
+
+-- indexing
+--
+  zero indexed
+
+  arrayName[index]
+
+
+
+
+
+-- lenth of array
+--
+  len(arrayName)
+
+  the length of the array is encoded in the array Type itself and is knows at compile time
+  so len(arrayName) is replaced by the const value of the lenght of the array during compilation
+
+
+
+
+
+-- looping
+--
+  // method 1
+  for i := 0; i < len(arrayName); i++ {
+    // arrayName[i]
+  }
+
+
+  // method 2
+  for i, v := range arrayName {
+    // codeblock
+  }
+  // here, arrayName is actually a copy of the original array
+  // since arrays as value types, a copy of the array is being worked on
+  // internally its similar to
+  //    arrayName1 := arrayName
+  //    for i, v := range arrayName1 {
+  //       // code block
+  //    }
+  //
+  // so this can become inefficient
+  // go provides a for-range using the pointer to the array
+  // method 3
+  for i, v := range &arrayName {
+    // code block
+  }
+
+
+
+
+
+-- pointer to array
+--
+  var originalArray [2][3]int
+
+  // pointer type -> *[2][3]int
+  var pointerToArray *[2][3]int
+
+  // assigning memory loc of originalArray to pointerToArray
+  // & to get the address
+  pointerToArray = &originalArray
+
+
+  in go
+    variables are value types [arrays are value tyes]
+    so when you pass them as arguments to functions, assign to another variable
+    a copy of the original variable is created and passed
+    thus, you cannot modify the original variable
+
+        // in contrast, in other languages array variable is a pointer to the first element
+        // so passing the array as an argument passes the pointer to the first element
+        // but in go since its a value type, the entire array has to be copied
+
+    also copying variables can become expensive if it is large
+
+    in these cases, as per usecase
+      pass the pointer to the array
+
+
+   so when you do things like
+    arr1 := arr2
+    funcCall(arr1)
+    for i, v := range arr
+
+    all pass by value not be reference
+    to pass by reference
+      arr1 := &arr2
+      funcCall(&arr1)
+      for i, v := range &arr
+
+
+
+
+
+-- slicing from array
+--
+  Slicing is a way to get a slice from an array, and its full form is denoted by the syntax [start:end:capacity]
+  range -> [start, end)
+  if any of the 'start' 'end' 'capacity' are missing
+    > start defaults to 0
+    > end defaults to len(orig array/ slice)
+    > capacity defaults to capcity of orig slice or len of orig array
+
+    the new length of the slice is -> end - start
+    // capacity is measured from start of slice not the start of the underlying array
+    the new capacity of the slice is -> capacity - start
+
+  common variants
+    [start:end]
+    [:end]
+    [start:]
+    [:]
+
+  ```go
+    func main() {
+      a := [5]int{0, 1, 2, 3, 4}
+
+      // slice from a[0] to a[3]
+      b := a[:4]
+    }
+  ```
+
+
+
+

@@ -1,0 +1,258 @@
+Variables are named values.
+Variables are stored in memory at run time.
+The value represented by a variable can be modified at run time.
+
+All variables are typed values.
+When declaring a variable,
+there must be sufficient information provided for compilers to deduce the type of the variable.
+
+The variables declared within function bodies are called local variables.
+The variables declared out of any function body are called package-level variables.
+  We also often call package-level variables as global variables.
+
+
+There are two basic variable declaration forms,
+  the standard one
+  and the short one. (can only be used inside functions)
+
+standard declaration
+  Each standard declaration starts with the var keyword
+  which is followed by the declared variable name
+
+  // this method is pretty verbose
+  ```go
+    var announceYear int = 2009
+    // in this method, the types of the multiple variables declared
+
+    // in the same declaration line must be identical
+    var lang, website string = "Go", "https://golang.org"
+    var compiled, dynamic bool = true, false
+  ```
+
+  // let compiler deduce type of variable
+  // i.e. implicit conversion
+  ```go
+     // using this method
+     // the types of the multiple variables declared in the same declaration line can be different.
+
+
+    // The types of the lang and dynamic variables
+    // will be deduced as built-in types "string"
+    // and "bool" by compilers, respectively.
+    var lang, dynamic = "Go", false
+
+    // The types of the compiled and announceYear
+    // variables will be deduced as built-in
+    // types "bool" and "int", respectively.
+    var compiled, announceYear = true, 2009
+
+    // The types of the website variable will be
+    // deduced as the built-in type "string".
+    var website = "https://golang.org"
+  ```
+
+
+  // initializing to zero value
+  ```go
+    // Both are initialized as blank strings.
+    var lang, website string
+    // Both are initialized as false.
+    var interpreted, dynamic bool
+    // n is initialized as 0.
+    var n int
+  ```
+
+  // grouping variables
+  ```go
+    var (
+      lang, bornYear, compiled        = "Go", 2007, true
+      announceAt, releaseAt    int    = 2009, 2012
+      createdBy, website       string
+    )
+  ```
+
+short declaration
+  short declaration can only be used to declare local variables
+
+  > must ommit the var keyword and the type
+  > it uses the := syntax
+  > both old and new variables can be used to the left side
+    but if any one of them is a new variable you have to use :=
+
+  ```go
+    // Both lang and year are newly declared.
+    lang, year := "Go language", 2007
+
+    // Only createdBy is a new declared variable.
+    // The year variable has already been
+    // declared before, so here its value is just
+    // modified, or we can say it is redeclared.
+    year, createdBy := 2009, "Google Research"
+
+    // This is a pure assignment.
+    // a pure assignment means assigning values to already-declared variables without declaring new ones.
+    lang, year = "Go", 2012
+  ```
+
+
+assignment
+  In variable declarations, the sign = means assignment.
+
+  The expression items at the left of = symbol in a pure assignment
+  must be addressable values, map index expressions, or the blank identifier.
+        // addressable values
+        an addressable value is a value that has a stable memory location.
+
+        because it has a memory location,
+        the program can store a new value there.
+
+        "addressable" means:
+          the address of the value can be obtained using the address operator (&).
+
+          example
+            x := 10
+            x = 20
+            p := &x
+
+            // &x means, to get the memory address where x is stored
+            // so x is addressable
+
+          another example
+            // slice
+            s := []int{1, 2, 3}
+            s[0] = 10
+            p := &s[0]
+            // &s[0] refers to a memory address inside the slice's backing array
+            // s[0] is addressable
+
+          another example
+            // struct field
+            type User struct {
+              Age int
+            }
+            u := User{Age:20}
+            u.Age = 25
+            p := &u.Age
+            // &u.Age referes to memory address of the field
+            // u.Age is addressable
+
+          another example
+            // pointer dereference
+            x := 10
+            p := &x
+            *p = 20
+            // *p refers to the memory address stored at p
+            // *p is also addressable
+
+        examples of "non addressable"
+          some expressions produce values but do not refer to a stable memory location.
+          those values are not addressable.
+
+          example
+            10 = x
+            // invalid because literal values do not have assignable memory locations
+
+          another example
+            // function return
+            func get() int { return 1 }
+            get() = 10
+            // invalid because the return value of a function is a temporary value, not a named
+            // memory location
+
+          another example
+            map elements are not addressable
+            // however we can use them in assignemnts because as mentioned it's allowed
+            m := map[string]int{}
+            m["a"] = 1   // allowed
+            // but
+            p := &m[a]   // not allowed, since it's not addressable
+                         // reason
+                         // map implementations may move elements in memory when the
+                         // memory grows (during rehashing or resizing)
+                         // therefor the memory address of a map element is not stable
+                         // so map[key] is not addressable
+
+        map index vs slice index (why one of them is not addressable)
+          slice elements are addressable
+          map elements are not addressable
+
+          even though both of them can grow dynamically
+
+          slice (internal representation)
+            pointer to an array
+            length
+            capacity
+
+            s[i] refers to an element in the backking array, array elements live in
+            stable memory locations
+
+            when a slice grows using append
+            the runtime may allocate a NEW array
+            ```go
+              s := []int{1,2,3}
+              p := &s[0]
+              s = append(s, 4,5,6)
+            ```
+              // possible case
+              // old array -> 1 2 3
+              // new array -> 1 2 3 4 5 6
+              // but
+              // the pointer p still points to the old array
+              // the pointer s points to the new array
+              // so the memory locations are stable
+
+          maps (internal representation)
+            maps are implemented using hash tables
+            they contain
+              buckets
+              hash tables
+              metadata
+
+            elements are stored inside buckets
+
+            when the map grows elements may have to be moved between buckets
+            thus, because their memory locations are not stable
+            they are not addressable
+
+
+  ```go
+    const N = 123
+    var x int
+    var y, z float32
+
+    N = 9 // error: constant N is not modifiable
+    y = N // ok: N is deduced as a float32 value
+    x = y // error: type mismatch
+    x = N // ok: N is deduced as an int value
+    y = x // error: type mismatch
+    z = y // ok
+    _ = y // ok
+
+    x, y = y, x // error: type mismatch
+    x, y = int(y), float32(x) // ok
+    z, y = y, z               // ok
+    _, y = y, z               // ok
+    z, _ = y, z               // ok
+    _, _ = y, z               // ok
+    x, y = 69, 1.23           // ok
+  ```
+
+
+
+assignable meaning
+  if x = y is legal
+  we can say type y is assignable to type x
+    that means
+      type y is identical to type x
+      type y can be implicitly converted to type x
+      x is the blank identifier
+
+
+each local declared variable must be used atleast once
+  the go compiler doesn't allow for unused local variables to be declared
+this restriction doesn't take place for package variables
+
+
+
+
+

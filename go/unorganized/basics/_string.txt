@@ -1,0 +1,50 @@
+string value literals
+  String values in Go are UTF-8 encoded
+  UTF-8 is an encoding for the universal character system called Unicode.
+  Unicode assigns a unique number (code point) to every character.
+  UTF-8 defines how those numbers are stored as bytes.
+  UTF-8 uses 1 to 4 bytes per character.
+
+  example 
+    English character (code point) is represented with one byte
+    Chinese character (code point) is represented with three bytes.
+
+
+There are two forms of string value literals, (unnamed constants)
+  interpreted string literal (double quotes form) 
+  and raw string literal (back quotes form) // In a raw string literal, no character sequences will be escaped. 
+   ```go
+    // The interpreted form.
+    "Hello\nworld!\n\"你好世界\""
+
+    // The raw form.
+    `Hello
+    world!
+    "你好世界"`
+  ```
+
+  NOTE: 
+    \" is only legal in interpreted string literals
+    \` is only legal in rune literals.
+
+
+  The character sequence of \, \x, \u and \U followed by several octal or hex digits
+    used for rune literals, can also be used in interpreted string literals.
+
+    // The following interpreted string literals are equivalent.
+    "\141\142\143"
+    "\x61\x62\x63"
+    "\x61b\x63"
+    "abc"
+
+    // The following interpreted string literals are equivalent.
+    "\u4f17\xe4\xba\xba"
+          // The Unicode of 众 is 4f17, which is
+          // UTF-8 encoded as three bytes: e4 bc 97.
+    "\xe4\xbc\x97\u4eba"
+          // The Unicode of 人 is 4eba, which is
+          // UTF-8 encoded as three bytes: e4 ba ba.
+    "\xe4\xbc\x97\xe4\xba\xba"
+    "众人"
+
+

@@ -1,0 +1,209 @@
+binary representation of integers
+  computers store numbers as fixed-width bit patterns.
+  a bit can be:
+    0
+    1
+
+  integer types define how many bits are used.
+    type     bits
+    ----------------
+    int8       8
+    int16     16
+    int32     32
+    int64     64
+
+  example (8-bit number):
+    01010110
+
+  each bit represents a power of 2.
+
+bit positions
+  bits are interpreted from right to left.
+    bit index:   7 6 5 4 3 2 1 0
+    power:     128 64 32 16 8 4 2 1
+
+  example conversion
+    01010110
+    = 0*128
+    + 1*64
+    + 0*32
+    + 1*16
+    + 0*8
+    + 1*4
+    + 1*2
+    + 0*1
+    = 86
+
+unsigned integers
+  unsigned integers store only non-negative values.
+  all bits represent magnitude.
+  range formula
+    0 → 2^n - 1
+  where:
+    n = number of bits
+
+  example: uint8
+    binary       decimal
+    ---------------------
+    00000000  -> 0
+    00000001  -> 1
+    00000010  -> 2
+    ...
+    11111110  -> 254
+    11111111  -> 255
+
+  range
+    0 → 255
+
+signed integers (two's complement)
+  most CPUs and languages (including Go) represent signed integers
+  using two's complement.
+
+  rule
+    highest bit = sign bit
+    0xxxxxxx  -> positive
+    1xxxxxxx  -> negative
+
+signed range formula
+  signed integers split the range between positive and negative.
+    -(2^(n-1))  →  2^(n-1) - 1
+
+  example: int8
+    -128 → 127
+
+maximum signed integer
+  maximum occurs when
+    sign bit = 0
+    remaining bits = 1
+
+  example (8-bit)
+    01111111
+
+  calculation
+    64 + 32 + 16 + 8 + 4 + 2 + 1
+    = 127
+
+  formula
+    max = 2^(n-1) - 1
+
+  examples
+    type     max
+    -------------------------
+    int8     127
+    int16    32767
+    int32    2147483647
+    int64    9223372036854775807
+
+minimum signed integer
+  minimum occurs when
+    sign bit = 1
+    remaining bits = 0
+
+  example (8-bit)
+    10000000
+
+  value
+    -128
+
+  formula
+    min = -2^(n-1)
+
+  examples
+    type     min
+    --------------------------
+    int8     -128
+    int16    -32768
+    int32    -2147483648
+    int64    -9223372036854775808
+
+
+important property
+  minimum value has no positive counterpart.
+  example (int8)
+    -128 cannot become +128
+
+  because
+    +128 requires 9 bits.
+
+two's complement negative representation
+  to encode negative numbers:
+    1) invert bits
+    2) add 1
+
+  example: represent -5
+  step 1
+    5 = 00000101
+  step 2 invert bits
+    11111010
+  step 3 add 1
+    11111011
+  result
+    -5 = 11111011
+
+verifying two's complement
+  if we add the number and its negative:
+    00000101
+  + 11111011
+  ----------
+    00000000   (carry discarded)
+
+special property: -1
+  in two's complement
+    -1 = all bits set
+  examples
+    8-bit
+      11111111
+    32-bit
+      11111111111111111111111111111111
+    64-bit
+      all 64 bits set
+
+
+overflow
+  integers have fixed bit width.
+  when arithmetic exceeds the range, bits wrap.
+
+unsigned overflow
+    11111111 + 1
+    result
+    00000000
+
+signed overflow (int8)
+    127 + 1
+    01111111
+  + 00000001
+  ----------
+    10000000
+
+  interpretation
+    -128
+
+
+
+shifting 
+  // means: n * 2^b
+  n << b
+
+  // means: n / 2^b
+  n >> b
+
+
+
+fun way to get largest values
+  // uint
+    const MaxUInt = (1 << 64) - 1
+  // but this way will work only on 64 bit OS's
+  // it will fail on 32 bit OS's
+  // a safer method is
+    const MaxUInt = ^uint(0)
+    const MaxInt = int(^uint(0) >> 1)
+
+method to check if 32bit or 64bit system
+  // NativeWordBits evaluates to
+  //   32 for 32bit system
+  //   64 for 64bit system
+  const NativeWordBits = 32 << (^uint(0) >> 63) // 32 << 0 = 32 
+                                                // 32 << 1 = 64
+
+  const Is64bitOS = ^uint(0) >> 63 != 0
+  const Is32bitOS = ^uint(0) >> 32 == 0

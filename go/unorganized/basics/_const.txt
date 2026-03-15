@@ -1,0 +1,495 @@
+// good source 
+// https://go.dev/blog/constants
+
+-- const 
+--
+  constants are declared like variables, but with the const keyword
+  constants cannot be declared using := syntax
+
+  Must be able to be assigned at compile time. 
+  The value of a const can’t be the result of a runtime calculation
+
+  type literals are unamed constants, ex 1, 3, "gelo", 'a' 
+
+  In Go, const is a keyword introducing a name for a scalar value such as 2 or 3.14159 or "scrumptious"
+  Such values, named or otherwise, are called constants in Go
+  Constants can also be created by expressions built from constants, such as 2+3 or 2+3i or math.Pi/2 or ("go"+"pher").
+
+  Go is a statically typed language that does not permit operations that mix numeric types. 
+  You can’t add a float64 to an int, or even an int32 to an int. 
+  Yet it is legal to write 1e6*time.Second or math.Exp(1) or even 1<<(' '+2.0). 
+  In Go, constants, unlike variables, behave pretty much like regular numbers.
+
+
+  constants can be declared at 
+    function level (local constants)
+    package constants (global constants)
+
+
+  constant block
+    ```go
+      const (
+        x = 1
+        name = "vikas"
+      )
+    ```
+
+
+
+  constants can be type/ untyped (explained in string constants also)
+    ```go
+      // untyped constants
+      const x = 1;
+      // they carry a default type
+      // the default type is used when implicit type inference 
+      int y = x
+      // you can do explicit type conversion int32(x)
+
+
+      // typed constants 
+      const int x = 1
+      const x = int(1)
+    ```
+
+
+
+
+
+
+-- memory
+--
+  Do NOT occupy memory
+  Exist only at compile time
+  when you write 
+    const x = 10 
+
+  Go does not create a memory location for x.
+
+  There is no address.
+  You cannot take &x.
+  It is not stored in RAM like a variable.
+
+  Instead, the compiler literally replaces x with 10 everywhere it’s used.
+
+  Think of it like a text replacement during compilation.
+
+
+
+
+
+-- string constants - Also explains typed/ untyped consts
+--
+  A string constant encloses some text between double quotes.
+  What type does this string constant have? The obvious answer is string, but that is wrong.
+    This is an untyped string constant, which is to say it is a constant textual value that does not yet have a fixed type.
+  It remains an untyped string constant even when given a name:
+    `const hello = "hello"`
+  An untyped constant is just a value, one not yet given a defined type that would force it to obey the strict rules that prevent combining differently typed values.
+  It is this notion of an untyped constant that makes it possible for us to use constants in Go with great freedom.
+
+  example of type string constant
+    `const typedHello string = "Hello, 世界"`
+  the declaration of typedHello has an explicit string type before the equals sign. 
+  This means that typedHello has Go type string, and cannot be assigned to a Go variable of a different type. 
+    ```go
+      const hello = "hello"
+      const typedHello string = "Hello, 世界"
+
+      // works
+      var s string
+      s = typedHello
+      fmt.Println(s)
+
+      // NOT works
+      type MyString string
+      var m MyString
+      m = typedHello // Type error 
+                     // m -> MyString
+                     // s -> typed string const
+
+      const MyStringHello MyString = "Hello"
+      m = MyStringHello // Works
+                        // because both m and MyStringHello are of type MyString
+
+      m = MyString(typedHello) // works
+                               // forcing type conversion
+
+      m = "hello"
+      m = hello // Works
+                  // since "hello"/ hello are untyped string constants
+                  // assigning it to a typed variable does not cause a type error
+
+      // tldr 
+      // unlike typed string constants, assigning untyped string constants to any type compatible with string 
+    ```
+
+  default types 
+    `str := "hello"`
+    if the constant "hello" is untyped, how does str variable get type string
+        `str := "hello"`
+        `var str = "hello"`
+        `var str string = "hello`
+      are all equivalent
+    
+    to do anything with untyped string literals, we need to assign them to a variable
+    and when that variable needs a type and no type is explicitly declared, the constant can tell
+    the variable what type it should have, the constant's "default" type, in this case the untyped string constant's
+    default type is string
+    so the variable str's type is string
+
+    ```go
+    fmt.Printf("%T: %v\n", "Hello, 世界", "Hello, 世界")
+    // string: Hello, 世界
+
+    fmt.Printf("%T: %v\n", myStringHello, myStringHello)
+    // main.MyString: Hello, 世界
+    ```
+
+  in summary
+    typed constants obey all rules of typed values in Go
+
+    untyped constants does not carry a Go type in the same way, thus can be mixed and matched more freely
+      it does however have a default value that is exposed when, and only when no other type is available
+
+  
+  implicit default types
+    The default type of an untyped constant is determined by its syntax
+
+    > For string constants, the only possible implicit type is string
+    > For numeric constants, the implicit type has more variety
+      > Integer constants default to int
+      > floating-point constants float64
+      > rune constants to rune (an alias for int32)
+      > imaginary constants to complex128.
+
+
+
+
+
+-- bool consts
+--
+  similar to string const (read that pls, explains about typed and untyped consts)
+
+  the values true, false are untyped bool constants that can be assigned to any boolean variable
+  but once given a type, they cannot be freely mixed
+
+  ```go
+    type MyBool bool
+    const True = true
+    const TypeTrue bool = true
+
+    var mb MyBool
+    mb = true // Works
+    mb = True // Works
+    mb = TypedTrue // NOT Works
+  ```
+
+
+
+
+
+-- float consts
+--
+  similar to string const (read that pls, explains about typed and untyped consts)
+
+  ```go
+     type MyFloat64 float64
+    const Zero = 0.0
+    const TypedZero float64 = 0.0
+    var mf MyFloat64
+    mf = 0.0       // OK
+    mf = Zero      // OK
+    mf = TypedZero // ERR
+    fmt.Println(mf)
+
+    // possible error 
+    // since floats can be float64 float32
+    // default value of untyped cast is float64, but it can be assigned to float32
+
+    var f32 float32
+    f32 = 0.0
+    f32 = Zero // OK
+    f32 = TypedZero // ERR : TypedZero is float64, f32 is float32
+
+
+  The Arbitrary-Precision Space
+    Definition: 
+      Numeric constants in Go exist in an "arbitrary-precision numeric space." 
+      They are not bound by standard 32-bit or 64-bit limits while they remain constants.
+      The "Huge" Rule: You can declare constants with values far beyond the capacity of standard types (e.g., const Huge = 1e1000).
+
+    Restriction: 
+    A constant only "overflows" when you attempt to assign it to a fixed-size variable (like float64) or pass it to a function (like fmt.Println).
+
+    Precision & AccuracyLossless Arithmetic: 
+      Constants maintain extreme precision (often hundreds of bits) during calculations.
+      Example (math.Pi): 
+        The standard library defines pi with dozens of decimal places.
+      In Calculation: 
+        Operations like math.Pi / 2 use the full high-precision value.
+      In Assignment: Precision is only lost (rounded to the nearest float64) at the moment the value is stored in a variable.
+    
+
+
+
+
+-- integer consts  
+--
+  similar to float const (read that pls, explains about typed and untyped consts)
+
+  ```go
+    type MyInt int
+    const Three = 3
+    const TypedThree int = 3
+    var mi MyInt
+    mi = 3          // OK
+    mi = Three      // OK
+    mi = TypedThree // ERR
+    fmt.Println(mi)
+  ```
+  the same example works for 
+    int int8 int16 int32 int64
+    uint uint8 uint16 uint32 uint64
+    plus 
+      the aliases 
+        byte - uint8
+        rune - int32
+    
+  
+
+
+
+-- Numbers 
+--
+  The concept of untyped constants in Go means that all the numeric constants, whether integer, floating-point, complex, or even character values,
+    live in a kind of unified space
+  It’s when we bring them to the computational world of variables, assignments, and operations that the actual types matter.
+  But as long as we stay in the world of numeric constants, we can mix and match values as we like.
+
+  All these constants have numeric value 1:
+    1
+    1.000
+    1e3-99.0*10-9
+    '\x01'
+    '\u0001'
+    'b' - 'a'
+    1.0+3i-3.0i
+
+
+  Therefore, although they have different implicit default types, written as untyped constants they can be assigned to a variable of any numeric type:
+    var f float32 = 1
+    var i int = 1.000
+    var u uint32 = 1e3 - 99.0*10.0 - 9
+    var c float64 = '\x01'
+    var p uintptr = '\u0001'
+    var r complex64 = 'b' - 'a'
+    var b byte = 1.0 + 3i - 3.0i
+
+    var ff = 'a' * 1.5
+
+  But the real benefit of this is flexibility to use numbers as "numbers" and not types
+
+  That flexibility means that, despite the fact that in Go it is illegal in the same expression to mix floating-point and integer variables, or even int and int32 variables
+    sqrt2 := math.Sqrt(2)
+    // or 
+    const millisecond = time.Second/1e3
+    // or 
+    bigBufferWithHeader := make([]byte, 512+1e6)
+
+    Because in Go, numeric constants (untyped consts) work as you expect: like numbers.
+      and not like typed consts
+
+
+
+    
+
+-- Declare Multiple Constants as a Block
+--
+  ```go
+    const (
+      pi = 3.14
+      timeout = 120 * time.Second
+      maxGoroutines = 20
+    )
+  ```
+
+
+
+
+
+-- Kinds and Types
+--
+  I wrote explanations for typed and untyped and how they can be used with other types
+
+  the reason for this is a concept called "kinds", untyped consts dont have a type 
+  they have a associated type like 
+    floating-point
+    integer
+  
+  the go compiler uses this kind to allow for   
+    implicitly converting the kind to other types and kinds
+    
+  ex
+    For instance, if we declare a constant without specifying its type, 
+    it can be promoted from an integer kind to a floating-point kind, 
+    and then to a specific type
+
+
+
+
+
+-- AutoComplete
+--
+  I dont like it, it's not readable, but IOTA uses this concept
+
+  In a group-style constant declaration, except the first constant specification, 
+  other constant specifications can be incomplete.
+  example
+    ```go
+      const (
+        X float32 = 3.14
+        Y
+        Z
+
+        A, B = "Go", "language"
+        C, _
+        // In the above line, the blank identifier
+        // is required to be present.
+      )
+    ```
+      // at compile time it is interpretted as
+        ```go
+          const (
+            X float32 = 3.14
+            Y float32 = 3.14
+            Z float32 = 3.14
+
+            A, B = "Go", "language"
+            C, _ = "Go", "language"
+          )
+        ```
+-- Iota
+--
+  iota is a useful concept for creating incrementing constants in Go
+
+  The iota keyword represents an integer constant starting at 0. 
+  Its value increments by 1 for every additional line in a const block.
+
+  ```go
+    const (
+        Red    = iota // 0
+        Blue   = iota // 1
+        Green  = iota // 2
+    )
+  ```
+
+  // autofill
+  // You don't actually have to type iota on every line.
+  // If you provide a pattern on the first line, 
+  // Go will repeat that pattern for the rest of the block:
+  ```go
+    const (
+     Sunday    = iota // 0
+     Monday           // 1
+     Tuesday          // 2
+     Wednesday        // 3
+     Thursday         // 4
+     Friday           // 5
+     Saturday         // 6
+    )
+  ```
+
+  // iota resets to 0 whenever the keyword const appears again in your code. 
+  // It is local to the current constant block.
+  ```go
+    const (
+        A = iota // 0
+        B        // 1
+    )
+
+    const (
+        C = iota // 0
+        D        // 1
+    )
+  ```
+
+  // suppose you want to start the iota from 1 instead of 0
+  ```go
+    const (
+     Sunday    = iota + 1  // 1
+     Monday                // 2
+     Tuesday               // 3
+     Wednesday             // 4
+     Thursday              // 5
+     Friday                // 6
+     Saturday              // 7
+    )
+  ```
+
+  // skipping values
+  // use blank identifier
+  ```go
+    const (
+     _         = iota // 0
+     Monday           // 1
+     _                // 2
+     Wednesday        // 3
+     Thursday         // 4
+     _                // 5
+     Saturday         // 6
+    )
+  ```
+
+  // creating bitmasks
+  ```go
+    const (
+      read   = 1 << iota // 00000001 = 1
+      write              // 00000010 = 2
+      remove             // 00000100 = 4
+    )
+  ```
+
+  // example for how pattern is used with iota
+  const (
+    _  = 1 << (iota * 10) // ignore the first value
+    KB                    // decimal:       1024 -> binary 00000000000000000000010000000000
+    MB                    // decimal:    1048576 -> binary 00000000000100000000000000000000
+    GB                    // decimal: 1073741824 -> binary 01000000000000000000000000000000
+  )
+
+  // more complex examples
+  ```go
+    const (
+        k = 3 // now, iota == 0
+
+        m float32 = iota + .5 // m float32 = 1 + .5
+        n                     // n float32 = 2 + .5
+
+        p = 9             // now, iota == 3
+        q = iota * 2      // q = 4 * 2
+        _                 // _ = 5 * 2
+        r                 // r = 6 * 2
+        s, t = iota, iota // s, t = 7, 7
+        u, v              // u, v = 8, 8
+        _, w              // _, w = 9, 9
+      )
+
+      const x = iota // x = 0
+      const (
+        y = iota // y = 0
+        z        // z = 1
+      )
+  ```
+  ```go
+    const (
+      Failed = iota - 1 // == -1
+      Unknown           // == 0
+      Succeeded         // == 1
+    )
+
+    const (
+      Readable = 1 << iota // == 1
+      Writable             // == 2
+      Executable           // == 4
+    )
+  ```

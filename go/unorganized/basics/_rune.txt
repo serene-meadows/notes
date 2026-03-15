@@ -1,0 +1,70 @@
+Rune value literals (unnamed constants)
+  Rune types are an alias for int32
+
+  It represents a single Unicode Code Point
+    Code Point: A unique number assigned to a symbol by the Unicode standard (e.g., U+0041 for 'A').
+
+  Generally, we can view a code point as a Unicode character, 
+  but we should know that some Unicode characters are composed of more than one code points each.
+    Example A: Accents (Combining Marks) 
+      The character é.
+        Two code points: U+0065 (e) + U+0301 (´)
+
+        ```go
+          s := "é" // e + combining accent (2 runes)
+          fmt.Println(utf8.RuneCountInString(s)) // Output: 2  
+        ```
+          
+    A rune is the "atomic unit" of Unicode, 
+    but a "character" is a visual concept that might be composed of several of those atomic units.
+    You cannot assume len(string) or even the number of runes equals the number of visible characters.
+    
+  ways to represent a rune (a)
+    // the number 97 when read as a char/ rune
+    97
+
+    // two single quotes
+    'a'
+
+    // Unicode value of 'a' is 97
+    // 141 is the octal representation of 97
+    '\141' // \ must be followed by exactly three octal digits to represent a byte value
+    // 61 is the hexa representation of 97
+    '\x61' // must be followed by exactly two hex digits to represent a byte value
+    `\u0061`
+    `\U00000061` // must be followed by exactly eight hex digits to represent a rune value
+
+    example 
+    ```go
+      // following all statements give true
+      println('a' == 97)
+      println('a' == '\141')
+      println('a' == '\x61')
+      println('a' == '\u0061')
+      println('a' == '\U00000061')
+      println(0x61 == '\x61')
+      println('\u4f17' == '众')
+    ```
+
+  the following rune literals (visually composed of two characters) are escaped
+  as one special character
+    \a   (Unicode value 0x07) alert or bell
+    \b   (Unicode value 0x08) backspace
+    \f   (Unicode value 0x0C) form feed
+    \n   (Unicode value 0x0A) line feed or newline
+    \r   (Unicode value 0x0D) carriage return
+    \t   (Unicode value 0x09) horizontal tab
+    \v   (Unicode value 0x0b) vertical tab
+    \\   (Unicode value 0x5c) backslash
+    \'   (Unicode value 0x27) single quote
+
+    example 
+    ```go
+      println('\n') // 10
+      println('\r') // 13
+      println('\'') // 39
+
+      println('\n' == 10)     // true
+      println('\n' == '\x0A') // true
+    ```
+

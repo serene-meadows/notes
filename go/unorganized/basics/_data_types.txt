@@ -1,0 +1,114 @@
+Go's basic builtin types are
+
+  bool
+
+  string
+
+  // The int, uint, and uintptr types are usually 
+  // 32 bits wide on 32-bit systems and 64 bits wide on 64-bit systems. 
+  int  int8  int16  int32  int64
+  uint uint8 uint16 uint32 uint64 uintptr
+
+  byte // alias for uint8
+
+  rune // alias for int32
+       // represents a Unicode code point
+
+  float32 float64
+
+  complex64 complex128
+
+
+
+
+
+type keyword
+  // using string and boolean as example, but can apply to other types as well
+  we can define custom boolean and string types for the built-in boolean and string types.
+  although there is only one built-in type for each of boolean and string types, 
+  So there can be many boolean and string types. 
+
+  ```go
+    // status and bool are two different types.
+    type status bool
+
+    // MyString and string are two different types.
+    type MyString string
+
+    // Id and uint64 are two different types.
+    type Id uint64
+
+    // real and float32 are two different types.
+    type real float32
+
+
+    /* Some type alias declarations */
+
+    // boolean and bool denote the same type.
+    type boolean = bool
+
+    // Text and string denote the same type.
+    type Text = string
+
+    // U8, uint8 and byte denote the same type.
+    type U8 = uint8
+
+    // char, rune and int32 denote the same type.
+    type char = rune
+  ```
+  
+
+
+
+
+
+
+
+
+default/ zero values 
+  Each type has a zero value. 
+  The zero value of a type can be viewed as the default value of the type.
+
+  
+  int -> 0
+  floating point numbers -> 0
+  complex numbers -> 0 + 0i
+
+
+  strings -> ""
+          -> `` // for raw literals
+
+  constants -> have to be initialized on declearation,
+               thus no concept of zero-initialized
+
+
+  arrays -> each element gets its type's zero value
+
+  structs -> its fields are zero-initialized
+
+  pointers -> nil
+
+  maps -> nil
+
+  slices -> nil
+
+  functions -> nil
+
+  channels -> nil
+
+  json -> when unmarshalling into a struct, 
+            its fields are zero initialized 
+
+  error interface -> nil
+
+  // TODO: text and html template zero initialization
+
+
+
+
+
+
+In Go, two typed values of two different basic types can't be assigned to each other.
+the types of the destination and source values in an assignment must be identical if the two values are both basic values
+If the type of the source basic value is not same as the type of the destination basic value,
+  the source value must be explicitly converted to the type of the destination value. 

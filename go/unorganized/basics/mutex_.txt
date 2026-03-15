@@ -1,0 +1,5 @@
+mutex
+  must not be copied
+  https://oneuptime.com/blog/post/2026-01-23-go-mutex/view#common-mutex-mistakes
+  https://eli.thegreenplace.net/2018/beware-of-copying-mutexes-in-go/
+
