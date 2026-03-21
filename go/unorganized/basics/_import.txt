@@ -1,0 +1,159 @@
+the builtin standard package doesn't need to be imported
+
+
+import statment, 
+  integrates external liraries into the source code
+  it affects program size, performance and maintability
+
+
+  lets say all packages libraries are included in the program (even just the standard library)
+    it will builk up the final executable size
+
+  when you import a package, it includes the entire go package 
+    this encompasses all functions, types, variables, constants and other definitions in that package 
+
+    but when compiling and running the program, only the relevant part is kept and the rest is discarded
+    despite importing the whole package, only the entities that are actually used in the program are included
+      this concept is known as tree shaking (concept in many modern languages)
+
+      this is used to improve final executable size and runtime performance
+
+  example 
+    import "fmt"
+
+      to use a method from the "fmt" package you have to use fmt as a prefix
+        fmt.Println()
+
+      aImportName.AnExportedIdentifier is called a qualified identifier
+      AnExportedIdentifier is called an unqualified identifier.
+
+  only exported code elements in a package can be used in the source file which imports the package. 
+  An exported code element uses an exported identifier as its name. 
+    For example, 
+      the first character of the identifier Println is an upper case letter (so the Println function is exported), 
+      which is why the Println function declared in the fmt standard package can be used in the above example program.
+
+
+  each non anonymous imports must be used atleast once 
+
+
+
+import declaration
+  // importname is optional
+  // its default value is the name (not the folder name) of the imported package.
+  // convention is to keep the folder and the package name the same to avoid confusion
+  import importname "path/to/package"
+
+
+  ```go
+    import fmt "fmt"        // <=> import "fmt"
+    import rand "math/rand" // <=> import "math/rand"
+    import time "time"      // <=> import "time"
+  ```
+
+  If the importname portion presents in an import declaration, 
+  then the prefix tokens used in qualified identifiers must be importname instead of the name of the imported package.
+
+
+
+
+dot imports
+  The importname in the full form import declaration can be a dot (.).
+  Such imports are called dot imports.
+
+  To use the exported elements in the packages being dot imported,
+  the prefix part in qualified identifiers must be omitted.
+
+
+  // not recommended tho, name collisions
+
+  example 
+    ```go
+      package main
+
+      import (
+        . "fmt"
+        . "time"
+      )
+
+      func main() {
+        Println("Current time:", Now())
+      }
+    ```
+
+
+
+
+
+
+
+
+
+anonymous imports 
+  The importname in the full form import declaration can be the blank identifier (_). 
+  Such imports are called anonymous imports
+
+  The importing source files can't use the exported code elements in anonymously imported packages. 
+
+  The purpose of anonymous imports is to initialize the imported packages 
+  (each of init functions in the anonymously imported packages will be called once).
+
+  example 
+    ```go
+      //  all init functions declared in the net/http/pprof standard package will be called before the main entry function is called. 
+
+      package main 
+
+      import _ "net/http/pprof"
+
+      func main() {
+        // code block
+      }
+    ```
+  
+
+
+
+
+
+
+
+
+multiple imports 
+  you can do 
+    ```go
+      import "fmt"
+      import "net/http"
+    ```
+    you can also do 
+    ```go
+      import (
+        "fmt"
+        "net/http"
+      )
+    ```
+
+named imports 
+  the named import eables us to refer to entities within the imported packages using a custom name 
+  
+  ```go
+    import (
+      "fmt"
+      foo "net/http"
+    )
+  ```
+
+  now foo will be used in place of http (using http will give error)
+
+
+
+
+
+a package whose import path containing an internal folder name is viewed as a special package
+It can only be imported by the packages in and under the direct parent directory of the internal folder.
+  For example
+    package 
+      .../a/b/c/internal/d/e/f
+      // and 
+      .../a/b
+

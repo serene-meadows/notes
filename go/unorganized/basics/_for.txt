@@ -2,9 +2,14 @@ syntax
   for initialization; condition; post {
     // code block
   }
+  all 3 
+    initialization, condition, post are optional
 
-break -> terminates the loop immediately
-continue -> skips the current iteration and moves to the next iteration of the loop
+  if condition is absent, it is treated as true
+    for initialization; ; post {} <-> for initialization; true; post {}
+
+
+
 
 c-style loop
   for i := 0; i < 10; i++ {
@@ -20,6 +25,24 @@ infinite loop
   for {
     // code block
   }
+
+
+
+
+for i := 1; i < 6; i++ {
+  fmt.Println(i)
+
+  i := i // i now shadows the outer variable
+  i := 1
+  _ = i
+}
+  // output 
+  // 1
+  // 2
+  // 3
+  // 4 
+  // 5
+
 
 range loop
   slices/ arrays -> returns index, value

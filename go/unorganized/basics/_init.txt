@@ -8,11 +8,20 @@ init function
     int multiple files
 
   order of exeution
-    within a single package
-      go eecutes init functions in the order in which they are declared
+    At run time, a package will be loaded after all its dependency packages.
+    Each package is loaded once and only once 
 
-      if there are multiple init functions
-          they execute sequentially following their textual order in the package file
+    All init functions in all involved packages in a program will be invoked sequentially.
+    An init function in an importing package will be invoked after all the init functions declared in the dependency packages 
+      of the importing package 
+    All init functions will be invoked before invoking the main entry function.
+
+    The invocation order of the init functions in the same source file is from top to bottom
+    Go specification recommends, but doesn't require, to invoke the init functions in different source files of the same package by the alphabetical order of filenames of their containing source files.
+      but in general it's not a good idea to have dependency relations between two init functions in two seperate source files 
+
+  
+    All package-level variables declared in a package are initialized before any init function declared in the same package is invoked.
 
 its used
   to initialize variables
@@ -75,3 +84,10 @@ declaration
       Inside main function
 
 
+
+
+
+
+
+
+init initialization order expanded

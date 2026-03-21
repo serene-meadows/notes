@@ -1,0 +1,25 @@
+if-else 
+  two-way conditional execution block.
+
+// breakable control flow blocks
+  for 
+    loop block.
+
+  switch-case 
+    multi-way conditional execution block.
+
+  for-range 
+    loop block to iterate integers, all kinds of containers, channels, and some functions.
+
+  type-switch 
+    multi-way conditional execution block for interfaces.
+
+  select-case 
+    block for channels.
+
+
+
+break
+continue
+goto
+fallthrough

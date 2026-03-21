@@ -49,5 +49,4 @@ filenames
     banchmark: func BenchmarkXxx(b *testing.B)
     example: func ExampleXxx()
 
-  // TODO: what is *testing
 

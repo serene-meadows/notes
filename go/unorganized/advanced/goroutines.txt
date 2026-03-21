@@ -1,4 +1,13 @@
-go routines are lightweight threads managed by the go runtime 
+go routine
+  go routines are lightweight threads managed by the go runtime 
+
+  Goroutines are also often called green threads. (since they are maintained and sceduled by the runtime instead of the OS)
+  The cost of memory consumption and context switching, of a goroutine is much lesser than an OS thread.
+  So, it is not a problem for a Go program to maintain tens of thousands goroutines at the same time (as long as memory is sufficient)
+
+  Go doesn't support the creation of system threads in user code. So, using goroutines is the only way to do (program scope) concurrent programming in Go.
+
+
 
 they enable concurrent execution of functions allowing you to perform multiple tasks concurrently within a single go program, it is non-blocking
   without us neededing the manage the threads
@@ -41,6 +50,82 @@ they enable concurrent execution of functions allowing you to perform multiple t
 
 
 
+
+
+
+
+
+go routine scheduling 
+  Not all goroutines in running state are being executed at a given time.
+  At any given time, the maximum number of goroutines being executed will not exceed the number of logical CPUs available for the current program
+
+  We can call the runtime.NumCPU function to get the number of logical CPUs available for the current program
+  each logical CPU can execute only one goroutine at any given time 
+
+  Go runtime must frequently switch execution contexts between goroutines to let each running goroutine have a chance to execute.
+  This is similar to how operating systems switch execution contexts between OS threads.
+
+
+  go routine states
+    create -> (running [executing <-> queued] <-> blocking) -> exit
+
+    note, a go routine is considered to be running even after calling (time.Sleep)
+
+  A blocking goroutine can only be unblocked by an operation made in another goroutine.
+  if all go routine are in blocked state -> deadlock
+
+
+
+  A goroutine in the queuing sub-state is waiting to be executed.
+  A goroutine in the executing sub-state may enter the queuing sub-state again when it has been executed for a while (a very small piece of time).
+
+
+
+
+
+
+
+The standard Go runtime adopts the M-P-G model to do the goroutine schedule job
+  where 
+    M represents the OS threads
+    P represents the logical/virtual processors (not logical CPUs)
+    G represents goroutines
+
+  Most schedule work is made by logical processors (Ps)
+    which act as brokers by attaching goroutines (Gs) to OS threads (Ms)
+
+  Each OS thread can only be attached to at most one goroutine at any given time
+  and each goroutine can only be attached to at most one OS thread at any given time
+
+
+  A goroutine can only get executed when it is attached to an OS thread
+  A goroutine which has been executed for a while will try to detach itself from the corresponding OS thread, 
+  so that other running goroutines can have a chance to get attached and executed.
+
+
+  At runtime. we can call the runtime.GOMAXPROCS function
+    to get and set the number of logical processors (Ps).
+
+
+  The default initial value of runtime.GOMAXPROCS
+  can also be set through the GOMAXPROCS environment variable.
+
+  At any time, the number of goroutines in the executing sub-state is no more than the smaller one of runtime.NumCPU and runtime.GOMAXPROCS
+
+
+    
+        
+
+
+you cannot capture a return value from go routines
+  if the function has a return value, it is discarded
+
+
+
+
+
+
+Each Go program starts with only one goroutine (main)
   When a Go program starts, the runtime creates the main goroutine which runs the main() function.
     main goroutine → runs main()
 

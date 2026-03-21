@@ -42,3 +42,10 @@ go allows you to execute a short initialization statment before evaluating the b
 
     // fmt.Println(val) // ERROR: val is undefined here!
   ```
+
+
+
+if h < 0 {
+  h := h // the left variable h now shodows the outer variable h
+  _ = h
+}

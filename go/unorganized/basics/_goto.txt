@@ -1,0 +1,115 @@
+goto keyword must be followed by a label to form a statement
+  A label is declared with the form LabelName:
+
+
+A goto statement will make the execution jump to the next statement 
+following the declaration of the label used in the goto statement
+So, a label declaration must be followed by one statement.
+
+
+A label must be declared within a function body. 
+A use of a label can appear before or after the declaration of the label.
+But a label is not visible (and can't appear) outside the innermost code block the label is declared in.
+  example 
+    ```go
+      package main
+
+      import "fmt"
+
+      func main() {
+        i := 0
+
+      Next: // here, a label is declared.
+        fmt.Println(i)
+        i++
+        if i < 5 {
+          goto Next // execution jumps
+        }
+      }
+    ```
+
+    ```go
+      package main
+
+      func main() {
+      goto Label1 // error
+        {
+          Label1:
+          goto Label2 // error
+        }
+        {
+          Label2:
+        }
+      }
+    ```
+tricky error (might change in future go release?)
+  if a label is declared within the scope of a variable, 
+    then the uses of the label can't appear before the declaration of the variable.
+  so if a jump allows you to skip the declaration of a variable, but after the jump you are still
+  in the variabe's scope that is an error
+
+    ```go
+      package main
+
+      import "fmt"
+
+      func main() {
+        i := 0
+      Next:
+        if i >= 5 {
+          // error: jumps over declaration of k
+          goto Exit
+        }
+
+        k := i + i
+        fmt.Println(k)
+        i++
+        goto Next
+
+      // This label is declared in the scope of k,
+      // but declaration of k is skipped
+      Exit:
+      }
+    ```
+  two ways to fix this mess
+    // method 1 - shrink the scope of the variable k
+    ```go
+      func main() {
+        i := 0
+      Next:
+        if i >= 5 {
+          goto Exit
+        }
+        // Create an explicit code block to
+        // shrink the scope of k.
+        {
+          k := i + i
+          fmt.Println(k)
+        }
+        i++
+        goto Next
+      Exit:
+      }
+    ```
+
+  // method 2 - enlarge the scope of the variable k.
+  ```go
+    func main() {
+      var k int // move the declaration of k here.
+      i := 0
+    Next:
+      if i >= 5 {
+        goto Exit
+      }
+
+      k = i + i
+      fmt.Println(k)
+      i++
+      goto Next
+    Exit:
+    }
+  ```
+
+
+
+

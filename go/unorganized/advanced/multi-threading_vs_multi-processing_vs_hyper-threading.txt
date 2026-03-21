@@ -1,0 +1,193 @@
+CPU basics
+  CPU core
+    a core is a physical processing unit.
+    each core can execute instructions.
+
+  example
+  4-core CPU
+    can run 4 tasks in parallel
+
+  logical vs physical cores
+    physical cores
+      actual hardware units
+
+    logical cores
+      cores exposed to the OS
+      may be more than physical cores
+      due to hyperthreading
+
+hyperthreading
+  a technology that allows one physical CPU core
+  to act like multiple logical cores.
+
+  one core -> multiple threads of execution
+
+  example
+    4 physical cores
+    with hyperthreading
+      -> 8 logical cores
+
+  thus, threading happens at logical layer, hyperthreading happens at pysical layer?
+
+
+process
+  a process is an independent running program
+    each process has
+      its own memory space
+            This means each process gets its own section of RAM.
+            One process cannot directly access another process’s memory.
+            Example: 
+              Google Chrome and Microsoft Word run separately—Chrome can’t accidentally overwrite Word’s data.
+              This isolation prevents crashes and improves security.
+
+      its own resources 
+            A process has its own set of system resources assigned by the OS.
+            These can include:
+              Open files
+              Network connections
+              Devices (like printers)
+              Handles to system objects
+            Example:
+              If a process opens a file, that file is tied to that process.
+              Another process can’t use it unless the OS allows sharing.
+
+      its own execution state
+            This refers to the current status and progress of the process.
+            It includes:
+              The program counter (which instruction is being executed)
+              CPU registers
+              Stack (function calls, local variables)
+              Current state (running, waiting, stopped, etc.)
+
+    example 
+      chrome
+      vscode
+      terminal
+
+    each is a seperate process
+
+
+thread 
+  a thread is a unit of execution within a process
+  a process can have multiple threads
+  
+  threads in a process share 
+    memory
+    data
+    resources
+
+  but execute independently
+  threads do not share execution state.
+
+example 
+  a browser process
+    thread 1 -> UI redering
+    thread 2 -> network requests
+    thread 3 -> javascript execution
+
+
+
+
+
+
+
+
+
+multi threading
+  multithreading is the ability of a single process to run multiple threads concurrently
+
+  in this model
+    one process
+    contains multiple threads
+    all threads share the same memory and resources
+    but each thread has its own execution state
+
+  how it works
+    the operating system schedules threads on available CPU cores (logical cores)
+    threads may run:
+      truly in parallel (on multiple cores)
+        or
+      concurrently (time-sliced on a single core)
+
+  key idea
+    threads are lightweight and faster to create than processes
+
+  advantages
+    fast communication (since memory is shared)
+    low overhead (less memory and setup cost)
+    good for tasks that need shared data
+    improves responsiveness (e.g., UI + background work)
+
+  disadvantages
+    risk of race conditions (multiple threads accessing same data)
+    requires synchronization (locks, semaphores, mutexes)
+    debugging is difficult
+    one thread crash can affect the entire process
+
+  example
+    a browser process like Google Chrome
+      thread 1 -> UI rendering
+      thread 2 -> network requests
+      thread 3 -> JavaScript execution
+
+  use cases
+    UI applications
+    real-time systems
+    applications needing shared data access
+
+  summary
+    multithreading = multiple threads inside one process sharing memory
+
+multi processing
+  multiprocessing is the ability to run multiple processes simultaneously
+
+  in this model
+    multiple processes
+    each process has its own memory
+    each process is independent
+    processes do not share memory by default
+
+  how it works
+    each process runs on:
+      separate CPU cores (true parallelism)
+      or
+      time-shared on fewer cores
+
+  processes communicate using IPC (inter-process communication)
+    pipes
+    sockets
+    shared memory (explicit)
+    message queues
+
+  key idea
+    processes are heavyweight but isolated
+
+  advantages
+    strong isolation (one process crash does not affect others)
+    better security
+    efficient use of multiple CPU cores
+    avoids shared memory bugs
+
+  disadvantages
+    high overhead (more memory usage)
+    slower communication between processes
+    process creation is expensive
+    more complex data sharing
+
+  example
+    running multiple apps:
+      Google Chrome
+      Visual Studio Code
+      terminal
+
+  each runs as a separate process
+
+  use cases
+    heavy computations
+    parallel data processing
+    distributed systems
+    running independent applications
+
+  summary
+    multiprocessing = multiple independent processes running in parallel
+

@@ -20,6 +20,9 @@
   Yet it is legal to write 1e6*time.Second or math.Exp(1) or even 1<<(' '+2.0). 
   In Go, constants, unlike variables, behave pretty much like regular numbers.
 
+  If the two operands of an operator operation are both constants, 
+  then the operation will be evaluated at compile time.
+
 
   constants can be declared at 
     function level (local constants)
@@ -55,25 +58,79 @@
 
 
 
-untyped const overflow check
-  When you write a constant without a type, 
-  Go keeps it as an untyped constant with arbitrary precision until it is used.
-    ex, const x = 1000000000000
-  Here x has no fixed type yet
-  When you assign it:
-    var y int32 = x
-  Now the compiler checks:
-    “Can 1000000000000 fit into int32?”
-    If not -> compile-time error.
+overflow behavior
+  Go treats constants differently from variables.
 
-type const overflow check
-  since you explicitly define a type
-  The compiler error occurs right at the constant declaration, not later.
+  constants
+    value known at compile time
+    compiler checks whether the value can be represented
+    in the target type
+    it throws err if not fit
 
+  variables
+    value only known at runtime
+    conversion is allowed even if overflow may occur
+    it truncates, if not fit
 
 
-so untyped consts dont have a type and can be implicitly typed when needed 
-typed consts have a typed and thus behave like variables, and need explicit type casting
+    untyped constants
+      when a constant is declared without an explicit type,
+      it becomes an untyped constant.
+
+      example:
+        const x = 1000000000000
+
+      x does not have a fixed type yet.
+
+      Go keeps the value with arbitrary precision until the constant
+      is used in a context that requires a type.
+
+      example 
+        const x = 10
+        // compiler checks if 10 can fit in int32
+        var y int32 = x // OK
+
+        const x = 1000000000000
+        // compiler checks if 1000000000000 can fit in int32
+        var y int32 = x // ERR
+
+    typed const
+      when a constant has an explicit type,
+      its type is fixed at declaration.
+
+      example
+        const x int32 = 10
+        x now always has type int32.
+
+      overflow example
+        const x int32 = 1000000000000
+        compile-time error
+        because the value cannot be represented as int32.
+
+type conversion (allowed but cannot overflow)
+  constants can be explicitly converted to another type.
+  (implicitly for un typed const)
+
+  however the compiler still checks that the constant
+  value fits into the target type.
+
+  example 
+    const x = 10
+    const y = 255
+    const z int64 = 10
+    const u int64 = 255
+    var a uint8 = x // OK
+    var b uint8 = y // ERR
+    var c uint8 = uint8(z) // OK
+    var d uint8 = uint8(u) // ERR
+
+
+
+code block using { } 
+  described in the variables txt file
+
+
+
 
 
 

@@ -1,0 +1,338 @@
+// basic types 
+  Built-in string type: string.
+  Built-in boolean type: bool.
+  Built-in numeric types:
+    int8, uint8 (byte), int16, uint16, int32 (rune), uint32, int64, uint64, int, uint, uintptr.
+    float32, float64.
+    complex64, complex128.
+
+    Note, byte is a built-in alias of uint8, and rune is a built-in alias of int32. We can also declare custom type aliases 
+
+
+// composite types 
+  pointer types - C pointer alike.
+  struct types - C struct alike.
+  function types - functions are first-class types in Go.
+  container types:
+  array types - fixed-length container types.
+  slice type - dynamic-length and dynamic-capacity container types.
+  map types - maps are associative arrays (or dictionaries). The standard Go compiler implements maps as hashtables.
+  channel types - channels are used to synchronize data among goroutines (the green threads in Go).
+  interface types - interfaces play a key role in reflection and polymorphism.
+
+
+
+Unnamed composite types may be denoted by their respective type literals.
+Following are some literal representation examples of all kinds of unnamed composite types 
+  ```go
+    // Assume T is an arbitrary type and Tkey is
+    // a type supporting comparison (== and !=).
+
+    *T         // a pointer type
+    [5]T       // an array type
+    []T        // a slice type
+    map[Tkey]T // a map type
+
+    // a struct type
+    struct {
+      name string
+      age  int
+    }
+
+    // a function type
+    func(int) (bool, string)
+
+    // an interface type
+    interface {
+      Method0(string) int
+      Method1() (int, bool)
+    }
+
+    // some channel types
+    chan T
+    chan<- T
+    <-chan T
+  ```
+
+
+
+
+Kinds of Types
+  Each of the above mentioned basic and composite types corresponds to one kind of types.
+  Besides these kinds, the unsafe pointer types introduced in the unsafe standard package also belong to one kind of types in Go
+
+Type Definitions
+  ```go
+    // Define a solo new type.
+    type NewTypeName SourceType
+
+    // Define multiple new types together.
+    type (
+      NewTypeName1 SourceType1
+      NewTypeName2 SourceType2
+    )
+  ```   
+
+  type names declared at package level can't be init.
+
+
+  Note,
+    a new defined type and its respective source type in type definitions are two distinct types.
+    two types defined in two type definitions are always two distinct types.
+    the new defined type and the source type will share the same underlying type and their values can be converted to each other.
+    types can be defined within function bodies.
+
+  ```go
+    // The following new defined and source types are all
+    // basic types. The source types are all predeclared.
+    type (
+      MyInt int
+      Age   int
+      Text  string
+    )
+
+    // The following new defined and source types are all
+    // composite types. The source types are all unnamed.
+    type IntPtr *int
+    type Book struct{author, title string; pages int}
+    type Convert func(in0 int, in1 bool)(out0 int, out1 string)
+    type StringArray [5]string
+    type StringSlice []string
+
+    func f() {
+      // The names of the three defined types
+      // can be only used within the function.
+      type PersonAge map[string]int
+      type MessageQueue chan string
+      type Reader interface{Read([]byte) int}
+    }
+  ```
+
+
+
+
+
+
+generics (basics)
+  generics allow writing code that works with multiple types.
+
+  instead of writing separate code for int, float, etc,
+  you write one generic version.
+
+  example
+    ```go
+      func Add[T int | float64](a,b T) T {
+        return a + b
+      }
+    ```
+    T -> type parameter 
+
+generic types 
+  you can define types that depend on type parameter 
+  ```go
+    type Box[T any] struct {
+      value T
+    }
+  ```
+
+  Box[T] is a generic type, it isn't usable
+  it has to be instantiated 
+
+instantiated types 
+  a generic type is given a concrete type before it can be used (process is called instantiation)
+  
+  example 
+    ```go
+      Box[int]
+      Box[string]
+    ```
+
+constraints 
+  constraints restrict what types a type parameter can take
+
+  func Add[T int | float64](a, b T) T
+    T can only be int or float64
+    
+
+
+
+
+named vs Unnamed types 
+  named 
+    a named type that has a name (identifier)
+    example
+      ```go
+        // all are named
+        int 
+        string
+
+        type MyInt int
+        type User struct {
+          name string
+        }
+      ```
+
+    generic instantiated types are also named types 
+      ```go
+        type Box[T any] struct {
+          value T
+        }
+
+        b := Box[int]{}
+        // Box[int] is a named type
+      ```
+
+    type parameter are also considered named types inside functions
+      ```go
+        func Print[T any](v T)
+        // T is treated as a named type inside the function
+      ```
+
+  unnamed
+    do not have a name
+
+    example 
+      ```go
+        []int
+        map[string]int
+        struct { name string }
+      ```
+      these are composite types created inline, without a name
+
+    unnamed types are always composite types
+    but not all composite types are unnamed
+    example 
+      ```go
+        // struct is composite but named
+        type User struct {
+          name string
+        }
+      ```
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Type Alias Declarations
+  ```go
+    type (
+      Name = string
+      Age  = int
+    )
+
+    type table = map[string]int
+    type Table = map[Name]Age
+  ```
+
+  Type alias names must be identifiers. Like type definitions, type aliases can also be declared within function bodies.
+
+  A type name (or literal) and its aliases all denote an identical type. By the above declarations, Name is an alias of string, so both denote the same type
+
+
+
+Concept: Underlying Types
+In Go, each type has an underlying type. Rules:
+  for built-in types, the respective underlying types are themselves.
+  for the Pointer type defined in the unsafe standard code package, its underlying type is itself (at least we can think so. In fact, the underlying type of the unsafe.Pointer type is not well documented. We can also think the underlying type is *T, where T represents an arbitrary type). unsafe.Pointer is also viewed as a built-in type.
+  the underlying type of an unnamed type, which must be a composite type, is itself.
+  in a type declaration, the newly declared type and the source type have the same underlying type.
+
+  ```go
+    // The underlying types of the following ones are both int.
+      type (
+        MyInt int
+        Age   MyInt
+      )
+
+      // The following new types have different underlying types.
+      type (
+        IntSlice   []int   // underlying type is []int
+        MyIntSlice []MyInt // underlying type is []MyInt
+        AgeSlice   []Age   // underlying type is []Age
+      )
+
+      // The underlying types of []Age, Ages, and AgeSlice
+      // are all the unnamed type []Age.
+      type Ages AgeSlice
+  ```
+
+  How can an underlying type be traced given a user declared type?
+  The rule is, when a built-in basic type or an unnamed type is met, the tracing should be stopped.
+  Take the type declarations shown above as examples, let's trace their underlying types.
+
+      MyInt → int
+      Age → MyInt → int
+      IntSlice → []int
+      MyIntSlice → []MyInt X→ []int
+      AgeSlice → []Age X→ []MyInt X→ []int
+      Ages → AgeSlice → []Age X→ []MyInt X→ []int
+
+
+In Go,
+  types whose underlying types are bool are called boolean types;
+  types whose underlying types are any of the built-in integer types are called integer types;
+  types whose underlying types are either float32 or float64 are called floating-point types;
+  types whose underlying types are either complex64 or complex128 are called complex types;
+  integer, floating-point and complex types are also called numeric types;
+  types whose underlying types are string are called string types.
+
+
+Value Sizes
+When a value is stored in memory, the number of bytes occupied by the direct part of the value is called the size of the value. As all values of the same type have the same value size, we often simply call this the size of the type.
+We can use the Sizeof function in the unsafe standard package to get the size of any value.
+
+
+Signature of Function Types
+The signature of a function type is composed of the input parameter definition list and the output result definition list of the function.
+The function name and body are not parts of a function signature. Parameter and result types are important for a function signature, but parameter and result names are not important.
+
+
+Dynamic Type and Dynamic Value of an Interface Value
+Each interface value can box a non-interface value in it. The value boxed in an interface value is called the dynamic value of the interface value. The type of the dynamic value is called the dynamic type of the interface value. An interface value boxing nothing is a zero interface value. A zero interface value has neither a dynamic value nor a dynamic type.
+
+Element Type of a Container Type
+  The types of the elements stored in values of a container type must be identical. The identical type of the elements is called the element type of the container type.
+  For an array type, if its underlying type is [N]T, then its element type is T.
+  For a slice type, if its underlying type is []T, then its element type is T.
+  For a map type, if its underlying type is map[Tkey]T, then its element type is T.
+  For a channel type, if its underlying type is chan T, chan<- T or <-chan T, then its element type is T.
+  The element type of any string type is always byte (a.k.a. uint8).
+
+
+
+
+
+
+Directions of Channel Types
+Channel values can be viewed as synchronized first-in-first-out (FIFO) queues. Channel types and values have directions.
+A channel value which is both sendable and receivable is called a bidirectional channel. Its type is called a bidirectional channel type. The underlying types of bidirectional channel types are denoted by the chan T literal.
+A channel value which is only sendable is called a send-only channel. Its type is called a send-only channel type. Send-only channel types are denoted by the chan<- T literal.
+A channel value which is only receivable is called a receive-only channel. Its type is called a receive-only channel type. Receive-only channel types are denoted by the <-chan T literal.
+
+
+
+
+Types Which Support or Don't Support Comparisons
+Currently (Go 1.25), Go doesn't support comparisons (with the == and != operators) for values of the following types:
+slice types
+map types
+function types*. any struct type with a field whose type is incomparable and any array type which element type is incomparable.
+Above listed types are called incomparable types. All other types are called comparable types. Compilers forbid comparing two values of incomparable types.
+Note, incomparable types are also called uncomparable types in many articles.
+The key type of any map type must be a comparable type.
+
+
+
+
+
+

@@ -1,0 +1,51 @@
+in go, if you're writing an executable program, it must:
+  1. use `package main`
+  2. have a `main()` function as the entry point in the `package main` file
+  3. only 1 file in a folder can have package main
+
+you can create only 1 package in a folder
+  convention for naming package
+    if not package main
+      package name = folder name
+
+
+
+
+
+the packages named with main and containing main entry functions as program packages (or command packages)
+  call other packages as library packages.
+program packages are not importable 
+each go program can contain one and only one program package
+
+
+
+
+
+a package whose import path containing an internal folder name is viewed as a special package.
+It can only be imported by the packages in and under the direct parent directory of the internal folder.
+  for example
+      .../a/b/c/internal/d/e/f
+      // and
+      .../a/b/c/internal 
+    can only be imported by the packages whose import paths have .../a/b/c prefix
+
+
+
+
+
+
+
+
+
+Go doesn't support circular package dependencies.
+  If package a depends on package b
+  and package b depends on package c
+  then
+    then source files in package c can't import package a and b
+    source files in package b can't import package a.
+
+
+
+
+
+

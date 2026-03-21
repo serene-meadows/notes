@@ -2,9 +2,15 @@ concurrency
   the ability of a system to handle multiple tasks simultaenously 
   it involves managing multiple tasks that are in progress at the same time but not necessarily executed at the same time
 
+  multiple tasks are in progress at the same time
+  the system switches between tasks, giving the illusions that they run at the same time
+
 parallelism
   the simultaenous execution of multiple tasks, typically using multiple processors or cores, to improve performance 
   by running operations at the same time  
+
+  multiple tasks actually run at te same time 
+  requires multiple cores
 
 // concurrency design
 // go's runtime scheduler can execute go routines in parallel, taking advantage of multiple core processors

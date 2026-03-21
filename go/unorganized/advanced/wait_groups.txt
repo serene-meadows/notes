@@ -1,3 +1,17 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 a wait group is a synchronization primitive provided by the sync package in go
   it is used to wait for a collection of go routines to complete their execution 
 

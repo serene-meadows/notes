@@ -2,6 +2,10 @@ logging
   is a critial aspect of software development and operations
     it allows developers and system administrators to monitor and debug applications in go
 
+  unlike fmt Prints
+  logging Prints are synchronized
+    so the texts printed by goroutines will not be messed up in one line
+
   log package
   the standard library doesn't provide built-in support for logging levels like debug info, warn, error
     > you wil to create your own functions for that (written in this file)

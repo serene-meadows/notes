@@ -1,0 +1,483 @@
+binary operator operation takes two operands 
+unary operator operation takes only one operand.
+
+When Go says:
+  "a binary operator requires the operands to have the same type"
+
+it does NOT always mean the two operands must literally have identical types.
+
+the exact rule depends on whether the operands are:
+  typed values
+  untyped constants
+
+case 1 - both operands are typed
+  if both their operands already have types 
+  their types must be identical 
+
+  Go does not implicitly convert between the types
+
+  ```go
+    var a int = 10
+    var b int = 20
+    c := a + b // OK
+
+    var a int64 = 10
+    var b int32 = 20
+    c := a + b // ERR
+               // go doesn't implicitly convert between types
+    c := a + int64(b) // OK
+  ```
+
+case 2 - one typed, one untyped
+  the untyped constant is converted to the type of the type of the typed operand
+
+  ```go
+    var x int = 10
+    y := x + 5 // OK
+               // 5 is an untyped constant
+               // the compiler implicitly converts it to int(5)
+  ```
+
+case 3 - both operands untyped
+  if both the operands are untyped constants  
+  go evaluates them as constants
+
+  they must belong to compatible constant categories
+    untyped boolean
+    untyped string
+    untyped numeric 
+
+  the result is also an untyped constant
+  the default type of the result follows this priority order
+    int
+    rune
+    float64
+    complex64
+  the default type of the result is whichever appears later in the list
+
+  example 
+    ```go
+      const a = 10 // default type int
+      const b = 'a' // default type run
+      
+      c := a + b // rune
+    ```
+
+  ```go
+    const a = 10
+    const b = 20
+
+    c := a + b // := is a declration for variable
+               // so it gets the default type for the untyped numeric const which is int
+    // to let the result be a const
+    const c = a + b // now c would be a const
+    
+    const s = "hello " + "world" 
+  ```
+  its a little different for bitwise shift operations
+    the result of a shift operation is always an integer type  
+    the exact type depends on the left operand
+
+    case 1 - left operand typed
+      the result type is the exact same type as the left operand type
+
+      ```go
+        var x int8 = 8
+        y := x << 2 // int8
+      ```
+
+    case 2 - left operand is untyped, and right operand is a const
+      the result is also untyped, its default value the same as the default value of the left operand 
+
+    case 3 - left operand is untyped, right operand is non const 
+      Go first decides the type of the left value as if it appeared alone, 
+      then performs the shift using that type.
+
+      ```go
+        var n uint = 2
+        var x int64 = 5 << n
+        // Now Go sees the context expects int64, so:
+        // 5 → converted to int64
+        // Equivalent to:
+        // int64(5) << n
+      ```
+
+
+  examples putting it all together
+  ```go
+    // Three untyped values. Their default
+    // types are: int, rune(int32), complex64.
+    const X, Y, Z = 2, 'A', 3i
+
+    var a, b int = X, Y // two typed values.
+
+    // The type of d is the default type of Y: rune.
+    d := X + Y
+    // The type of e is the type of a: int.
+    e := Y - a
+    // The type of f is the types of a and b: int.
+    f := a * b
+    // The type of g is Z's default type: complex64.
+    g := Z * Y
+
+    const N = 2
+    // A is an untyped value (default type as int).
+    const A = 3.0 << N // A == 12
+    // B is typed value (type is int8).
+    const B = int8(3.0) << N // B == 12
+
+    var m = uint(32)
+    // The following three lines are equivalent to
+    // each other. In the following two lines, the
+    // types of the two "1" are both deduced as
+    // int64, instead of int.
+    var x int64 = 1 << m
+    var y = int64(1 << m)
+    var z = int64(1) << m
+
+    // The following line fails to compile.
+    /*
+    var _ = 1.23 << m // error: shift of type float64
+    */
+
+    const n = uint(2)
+    var m = uint(2)
+
+    // The following two lines compile okay.
+    var _ float64 = 1 << n
+    var _ = float64(1 << n)
+
+    // The following two lines fail to compile.
+    var _ float64 = 1 << m
+    var _ = float64(1 << m)
+    // The reason of the last two lines failing to compile is they are both equivalent to the followings two line:
+    var _ = float64(1) << m
+    var _ = 1.0 << m // error: shift of type float64
+  ```
+
+
+
+when go says "an operator requires an operand of a specific type"
+  typed operand 
+    the operand must be the required type, or be explicitly converted
+
+  untyped constant
+    the untyped constant must be able to be implicitly converted to that type
+
+  ```go
+    var x string = " hello "
+    var y int = -x // ERR
+                   // the unary operator - expects a numeric type not string
+  ```
+
+
+
+
+constant expressions
+  If all the operands involved in an expression are constants,
+  then this expression is called a constant expression.
+
+  All constant expressions are evaluated at compile time
+
+  The evaluation result of a constant expression is still a constant.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+arithmetic operators
+  Go supports five basic binary arithmetic operators.
+
+  operator   name          
+    +        addition
+    -        subtraction
+    *        multiplication
+    /        division
+    %        remainder
+
+  operand requirements
+    the two operands must be values of the same basic integer type.
+
+  note
+    the five operators are also called:
+      +  → sum
+      -  → difference
+      *  → product
+      /  → quotient
+      %  → modulo
+
+  underflow with float 
+    if you divide a small float64 with a very large float (like MaxFloat)64
+      it will result in a answer that is so small that it cannot be captured in float64 and thus 
+      results in underflow and making the answer = 0.0 instead of the actuall answer
+
+
+
+
+
+bitwise binary arithmetic operators
+  Go supports six bitwise binary arithmetic operators:
+
+  operator   name
+    &        bitwise AND
+    |        bitwise OR
+    ^        bitwise XOR
+    &^       bitwise clear
+
+  operand requirements
+    the two operands must be values of the same integer type.
+
+  logical representation 
+    (1100)2 & (1010)2   -> (1000)2
+    (1100)2 | (1010)2   -> (1110)2
+    (1100)2 ^ (1010)2   -> (0110)2
+    (1100)2 &^ (1010)2  -> (0100)2
+
+  shift operations
+    operator   name
+      <<       bitwise left shift
+      >>       bitwise right shift
+
+  operand requirements
+    the two operands do not need to be values of the same integer type
+
+    left operand
+      must be an integer
+
+    right operand
+      must be an integer
+
+    if the right operand is a constant
+      it must be non-negative 
+    if the right operand is not a constant 
+      it must be non-negative
+      if negative, the program panics at runtime
+
+  right shift behaviour 
+    the freed bits on the left are filled with the sign bit of the left operand
+    example
+      int8 value
+      128 -> (10000000)2
+      >> 2
+        => (111000000)2
+        = -32
+
+  
+  unary arithmetic operator
+    operator   name
+      +        positive
+      -        negative
+      ^        bitwise complement
+
+      +n
+      equivalent to
+      0 + n
+
+      -n
+      equivalent to
+      0 - n
+
+      ^n
+      equivalent to
+      m ^ n
+      where m is a value whose bits are all 1
+
+  example
+  ```go
+    func main() {
+      var (
+        a, b float32 = 12.0, 3.14
+        c, d int16   = 15, -6
+        e	uint8   = 7
+      )
+
+      // The ones compile okay.
+      _ = 12 + 'A' // two numeric untyped operands
+      _ = 12 - a   // one untyped and one typed operand
+      _ = a * b    // two typed operands
+      _ = c % d
+      _, _ = c + int16(e), uint8(c) + e
+      _, _, _, _ = a / b, c / d, -100 / -9, 1.23 / 1.2
+      _, _, _, _ = c | d, c & d, c ^ d, c &^ d
+      _, _, _, _ = d << e, 123 >> e, e >> 3, 0xF << 0
+      _, _, _, _ = -b, +c, ^e, ^-1
+
+      // The following ones fail to compile.
+      _ = a % b   // error: a and b are not integers
+      _ = a | b   // error: a and b are not integers
+      _ = c + e   // error: type mismatching
+      _ = b >> 5  // error: b is not an integer
+      _ = c >> -5 // error: -5 is not representable as uint
+
+      _ = e << uint(c) // compiles ok
+      _ = e << c       // only compiles ok since Go 1.13
+      _ = e << -c      // only compiles ok since Go 1.13,
+                       // will cause a panic at run time.
+      _ = e << -1      // error: right operand is negative
+    }
+  ```
+
+
+  about integer division and remainder
+    Assume x and y are two operands of the same integer type 
+    The integer quotient q (= x / y) and remainder r (= x % y)
+      satisfy x == q*y + r
+        where |r| < |y|
+    If r is not zero, its sign is the same as x (the dividend).
+    The result of x / y is truncated towards zero.
+
+  ```go
+    println( 5/3,   5%3)  // 1 2
+    println( 5/-3,  5%-3) // -1 2
+    println(-5/3,  -5%3)  // -1 -2
+    println(-5/-3, -5%-3) // 1 -2
+  ```
+
+
+
+  For a binary arithmetic operator op, x = x op y can be shortened to x op= y.
+    like x += 3
+
+
+
+  The increment ++ and decrement -- operators
+    operations using the two operators don't return any results
+    ```go
+      a, b := 12, 1.2
+      a++ // ok. <=> a += 1 <=> a = a + 1
+      b-- // ok. <=> b -= 1 <=> b = b - 1
+
+      // The following lines fail to compile.
+      /*
+         _ = a++
+         _ = b--
+         ++a
+         --b
+       */
+    ```
+
+
+
+String Concatenation Operator
+  string concatenation operator
+  the addition operator (+) can also be used to concatenate strings.
+
+  operator   name                   
+    +        string concatenation
+
+  operand requirements
+    the two operands must both be values of the same string type.
+
+  the op= form also applies for the string concatenation operator
+
+  If one of the two operands of a string concatenation operation is a typed string
+    then the type of the result string is the same as the type of the typed string.
+  If both of the two operands are untyped (constant) strings, 
+    the result is also an untyped string value.
+
+
+
+
+
+boolean operators
+  operator   name                     
+    &&       boolean AND (binary)
+             also called conditional AND
+             if condition_1 is false, the compiler doesn't evaluate condition_2
+
+    ||       boolean OR (binary)
+             also called conditional OR
+             if condiition_1 is true, the compiler doesn't evaluate condition_2
+
+  operand requirements
+      both operands must be values of the same boolean type.
+
+    !        boolean NOT (unary)
+    the operand must be a boolean value.
+
+
+  If one of the two operands is a typed boolean
+    then the type of the result boolean is the same as the type of the typed boolean.
+  If both of the two operands are untyped booleans
+    the result is also an untyped boolean value.
+
+
+
+
+comparison operators
+
+  Go supports six comparison binary operators.
+    operator   name                      
+    ==       equal to
+    !=       not equal to
+
+    operand requirements
+    generally the types of the two operands must be the same.
+
+
+    <        less than
+    <=       less than or equal to
+    >        greater than
+    >=       greater than or equal to
+
+    the two operands must both be values of the same
+      integer type
+      floating-point type
+      string type
+
+  result type 
+    the result of any comparison operation is always an untyped boolean type
+        x := 10
+        y := 20
+
+        r := x < y // true
+
+  
+  constant comparison
+    if both operands are constants 
+      the result is a constant boolean value
+
+  comparable values 
+    when two values are said to be comparable
+      it means they can be compared using == and !=
+
+    values of all basic types are comparable
+
+
+  floating point comparison warning 
+    not all real numbers can be represented exactly in floating-point memory
+    because of this
+      direct equality comparison between floating point values may not be reliable 
+    instead
+      compare the absolute difference against a small threshold
+        math.Abs(x - y) < epsilon
+
+
+
+
+
+Operator Precedence
+  Top ones have higher precedence.
+    *   /   %   <<  >>  &   &^
+    +   -   |   ^
+    ==  !=  <   <=  >   >=
+    &&
+    ||
+
+
+
+
+
+Same as C/C++, there are two pointer related operators, * and &.
+& is used to take the address of an addressable value, and * is used to dereference a pointer value.
+Unlike C/C++, in Go, values of pointer types don't support arithmetic operations.

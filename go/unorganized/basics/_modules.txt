@@ -1,0 +1,785 @@
+A module is a collection of Go packages stored in a file tree with a go.mod file at its root.
+
+
+The go.mod file defines the module’s module path
+  which is also the import path used for the root directory
+and its dependency requirements
+  which are the other modules needed for a successful build
+  Each dependency requirement is written as a module path and a specific semantic version.
+
+the go command enables the use of modules when the current directory or any parent directory has a go.mod, 
+  provided the directory is outside $GOPATH/src. 
+  (Inside $GOPATH/src, for compatibility, the go command still runs in the old GOPATH mode, even if a go.mod is found.
+
+
+
+walking through a sequence of common operations when using modules
+  Creating a new module.
+  Adding a dependency.
+  Upgrading dependencies.
+  Adding a dependency on a new major version.
+  Upgrading a dependency to a new major version.
+  Removing unused dependencies.
+
+  // creating a new module
+    Create a new, empty directory somewhere outside $GOPATH/src
+    cd into that directory
+    create a new source file hello.go
+      ``hello.go
+        package hello
+
+        func Hello() string {
+          return "Hello, world."
+        }
+      ``
+    createa test file hello_test.go
+      ``hello_test.go
+        package hello
+
+        import "testing"
+
+        func TestHello(t *testing.T) {
+          want := "Hello, world."
+          if got := Hello(); got != want {
+            t.Errorf("Hello() = %q, want %q", got, want)
+          }
+        }
+      ``
+
+    At this point, the directory contains a package, but not a module, because there is no go.mod file
+
+    If we were working in /home/gopher/hello and ran go test now, we’d see:
+      ``terminal
+        $ go test
+        PASS
+        ok      _/home/gopher/hello 0.020s
+      `` 
+      The last line summarizes the overall package test
+      Because we are working outside $GOPATH and also outside any module
+
+      the go command knows no import path for the current directory and makes up a fake one based on the directory name: _/home/gopher/hello.
+
+
+
+    make the current directory the root of a module by using go mod init and then try go test again:
+      ``terminal
+        $ go mod init example.com/hello
+        go: creating new go.mod: module example.com/hello
+        $ go test
+        PASS
+        ok      example.com/hello   0.020s
+      ``
+
+    The go mod init command wrote a go.mod file:
+      ``go
+        $ cat go.mod
+        module example.com/hello
+        go 1.12
+      ``
+
+
+    The go.mod file only appears in the root of the module.
+    Packages in subdirectories have import paths consisting of the module path plus the path to the subdirectory. 
+    for example
+      if we created a subdirectory world, we would not need to (nor want to) run go mod init there.
+      The package would automatically be recognized as part of the example.com/hello module
+        with import path example.com/hello/world.
+
+
+  // adding a dependency
+    Let’s update our hello.go to import rsc.io/quote and use it to implement Hello:
+      ``hello.go
+        package hello
+
+        import "rsc.io/quote"
+
+        func Hello() string {
+          return quote.Hello()
+        }
+      ``
+    
+    run the test again
+      ``terminal
+        $ go test
+        go: finding rsc.io/quote v1.5.2
+        go: downloading rsc.io/quote v1.5.2
+        go: extracting rsc.io/quote v1.5.2
+        go: finding rsc.io/sampler v1.3.0
+        go: finding golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c
+        go: downloading rsc.io/sampler v1.3.0
+        go: extracting rsc.io/sampler v1.3.0
+        go: downloading golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c
+        go: extracting golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c
+        PASS
+        ok      example.com/hello   0.023s
+        $
+      ``
+
+    The go command resolves imports by using the specific dependency module versions listed in go.mod.
+    When it encounters an import of a package not provided by any module in go.mod
+    the go command automatically looks up the module containing that package and adds it to go.mod
+      using the latest versions (“Latest” is defined as the latest tagged stable (non-prerelease) version, or else the latest tagged prerelease version, or else the latest untagged version.)
+
+    In our example, go test resolved the new import rsc.io/quote to the module rsc.io/quote v1.5.2.
+    It also downloaded two dependencies used by rsc.io/quote
+      rsc.io/sampler
+      golang.org/x/text
+
+    only direct dependencies were recorded in mod.go
+      ``terminal
+        $ cat go.mod
+        module example.com/hello
+
+        go 1.12
+
+        require rsc.io/quote v1.5.2
+      ``
+
+
+    A second go test command will not repeat this work, 
+    since the go.mod is now up-to-date and the downloaded modules are cached locally (in $GOPATH/pkg/mod):
+
+
+    As we saw above, adding one direct dependency often brings in other indirect dependencies too.
+    The command go list -m all lists the current module and all its dependencies:
+
+    ``go
+      $ go list -m all
+      example.com/hello
+      golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c
+      rsc.io/quote v1.5.2
+      rsc.io/sampler v1.3.0
+      $
+    ``
+    The golang.org/x/text version v0.0.0-20170915032832-14c0d48ead0c is an example of a pseudo-version
+      Normally Go modules use semantic version tags like:
+      v1.2.0
+      v1.5.3
+      v2.0.1
+
+    Structure of a pseudo-version
+      example  
+        v0.0.0-20170915032832-14c0d48ead0c
+
+          v0.0.0	base version when no tag exists
+          20170915032832	timestamp of the commit (YYYYMMDDHHMMSS)
+          14c0d48ead0c	short Git commit hash
+
+
+
+
+    In addition to go.mod, the go command maintains a file named go.sum containing the expected cryptographic hashes 
+    of the content of specific module versions
+
+
+
+
+  // Upgrading dependencies.
+    With Go modules, versions are referenced with semantic version tags
+    A semantic version has three parts: major, minor, and patch
+    example 
+      v0.1.2, the major version is 0, the minor version is 1, and the patch version is 2.
+
+    From the output of go list -m all
+    we can see we’re using an untagged version of golang.org/x/text.
+    Let’s upgrade to the latest tagged version and test that everything still works:
+
+      ``terminal
+        $ go get golang.org/x/text
+        go: finding golang.org/x/text v0.3.0
+        go: downloading golang.org/x/text v0.3.0
+        go: extracting golang.org/x/text v0.3.0
+        $ go test
+        PASS
+        ok      example.com/hello   0.013s
+        $
+      ``
+
+    running go list -m all` again
+      ``terminal
+        $ go list -m all
+        example.com/hello
+        golang.org/x/text v0.3.0
+        rsc.io/quote v1.5.2
+        rsc.io/sampler v1.3.0
+        $ cat go.mod
+        module example.com/hello
+
+        go 1.12
+
+        require (
+            golang.org/x/text v0.3.0 // indirect
+            rsc.io/quote v1.5.2
+        )
+      ``
+      The golang.org/x/text package has been upgraded to the latest tagged version (v0.3.0).
+      The go.mod file has been updated to specify v0.3.0 too.
+        The indirect comment indicates a dependency is not used directly by this module
+          only indirectly by other module dependencies
+
+
+    Now let’s try upgrading the rsc.io/sampler minor version
+      ``terminal
+        $ go get rsc.io/sampler
+        go: finding rsc.io/sampler v1.99.99
+        go: downloading rsc.io/sampler v1.99.99
+        go: extracting rsc.io/sampler v1.99.99
+        $ go test
+        --- FAIL: TestHello (0.00s)
+            hello_test.go:8: Hello() = "99 bottles of beer on the wall, 99 bottles of beer, ...", want "Hello, world."
+        FAIL
+        exit status 1
+        FAIL    example.com/hello   0.014s
+        $
+      ``
+
+    The test failure shows that the latest version of rsc.io/sampler is incompatible with our usage.
+    list the available tagged versions of that module:
+      ``terminal
+        $ go list -m -versions rsc.io/sampler
+        rsc.io/sampler v1.0.0 v1.2.0 v1.2.1 v1.3.0 v1.3.1 v1.99.99
+        $
+      ``
+
+    v1.99.99 isn't working, so lets try v1.3.1 
+      ``terminal
+        $ go get rsc.io/sampler@v1.3.1
+        go: finding rsc.io/sampler v1.3.1
+        go: downloading rsc.io/sampler v1.3.1
+        go: extracting rsc.io/sampler v1.3.1
+        $ go test
+        PASS
+        ok      example.com/hello   0.022s
+        $
+      ``
+    Note the explicit @v1.3.1 in the go get argument.
+    the default is @latest
+
+
+  // Adding a dependency on a new major version
+    Let’s add a new function to our package
+    func Proverb returns a Go concurrency proverb
+      by calling quote.Concurrency, which is provided by the module rsc.io/quote/v3. 
+
+    First we update hello.go to add the new function:
+      ``hello.go
+        package hello
+
+        import (
+          "rsc.io/quote"
+          quoteV3 "rsc.io/quote/v3"
+        )
+
+        func Hello() string {
+          return quote.Hello()
+        }
+
+        func Proverb() string {
+          return quoteV3.Concurrency()
+        }
+      ``
+
+
+    Then we add a test to hello_test.go:
+      ``hello_test.go
+        func TestProverb(t *testing.T) {
+          want := "Concurrency is not parallelism."
+          if got := Proverb(); got != want {
+            t.Errorf("Proverb() = %q, want %q", got, want)
+          }
+        }
+      ``
+      
+
+    Then we can test our code:
+      ``terminal
+        $ go test
+        go: finding rsc.io/quote/v3 v3.1.0
+        go: downloading rsc.io/quote/v3 v3.1.0
+        go: extracting rsc.io/quote/v3 v3.1.0
+        PASS
+        ok      example.com/hello   0.024s
+        $
+      ``
+
+    Note that our module now depends on both rsc.io/quote and rsc.io/quote/v3:
+      ``terminal
+        $ go list -m rsc.io/q...
+        rsc.io/quote v1.5.2
+        rsc.io/quote/v3 v3.1.0
+        $
+      ``
+
+    Each different major version (v1, v2, and so on) of a Go module uses a different module path
+
+    major version rule
+      when the major version of a module becomes >= 2,
+      the major version must be included in the module path.
+
+    example 
+      ``go
+        rsc.io/quote       → v1 module
+        rsc.io/quote/v2    → v2 module
+        rsc.io/quote/v3    → v3 module
+      ``
+
+    The go command allows a build to include at most one version of any particular module path
+    meaning at most one of each major version:
+      one rsc.io/quote
+      one rsc.io/quote/v2 
+      one rsc.io/quote/v3 
+      and so on. 
+
+    thus we cannot have 
+      rsc.io/quote v1.5.2 and v1.5.3 both
+      // both have same module path
+    but we can have 
+      rsc.io/quote and rsc.io/quote/v2
+      // different module paths so allowed  
+
+
+
+  // Upgrading a dependency to a new major version¶
+    Let’s complete our conversion from using rsc.io/quote to using only rsc.io/quote/v3.
+    Because of the major version change, we should expect that some APIs may have been removed, renamed, or otherwise changed in incompatible ways
+    so you gotta read the docs
+
+    in this case Hello becomes HelloV3
+
+    since we also only import V3 no need for named import
+
+    ``hello.go
+        package hello
+
+        import "rsc.io/quote/v3"
+
+        func Hello() string {
+            return quote.HelloV3()
+        }
+
+        func Proverb() string {
+            return quote.Concurrency()
+        }
+    ``
+
+  // Removing unused dependencies
+    We’ve removed all our uses of rsc.io/quote, but it still shows up in go list -m all and in our go.mod file:
+    ``terminal
+      $ go list -m all
+        example.com/hello
+        golang.org/x/text v0.3.0
+        rsc.io/quote v1.5.2
+        rsc.io/quote/v3 v3.1.0
+        rsc.io/sampler v1.3.1
+        $ cat go.mod
+        module example.com/hello
+
+        go 1.12
+
+        require (
+            golang.org/x/text v0.3.0 // indirect
+            rsc.io/quote v1.5.2
+            rsc.io/quote/v3 v3.0.0
+            rsc.io/sampler v1.3.1 // indirect
+        )
+    ``
+    
+    The go mod tidy command cleans up these unused dependencies:
+
+    ``terminal
+      $ go mod tidy
+      $ go list -m all
+      example.com/hello
+      golang.org/x/text v0.3.0
+      rsc.io/quote/v3 v3.1.0
+      rsc.io/sampler v1.3.1
+      $ cat go.mod
+      module example.com/hello
+
+      go 1.12
+
+      require (
+          golang.org/x/text v0.3.0 // indirect
+          rsc.io/quote/v3 v3.1.0
+          rsc.io/sampler v1.3.1 // indirect
+      )
+
+      $ go test
+      PASS
+      ok      example.com/hello   0.020s
+      $
+    ``
+
+
+tldr
+  go mod init` creates a new module, initializing the go.mod file that describes it.``
+  go build`, go test, and other package-building commands add new dependencies to go.mod as needed.
+  go list -m` all prints the current module’s dependencies.
+  go get` changes the required version of a dependency (or adds a new dependency).
+  go mod tidy` removes unused dependencies.
+
+
+
+  
+
+
+
+
+
+
+A module is a collection of several packages.
+After being downloaded to local, these packages are all contained in the same folder,
+  which is called the root folder of the module.
+
+A module may has many versions, which follow Semantic Versioning specification.
+Semantic Versioning specification
+  Given a version number X.Y.Z (MAJOR.MINOR.PATCH), increment the:
+    MAJOR version when you make incompatible API changes
+    MINOR version when you add functionality in a backward compatible manner
+    PATCH version when you make backward compatible bug fixes
+
+  X, Y, Z must contain non negative numbers
+  Each element MUST increase numerically. For instance: 1.9.0 -> 1.10.0 -> 1.11.0.
+
+
+  Once a versioned package has been released, the contents of that version MUST NOT be modified. Any modifications MUST be released as a new version.
+
+  Major version zero (0.y.z) is for initial development. Anything MAY change at any time. The public API SHOULD NOT be considered stable.
+
+  Version 1.0.0 defines the public API. The way in which the version number is incremented after this release is dependent on this public API and how it changes.
+
+
+
+
+
+
+
+organizing a go module 
+  // no set rule
+  // just conventions given in go.dev
+
+  // basic package
+    A basic Go package has all its code in the project’s root directory. 
+    The project consists of a single module, which consists of a single package. The package name matches the last path component of the module name.
+
+    example 
+      ``
+        project-root-directory/
+          go.mod
+          modname.go
+          modname_test.go
+          auth.go
+          auth_test.go
+          hash.go
+          hash_test.go
+      ``
+
+    All the files in the directory declare package modname.
+
+    Assuming this directory is uploaded to a GitHub repository at github.com/someuser/modname
+    the module line in the go.mod file should say
+      module github.com/someuser/modname`
+
+  // basic executable program/ command
+    ``
+      project-root-directory/
+        go.mod
+        auth.go
+        auth_test.go
+        client.go
+        main.go
+    `` 
+
+    main.go contains func main
+
+    Assuming this directory is uploaded to a GitHub repository at github.com/someuser/modname, the module line in the go.mod file should say:
+      module github.com/someuser/modname
+
+
+
+  // Package or command with supporting packages¶
+    Larger packages or commands may benefit from splitting off some functionality into supporting packages.
+    Initially, it’s recommended placing such packages into a directory named internal
+
+    this prevents other modules from depending on packages we don’t necessarily want to expose and support for external uses.
+      Since other projects cannot import code from our internal directory, 
+
+    ``
+      project-root-directory/
+        internal/
+          auth/
+            auth.go
+            auth_test.go
+          hash/
+            hash.go
+            hash_test.go
+        go.mod
+        modname.go
+        modname_test.go
+    ``
+
+    modname.go can import the auth package as follows:
+      import "github.com/someuser/modname/internal/auth"
+
+
+  // Multiple packages¶
+    A module can consist of multiple importable packages; each package has its own directory, and can be structured hierarchically. 
+    ``
+      project-root-directory/
+        go.mod
+        modname.go
+        modname_test.go
+        auth/
+          auth.go
+          auth_test.go
+          token/
+            token.go
+            token_test.go
+        hash/
+          hash.go
+        internal/
+          trace/
+            trace.go
+    ``
+
+    the module line in go.mod says:
+      module github.com/someuser/modname`
+
+    
+    The modname package resides in the root directory, declares package modname and can be imported by users with:
+      import "github.com/someuser/modname"`
+
+    Sub-packages can be imported by users as follows:
+    ``
+      import "github.com/someuser/modname/auth"
+      import "github.com/someuser/modname/auth/token"
+      import "github.com/someuser/modname/hash"
+    ``
+
+    
+  // Multiple executables/ commands
+    Multiple programs in the same repository will typically have separate directories:
+
+    ``
+      project-root-directory/
+        go.mod
+        internal/
+          ... shared internal packages
+        prog1/
+          main.go
+        prog2/
+          main.go
+    ``
+
+    In each directory, the program’s Go files declare package main
+    A top-level internal directory can contain shared packages used by all commands in the repository.
+
+    users can install these programs as follows
+      ``terminal
+        $ go install github.com/someuser/modname/prog1@latest
+        $ go install github.com/someuser/modname/prog2@latest
+      `` 
+
+    A common convention is placing all commands in a repository into a cmd directory;
+
+  
+  // Packages and commands in the same repository
+    Sometimes a repository will provide both importable packages and installable commands with related functionality.
+
+    ``
+      project-root-directory/
+        go.mod
+        modname.go
+        modname_test.go
+        auth/
+          auth.go
+          auth_test.go
+        internal/
+          ... internal packages
+        cmd/
+          prog1/
+            main.go
+          prog2/
+            main.go
+    ``
+
+    Assuming this module is called github.com/someuser/modname,
+    users can now both import packages from it:
+      ``terminal
+        import "github.com/someuser/modname"
+        import "github.com/someuser/modname/auth"
+      ``
+
+
+    And install programs from it:
+      ``terminal
+        $ go install github.com/someuser/modname/cmd/prog1@latest
+        $ go install github.com/someuser/modname/cmd/prog2@latest
+      ``
+  
+  // server project
+    Server projects typically won’t have packages for export,
+    since a server is usually a self-contained binary
+    it’s recommended to keep the Go packages implementing the server’s logic in the internal directory
+
+    ``terminal
+      project-root-directory/
+        go.mod
+        internal/
+          auth/
+            ...
+          metrics/
+            ...
+          model/
+            ...
+        cmd/
+          api-server/
+            main.go
+          metrics-analyzer/
+            main.go
+          ...
+        ... the project's other directories with non-Go code
+    ``
+
+
+
+In case the server repository grows packages that become useful for sharing with other projects, it’s best to split these off to separate modules.
+
+
+
+
+
+
+
+
+
+In Go modules, versioning is handled mostly through Git tags rather than anything inside the go.mod file.
+When you create your own module, you maintain versions by tagging releases in your repository.
+
+
+  // Create your module 
+    ``terminal
+      go mod init github.com/yourusername/mymodule
+    ``
+
+    ``go.mod
+      module github.com/yourusername/mymodule
+
+      go 1.22
+    ``
+
+  // example github repo
+    github.com/yourusername/mymodule
+
+  // Create a version tag
+    Example first release:
+      ``
+        git tag v1.0.0
+        git push origin v1.0.0
+      ``
+
+    Now others can import:
+      import "github.com/yourusername/mymodule"
+
+      and go will resolve v1.0.0
+
+  // Updating your module
+    // patch
+    git tag v1.0.1
+    git push origin v1.0.1
+
+    // minor version (backwards compatible)
+    git tag v1.1.0
+    git push origin v1.1.0
+
+    // major version (breaking changes)
+    git tag v2.0.0
+    git push origin v2.0.0
+
+  // Special rule for major versions (v2+)
+    For v2 and above, Go requires the version in the module path.
+
+    example 
+      module github.com/yourusername/mymodule/v2
+
+    then users import 
+      import "github.com/yourusername/mymodule/v2"
+
+
+
+
+
+# Initialize a new Go module in the current directory
+# Creates a go.mod file with the module path
+go mod init github.com/username/project
+
+# Add missing dependencies and remove unused ones
+# Updates go.mod and go.sum automatically
+go mod tidy
+
+# Download all dependencies listed in go.mod
+# Useful for CI or when preparing builds
+go mod download
+
+# Show the module dependency graph
+# Helps understand which module depends on what
+go mod graph
+
+# Show why a module is needed in the dependency tree
+go mod why github.com/some/module
+
+# Verify downloaded modules match go.sum checksums
+# Ensures dependencies haven't been tampered with
+go mod verify
+
+# Edit go.mod programmatically (rarely used manually)
+# Example: change module path
+# many other commands but idt ill use this
+go mod edit -module github.com/newname/project
+
+# Vendor dependencies into a local vendor/ directory
+# Useful in restricted environments or reproducible builds
+go mod vendor
+// This command copies all dependencies into a vendor/ folder inside your project.
+// why? idk man
+example 
+  ```
+  myapp/
+    go.mod
+    go.sum
+    vendor/
+        github.com/
+            gin-gonic/
+                gin/
+  ```
+
+  Normally Go downloads dependencies into the module cache:
+    $GOPATH/pkg/mod
+
+  After running:
+    go mod vendor
+  Build using the vendor folder:
+    go build -mod=vendor
+
+
+# List all modules used by the project
+# Shows direct and indirect dependencies
+go list -m all
+
+# Get / upgrade a dependency to the latest version
+go get github.com/some/module@latest
+
+# Get a specific version of a dependency
+go get github.com/some/module@v1.2.3
+
+# Upgrade all dependencies to the latest minor/patch versions
+go get -u ./...
+
+# Remove unused dependencies (usually handled by tidy)
+go mod tidy
+
+
+
+
+
+

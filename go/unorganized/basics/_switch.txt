@@ -1,0 +1,106 @@
+The full form a switch-case block is
+  // The CompareOperand0 portion is an expression which is viewed as a typed value 
+  // (if it is an untyped value, then it is viewed as a type value of its default type)
+  // 
+  // Each of the CompareOperandListX 
+  // must be a comma separated expression list
+  // Each of these expressions shall be comparable with CompareOperand0
+  // If a case expression is an untyped value, 
+  // then it must be implicitly convertible to the type of the switch expression
+  switch InitSimpleStatement; CompareOperand0 {
+    case CompareOperandList1:
+      // do something
+    case CompareOperandList2:
+      // do something
+    ...
+    case CompareOperandListN:
+      // do something
+    default:
+      // do something
+  }
+
+
+
+
+switch expression {
+  case value1:
+    // code block
+    fallthrough // optional, 
+                // by default `break` is applied automatically at end of case block 
+                // fallthrough allows code execution to go to next case block
+                // cannot use with type switch
+                // a fallthrough statement must be the final statement in a branch.
+                // a fallthrough statement can't show up in the final branch in a switch-case control flow block.
+
+  case value2, value3: // check multiple values (any 1 should be match)
+    // code block
+
+  case expression // executes block if expressions evaluates to true
+    // code block 
+
+  default:
+    // code block (if none of the case blocks ran)
+    // in go, default can be placed anywhere
+    // it will still always be run after all cases fail
+    example    
+        ```go
+          switch n := rand.Intn(3); n {
+            case 0: fmt.Println("n == 0")
+            case 1: fmt.Println("n == 1")
+            default: fmt.Println("n == 2")
+          }
+
+          switch n := rand.Intn(3); n {
+            default: fmt.Println("n == 2")
+            case 0: fmt.Println("n == 0")
+            case 1: fmt.Println("n == 1")
+          }
+
+          switch n := rand.Intn(3); n {
+            case 0: fmt.Println("n == 0")
+            default: fmt.Println("n == 2")
+            case 1: fmt.Println("n == 1")
+          }
+        ```
+}
+
+multiple values 
+  case value_1, value_2:
+    // code block (executes if value matches)
+
+expression 
+  case expression:
+    // code block (executed if expression evalues to true)
+
+    ```go 
+    example 
+      number := 10
+      switch number {
+        case number < 10:
+          fmt.Println("hello less than 10")
+        
+        default:
+          fmt.Println("hello greater than = to 10")
+      }
+    ```
+
+switch with type assertions to switch on the type of an interface
+  ```go
+    fun checkType (x interface()) {
+      switch x.(type) {
+        case int:
+          // code block 
+        case float64:
+          // code block 
+        case string:
+          // code block 
+
+        case default:
+          // code block
+      }
+    }
+  ```
+  cannot use fallthrough will type switch
+
+
+  // TODO: what is an interface

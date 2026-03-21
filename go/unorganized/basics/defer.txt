@@ -1,4 +1,18 @@
 defer
+  just like go routines, you cannot capture return values of a defer function
+  if it has a return value it is discarded
+
+  When a defer statement is executed
+    the deferred function call is not executed immediately.
+    Instead, it is pushed into a defer-call stack maintained by its innermost nesting function call.
+
+After a function call fc(...) returns (but has not fully exited yet) 
+  and enters its exiting phase,
+  all the deferred function calls pushed into its defer-call stack will be removed from the defer-call stack and executed
+  in first-in, last-out order, that is, the reverse of the order in which they were pushed into the defer-call stack. 
+  Once all these deferred calls are executed, the function call fc(...) fully exits.
+
+
   its a mechanism that allows you to postpone the execution of a function until the surrounding
     function returns 
 
@@ -75,6 +89,45 @@ syntax
       deferred statement 1 execution 0
 
 
+
+
+Deferred Function Calls Can Modify the Named Return Results of Nesting Functions
+  example 
+    ```go
+      package main
+
+      import "fmt"
+
+      func Triple(n int) (r int) {
+        defer func() {
+          r += n // modify the return value
+        }()
+
+        return n + n // <=> r = n + n; return
+      }
+
+      func main() {
+        fmt.Println(Triple(5)) // 15
+      }
+    ```
+
+
+The Evaluation Moment of the Arguments of Deferred Function Calls
+  The arguments of a deferred function call are all evaluated at the moment when the corresponding defer statement is executed (a.k.a. when the deferred call is pushed into the defer-call stack). 
+  The evaluation results are used when the deferred call is executed later during the existing phase of the surrounding call (the caller of the deferred call).
+
+
+
+
+
+  
+
+
+
+
+
+
+
 practical use case 
   resources cleanup
       ensuring resources like files or database connections are closed 
@@ -82,3 +135,8 @@ practical use case
   unlocking mutexes
 
   logging and tracing 
+
+  
+  the deferred function call feature is a necessary feature for the panic an
+
+

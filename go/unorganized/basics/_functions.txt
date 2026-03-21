@@ -1,5 +1,12 @@
 functions help with modularity and code reusability
 
+functions must be directly declared at package level.
+a function can't be declared within the body of another function.
+although, we can define anonymous fuctions in bodies of other functions
+
+
+
+
 declaration
   when arguments are passed to a function, they are copied into the function's parameters
     modifications to the parameters inside the function do not affect the original arguments

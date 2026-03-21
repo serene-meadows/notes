@@ -1,3 +1,85 @@
+panic and recover
+  Go doesn't support exception throwing and catching
+  instead explicit error handling is preferred to use in Go programming.
+
+
+  Go supports an exception throw/catch alike mechanism. The mechanism is called panic/recover.
+
+
+  We can call the built-in panic function to create a panic to make the current goroutine enter panicking status
+  Panicking is another way to make a function return
+  Once a panic occurs in a function call, the function call returns immediately and enters its exiting phase.
+
+  By calling the built-in recover function in a deferred call
+  n alive panic in the current goroutine can be removed so that the current goroutine will enter normal calm status again.
+  If a panicking goroutine exits without being recovered, it will make the whole program crash.
+
+
+  The built-in panic and recover functions are declared as
+    ```go
+      func panic(v interface{})
+      func recover() interface{}
+    ```
+    The value returned by a recover function call is the value a panic function call consumed.
+
+    ```go
+      package main
+
+      import "fmt"
+
+      func main() {
+        defer func() {
+          fmt.Println("exit normally.")
+        }()
+        fmt.Println("hi!")
+        defer func() {
+          v := recover()
+          fmt.Println("recovered:", v)
+        }()
+        panic("bye!")
+        fmt.Println("unreachable")
+      }
+    ```
+    // output 
+      hi!
+      recovered: bye!
+      exit normally
+    
+    // example, making recover return the named value
+    ```go
+        func test() (result int) {
+            defer func() {
+                if r := recover(); r != nil {
+                    result = 42
+                }
+            }()
+
+            panic("something went wrong")
+        }
+      ```
+
+
+
+Go runtime will create panics for some circumstances, such as dividing an integer by zero. For example,
+```go
+  package main
+
+  func main() {
+    a, b := 1, 0
+    _ = a/b
+  }
+```
+panic: runtime error: integer divide by zero
+goroutine 1 [running]:
+
+
+
+
+some Fatal Errors Are Not Panics and They Are Unrecoverable
+  For the standard Go compiler, some fatal errors, such as stack overflow and out of memory are not recoverable. Once they occur, program will crash.
+
+
+
 panic
   is a builtin function that stops normal execution of a function immediately
 
