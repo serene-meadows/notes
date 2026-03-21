@@ -70,3 +70,72 @@
 
 
 
+
+
+-- struct value assignments
+--
+  When a struct value is assigned to another struct value, the effect is the same as assigning each field one by one.
+  Two struct values can be assigned to each other only if their types are identical 
+  or the types of the two struct values have an identical underlying type (considering field tags) and at least one of the two types is an unnamed type.
+
+
+  ```go
+    book1 := Book{pages: 300}
+    book2 := Book{"Go 101", "Tapir", 256}
+
+    book2 = book1
+    // The above line is equivalent to the
+    // following lines.
+    book2.title = book1.title
+    book2.author = book1.author
+    book2.pages = book1.pages
+
+  ```
+
+
+
+
+
+-- In Field Selectors, Dereferences of Receivers Can Be Implicit
+--
+  (*bookN).pages could be written as bookN.pages
+  go implicitly derefences the pointer
+
+  example
+    ```go
+      type Book struct {
+          pages int
+        }
+        book1 := &Book{100} // book1 is a struct pointer
+        book2 := new(Book)  // book2 is another struct pointer
+        // Use struct pointers as structs.
+        book2.pages = book1.pages
+        // This last line is equivalent to the above line.
+        // In other words, if the receiver is a pointer,
+        // it will be implicitly dereferenced.
+        (*book2).pages = (*book1).pages
+
+    ```
+
+
+
+
+
+-- struct comparable
+--
+  A struct type is comparable only if none of the types of its fields (including the fields with names as the blank identifier _) are incomparable.
+
+  Two struct values are comparable only if they can be assigned to each other and their types are both comparable.
+  In other words, two struct values can be compared with each other only if the (comparable) types of the two struct values are identical
+  or their underlying types are identical (considering field tags) and at least one of the two types is unnamed.
+
+  When comparing two struct values of the same type,
+  each pair of their corresponding fields will be compared (in the order shown in source code)
+  The two struct values are equal only if all of their corresponding fields are equal. The comparison stops in advance when a pair of fields is found unequal or a panic occurs. 
+  In comparisons, fields with names as the blank identifier _ will be ignored.
+
+
+
+
+
+

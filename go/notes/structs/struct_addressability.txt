@@ -1,0 +1,50 @@
+-- Struct Field Addressability
+-- 
+  The fields of an addressable struct are also addressable
+
+  The fields of an unaddressable struct are also unaddressable
+  The fields of unaddressable structs can't be modified
+
+  All composite literals, including struct composite literals are unaddressable.
+
+  example
+    ```go
+      type Book struct {
+        Pages int
+      }
+      var book = Book{} // book is addressable
+      p := &book.Pages
+      *p = 123
+      fmt.Println(book) // {123}
+
+      // The following two lines fail to compile, for
+      // Book{} is unaddressable, so is Book{}.Pages.
+      /*
+      Book{}.Pages = 123
+      p = &(Book{}.Pages) // <=> p = &Book{}.Pages
+                          // the precedence of the property selection operator . in a selector is higher than the address-taking operator &.
+      */
+
+    ```
+
+
+
+
+-- syntactic sugar for taking address of unaddressable composite literal
+--
+  Generally, only addressable values can take addresses. 
+  But there is a syntactic sugar in Go, which allows us to take addresses on composite literals
+  A syntactic sugar is an exception in syntax to make programming convenient.
+
+  ```go
+    type Book struct {
+      Pages int
+    }
+
+    // Book{100} is unaddressable but can
+    // be taken address.
+    p := &Book{100} // <=> tmp := Book{100}; p := &tmp
+    p.Pages = 200
+
+  ```
+  
