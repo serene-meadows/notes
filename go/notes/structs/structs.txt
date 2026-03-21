@@ -1,0 +1,72 @@
+-- Struct Types and Struct Type Literals
+--
+  Each unnamed struct type literal starts with a struct keyword which is followed by a sequence of field definitions enclosed in a {}
+  Generally, each field definition is composed of a name and a type. 
+  The number of fields of a struct type can be zero.
+
+  The following is an unnamed struct type literal:
+    ```go
+      struct {
+        title  string
+        author string
+        pages  int
+      } 
+
+    ```
+    The above struct type has three fields
+    The types of the two fields title and author are both string. The type of the pages field is int.
+
+    Consecutive fields with the same type can be declared together.
+    ```go
+      struct {
+        title, author string
+        pages         int
+      }
+
+    ```
+
+  -- size of struct
+  --
+    The size of a struct type is the sum of the sizes of all its field types
+    plus
+    the number of some padding bytes
+    The padding bytes are used to align the memory addresses of some fields.
+      // To understand Memory Alignment and Padding
+      // you have to think like a CPU. A 64-bit CPU wants to grab data in "blocks" of 8 bytes
+      // If a variable is split across two of those blocks, the CPU has to do double the work to read it.
+      // To prevent this, Go adds Padding (empty, wasted space) to make sure every variable starts at a "clean" address.
+      // 
+      // example - wasteful struct
+         ```go
+            type BadStruct struct {
+              a bool  // Size: 1 byte. 
+                      // [PADDING]: 7 bytes added here so 'b' can start at byte 8.
+              b int64 // Size: 8 bytes. Starts at byte 8.
+              c bool  // Size: 1 byte. Starts at byte 16.
+                      // [PADDING]: 7 bytes added at the end so the whole struct is a multiple of 8.
+            }
+
+            func main() {
+              s := BadStruct{}
+              fmt.Printf("Size of BadStruct: %d bytes\n", unsafe.Sizeof(s)) 
+              // Output: 24 bytes (even though data is only 10 bytes!)
+            }
+
+         ```
+      // example - optimized struct 
+         ```go
+          type Good struct {
+              b int64 // Bytes 0-7
+              a bool  // Byte 8
+              c bool  // Byte 9 (No padding needed yet!)
+              // [6 bytes of PADDING] at the end to make total size 16 (multiple of 8)
+          }
+
+         ```
+
+  -- size of zero struct
+  --
+    The size of a zero-field struct type is zero.
+
+
+

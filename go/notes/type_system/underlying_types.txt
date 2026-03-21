@@ -1,0 +1,53 @@
+-- underlying types
+--
+  In Go, each type has an underlying type. Rules:
+    for built-in types, the respective underlying types are themselves.
+
+    the underlying type of an unnamed type, which must be a composite type, is itself.
+
+    in a type declaration, the newly declared type and the source type have the same underlying type.
+  
+
+  example 
+    ```go
+      // The underlying types of the following ones are both int.
+      type (
+        MyInt int
+        Age   MyInt
+      )
+
+      // The following new types have different underlying types.
+      type (
+        IntSlice   []int   // underlying type is []int
+        MyIntSlice []MyInt // underlying type is []MyInt
+        AgeSlice   []Age   // underlying type is []Age
+      )
+
+      // The underlying types of []Age, Ages, and AgeSlice
+      // are all the unnamed type []Age.
+      type Ages AgeSlice
+
+    ```
+      How can an underlying type be traced given a user declared type?
+      The rule is, when a built-in basic type or an unnamed type is met, the tracing should be stopped.
+      Take the type declarations shown above as examples, let's trace their underlying types.
+          MyInt → int
+          Age → MyInt → int
+          IntSlice → []int
+          MyIntSlice → []MyInt X→ []int
+          AgeSlice → []Age X→ []MyInt → []int
+          Ages → AgeSlice → []Age X→ []MyInt → []int
+
+
+
+
+
+-- popular types
+--
+  In Go,
+    types whose underlying types are bool are called boolean types;
+    types whose underlying types are any of the built-in integer types are called integer types;
+    types whose underlying types are either float32 or float64 are called floating-point types;
+    types whose underlying types are either complex64 or complex128 are called complex types;
+    integer, floating-point and complex types are also called numeric types;
+    types whose underlying types are string are called string types.

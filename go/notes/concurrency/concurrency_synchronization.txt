@@ -1,0 +1,26 @@
+-- data race
+--
+  Concurrent computations may share resources, generally memory resource
+  The following are some circumstances that may occur during concurrent computing:
+
+    In the same period that one computation is writing data to a memory segment,
+    another computation is reading data from the same memory segment.
+    Then the integrity of the data read by the other computation might be not preserved.
+
+    In the same period that one computation is writing data to a memory segment
+    another computation is also writing data to the same memory segment
+    Then the integrity of the data stored at the memory segment might be not preserved.
+
+  These circumstances are called data races
+
+  To prevent data races, we need concurrency synchronization
+
+
+
+
+
+-- concurrency synchronization techniques
+--
+  channels
+
+  wait_groups

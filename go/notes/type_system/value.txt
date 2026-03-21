@@ -1,0 +1,150 @@
+-- just read  
+--
+  ```go
+    package main
+
+    import (
+      "fmt"
+      "unsafe"
+    )
+
+    /*
+    CONCEPT 1: VALUES
+
+    - A value = instance of a type
+    - Each type has many values
+    - Each type has a ZERO VALUE (default)
+
+    Examples:
+      int    → 0
+      bool   → false
+      string → ""
+
+    - nil = zero value for:
+      slice, map, function, channel, pointer, interface
+
+    - Value representations (all are expressions):
+      literals, constants, variables, expressions
+
+    - Typed vs Untyped:
+      literals/constants may be untyped until used
+
+    */
+
+    /*
+    CONCEPT 2: LITERALS
+
+    1. Basic literals
+      10, 3.14, "hi", true
+
+    2. Composite literals (struct + containers)
+      []int{1,2,3}
+      map[string]int{"a":1}
+      struct{ x int }{x:10}
+
+    3. Function literals
+      func(x int) int { return x + 1 }
+
+    - NO literals for:
+      pointer, channel, interface
+
+    */
+
+    /*
+    CONCEPT 3: VALUE PARTS (Go 101 terminology)
+
+    At runtime, a value may consist of:
+
+    - Direct Part:
+      memory directly associated with the variable
+
+    - Indirect Part(s):
+      memory referenced via pointers from the direct part
+
+    Notes:
+      - Direct part ALWAYS exists
+      - Indirect parts may or may not exist
+      - Each part is a continuous memory segment
+
+    Examples (mental model):
+
+      string → (pointer + length) → bytes
+      slice  → (pointer + len + cap) → array
+      map    → pointer → runtime structure
+
+    */
+
+    /*
+    CONCEPT 4: VALUE SIZE
+
+    - Size = bytes occupied by DIRECT part only
+    - Same type → same size
+    - Indirect parts are NOT included
+
+    Use:
+      unsafe.Sizeof(v)
+
+    Notes:
+      - numeric types → fixed sizes (spec-defined)
+      - non-numeric types → implementation dependent
+    */
+
+    /*
+    CONCEPT 5: IMPORTANT BEHAVIOR
+
+    - Large data may NOT increase value size
+    - Only headers (direct parts) are counted
+
+    Example:
+      string → constant size (pointer + len)
+      slice  → constant size (ptr + len + cap)
+
+    Actual data stored separately (indirect part)
+    */
+
+    func main() {
+
+      // --- ZERO VALUES ---
+      var p *int  // nil
+      var s []int // nil
+      var m map[string]int // nil
+      var i int   // 0
+
+      // --- LITERALS ---
+      _ = 10
+      _ = []int{1, 2, 3}
+      _ = func(x int) int { return x }
+
+      // --- VALUES WITH INDIRECT PARTS ---
+      var b bool = true
+
+      var str string = "this is a long string stored elsewhere"
+      var slice = []int{1,2,3,4,5,6,7,8,9,10}
+
+      fmt.Println("SIZES (direct part only):")
+
+      fmt.Printf("bool   size: %d\n", unsafe.Sizeof(b))
+
+      // string = pointer + length
+      fmt.Printf("string size: %d\n", unsafe.Sizeof(str))
+
+      // slice = pointer + len + cap
+      fmt.Printf("slice  size: %d\n", unsafe.Sizeof(slice))
+
+      _ = p
+      _ = s
+      _ = m
+      _ = i
+    }
+
+    /*
+    SUMMARY
+
+    - value = direct part + optional indirect parts
+    - unsafe.Sizeof → only direct part
+    - slices/maps/strings → small headers + external data
+    - literals/constants/variables → all are expressions
+    - some types (pointer/channel/interface) → no literal form
+    */
+
+  ```

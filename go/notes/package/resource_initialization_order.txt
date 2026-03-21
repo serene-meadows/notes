@@ -1,0 +1,52 @@
+-- initialization order
+--
+  -- package order
+  --
+    At run time, a package will be loaded after all its dependency packages.
+    Each package will be loaded once and only once
+
+
+  -- package variables
+  -- 
+    All package-level variables declared in a package are initialized before any init function declared 
+    in the same package is invoked.
+
+    Go runtime will try to initialize package-level variables in a package by their declaration order
+    but a package-level variable will be initialized after all of its depended variables
+
+    example 
+      ```go
+        func f() int {
+          return z + y
+        }
+
+        func g() int {
+          return y/2
+        }
+
+        // package level variables
+        var (
+          w       = x
+          x, y, z = f(), 123, g()
+        )
+        // order of initialization is 
+        // y, z, x, w
+      ```
+
+
+
+  -- init 
+  --
+    All init functions in all involved packages in a program will be invoked sequentially
+    An init function in an importing package will be invoked after 
+    all the init functions declared in the dependency packages of the importing package
+
+    All init functions will be invoked before invoking the main entry function.
+
+    The invocation order of the init functions in the same source file is from top to bottom.
+    within pacakges init functions in different source files are invoked by the alphabetical order
+    of the file name
+
+    good practice, is to not have dependency relation between two init functions in two different 
+    source files
+  

@@ -1,0 +1,52 @@
+-- package 
+--
+  Go code is also organized as code packages
+  To use the exported code elements (functions, types, variables and named constants, etc) in a specified package, the package must first be imported
+    except the builtin standard code package (which is a universe package).
+
+
+
+
+
+-- package naming convention
+--
+  The name of the folder of a package is not required to be the same as the package name.
+  However, for a library package
+  it will make package users confused if the name of the package is different from the name of the folder of the package.
+
+
+  -- anatomy of a package 
+  -- 
+    when you write an import statement
+    you are providing a path to the directory, not the name of the package itself
+
+    example 
+      ```go
+        import "github.com/pepsico/project/internal/utils"
+      ```
+
+    so you could have a file in that internal/utils that starts with `package toolset`
+    if you do this, to use the code
+        you will have to do something like 
+          toolset.DoSomething()
+        not 
+          utils.DoSomething()
+
+      which is counter intuitive
+
+
+
+
+
+-- package dependency
+--
+  When one source file in a package imports another package
+  we say the importing package depends on the imported package.
+
+  Go doesn't support circular package dependencies
+  example 
+    if 
+      package 'a' depends on package 'b'
+      package 'b' depends on package 'c'
+    then 
+      package 'c' cannot depend on package 'a'

@@ -1,0 +1,192 @@
+-- goroutine
+--
+  Goroutines are also often called green threads
+  Green threads are maintained and scheduled by the language runtime instead of the operating systems
+  The cost of memory consumption and context switching, of a goroutine is much lesser than an OS threads
+  So, it is not a problem for a Go program to maintain tens of thousands goroutines at the same time, as long as the system memory is sufficient.
+
+  Go doesn't support the creation of system threads in user code. So, using goroutines is the only way to do (program scope) concurrent programming in Go.
+
+
+  Each Go program starts with only one goroutine, we call it the main goroutines
+  A goroutine can create new goroutines
+
+  -- calling a goroutine
+  --
+    use the keyword go followed by a function call
+    The function call will then be executed in a newly created goroutine
+    The newly created goroutine will exit alongside the exit of the called function
+
+  
+  -- goroutine return values
+  --
+    All the result values of a goroutine function call (if the called function returns values)
+    must be discarded in the function call statement.
+
+
+  -- basic example  
+  --
+    ```go
+      package main
+
+      import (
+        "log"
+        "math/rand"
+        "time"
+      )
+
+      func SayGreetings(greeting string, times int) {
+        for i := 0; i < times; i++ {
+          log.Println(greeting)
+
+          // time.Duration is a custom type defined in the time standard package
+          // Its underlying type is the built-in type int64
+          d := time.Second * time.Duration(rand.Intn(5)) / 2
+          time.Sleep(d) // sleep for 0 to 2.5 seconds
+        }
+      }
+
+      func main() {
+        log.SetFlags(0)
+        go SayGreetings("hi!", 10)
+        go SayGreetings("hello!", 10)
+        time.Sleep(2 * time.Second)
+      }
+    ```
+    // When the main goroutine exits, the whole program also exits
+    // even if there are still some other goroutines which have not exited yet.
+    // this program isn't perfect, the main go routine exits in 2 seconds
+    // so go routines may not get time to finish their execution
+    // thus, time.Sleep is not a concurrency synchronization method
+    //
+    // this program uses the Println function in the log standard package
+    // The reason is the print functions in the log standard package are synchronized
+    // so the texts printed by the two goroutines will not be messed up in one line
+
+
+
+
+
+-- goroutine states
+--
+  -- lifecycle 
+  --
+                   +---------------------------------------------------+
+                   |                    running                        |
+                   |                                                   |
+                   |    +---------------------------------------+      |
+                   |    |      sleeping, system calling, ...    |      |
+                   |    +---------------------------------------+      |
+                   |            |                        K             |
+                   |            J                        |             |
+                   |      +-----------+            +-------------+     |
+(create) --------> |      |  queuing  |  <------>  |  executing  |     | ----------> (exit)
+                   |      +-----------+            +-------------+     |
+                   +---------------------------------------------------+
+                                K                 |
+                                |                 J
+                    +-------------------------------------------------+
+                    |                                                 |
+                    |                    blocking                     |
+                    |                                                 |
+                    +-------------------------------------------------+
+    
+
+    // Note, a goroutine is still considered to be 'running' if it is asleep (after calling time.Sleep function)
+    // or awaiting the response of a system call or a network connection.
+
+    
+    When a new goroutine is created, it will enter the 'running' state automatically
+    Goroutines can only exit from running state, and never from blocking state
+  
+    If, for any reason, a goroutine stays in blocking state forever, then it will never exit
+    
+
+  -- deadlock 
+  --
+    A blocking goroutine can only be unblocked by an operation made in another goroutine.
+    If all goroutines in a Go program are in blocking state,
+    then all of them will stay in blocking state forever.
+    This can be viewed as an overall deadlock.
+
+    When this happens in a program, the standard Go runtime will try to crash the program.
+
+    example - deadlock
+      ```go
+        package main
+
+        import (
+          "sync"
+          "time"
+        )
+
+        var wg sync.WaitGroup
+
+        func main() {
+          wg.Add(1)
+          go func() {
+            time.Sleep(time.Second * 2)
+            wg.Wait()
+          }()
+          wg.Wait()
+        }
+      ```
+      // output
+      // fatal error: all goroutines are asleep - deadlock!
+
+
+
+
+
+-- goroutine schedule
+--
+  Not all goroutines in running state are being executed at a given time
+  At any given time, the maximum number of goroutines being executed
+  will not exceed the number of logical CPUs available for the current program.
+
+  We can call the runtime.NumCPU function to get the number of logical CPUs available for the current program.function to get the number of logical CPUs available for the current program.
+  Each logical CPU can only execute one goroutine at any given time.
+
+  Go runtime must frequently switch execution contexts
+  between goroutines to let each running goroutine have a chance to execute.
+  This is similar to how operating systems switch execution contexts between OS threads.
+
+  The standard Go runtime adopts the M-P-G model to do the goroutine schedule job,
+  where M represents OS threads, P represents logical/virtual processors (not logical CPUs) and G represents goroutines. 
+
+  Most schedule work is made by logical processors (Ps)
+  which act as brokers by attaching goroutines (Gs) to OS threads (Ms).
+  Each OS thread can only be attached to at most one goroutine at any given time, and each goroutine can only be attached to at most one OS thread at any given time.
+
+  A goroutine can only get executed when it is attached to an OS thread
+  A goroutine which has been executed for a while will try to detach itself from the corresponding OS thread
+  so that other running goroutines can have a chance to get attached and executed.
+  
+  At runtime. we can call the runtime.GOMAXPROCS function to get and set the number of logical processors (Ps).
+  The default initial value of runtime.GOMAXPROCS can also be set through the GOMAXPROCS environment variable.
+  At any time, the number of goroutines in the executing sub-state is no more than the smaller one of runtime.NumCPU and runtime.GOMAXPROCS.
+
+
+
+
+
+-- goroutine argument evaluation
+--
+  similar to the defer argument evaluation
+
+  goroutine arguments → evaluated immediately
+  goroutine function body → executed later
+  closures → capture variables (not values)
+
+  example 
+    ```go
+      var a = 123
+
+      go func(x int) {
+          time.Sleep(time.Second)
+          fmt.Println(x, a) // 123 789
+      }(a)
+
+      a = 789
+
+    ```

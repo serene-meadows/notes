@@ -1,0 +1,182 @@
+-- declaration
+--
+  the keyword const is used to declare named constants 
+  example - untyped constants
+            default type of a named untyped constant is the same as the literal bound to it
+    ```go
+      // Declare two individual constants. Yes,
+      const Yes, No = true, false
+      // non-ASCII letters can be used in identifiers.
+      const π = 3.1416
+      const Pi = π // <=> const Pi = 3.1416
+
+      // Declare multiple constants in a group.
+      const (
+        No         = !Yes
+        Yes        = true
+        MaxDegrees = 360
+        Unit       = "radian"
+      )
+
+      func main() {
+        // Declare multiple constants in one line.
+        const TwoPi, HalfPi, Unit2 = π * 2, π * 0.5, "degree"
+      }
+      
+    ```
+
+  If a basic value literal is bound to a typed constant
+  the basic value literal must be representable as a value of the type of the constant
+
+  example - typed constants - OK
+    ```go
+      const X float32 = 3.14
+
+      const (
+        A, B int64   = -3, 5
+        Y    float32 = 2.718
+      )
+
+    ```
+      // we can also provide explicit conversions for go compiler 
+      // the above example is equivalent to 
+        ```go
+          const X = float32(3.14)
+
+          const (
+            A, B = int64(-3), int64(5)
+            Y    = float32(2.718)
+          )
+          
+        ```
+  example - typed constants - ERR 
+    ```go
+      // error: 256 overflows uint8
+      const a uint8 = 256
+      // error: 256 overflows uint8
+      const b = uint8(255) + uint8(1)
+      // error: 128 overflows int8
+      const c = int8(-128) / int8(-1)
+      // error: -1 overflows uint
+      const MaxUint_a = uint(^0)
+      // error: -1 overflows uint
+      const MaxUint_b uint = ^0 
+      // the reason ^0 gives -1, even though the consxt is uint(...)
+      // its because the default type of a number is int, and since ^0 is an operation
+      // it will use the default value of int (signed) which leads to -1, which not convertible
+      // to uint
+    ```
+
+
+  -- where can constants be declared
+  --
+    constants can be declared both at package level (out of any function body)
+    and in function bodies
+
+    constants declared in function bodies are called local constants
+    and those declared at package level are called package level constants or global constants
+    The declaration orders of two package-level constants are not important.
+
+  
+
+
+  -- semantics
+  --
+    Go specification calls each of the lines containing a = symbol in the above constant declaration group as a constant specification.
+    here the = symbol means "bind" instead of "assign"
+    interpret each constant specification as a declared identifier is bound to a corresponding basic value literal
+
+    In the above example, 
+    the name constants π and Pi are both bound to the literal 3.1416
+
+
+  -- autocomplete in constant block declaration
+  --
+    in a constant block
+    except the first constnat specification 
+    the other constant specifications can be incomplete
+
+    An incomplete constant specification only contains an identifier list
+    Compilers will autocomplete the incomplete lines for us by copying the missing part from the first preceding complete constant specification
+
+    example 
+      ```go
+        const (
+          X float32 = 3.14
+          Y           // here must be one identifier
+          Z           // here must be one identifier
+
+          A, B = "Go", "language"
+          C, _
+          // In the above line, the blank identifier
+          // is required to be present.
+        )
+      ```
+        // the previous code is equivalent to 
+          ```go
+            const (
+              X float32 = 3.14
+              Y float32 = 3.14
+              Z float32 = 3.14
+
+              A, B = "Go", "language"
+              C, _ = "Go", "language"
+            )
+          ```
+
+
+  -- autocomplete enhanced with iota
+  --
+    iota is a predeclared constant which can only be used in other constant declarations. 
+    It is declared as 
+      ```go
+        const iota = 0
+      ```
+
+    -- iota is a generator, it's value isn't fixed to 0
+    --
+      When the predeclared iota constant is used in a custom constant declaration
+      at compile time, within the custom constant declaration
+      its value will be reset to 0 at the first constant specification of each group of constants
+      and will increase 1 constant specification by constant specification
+        
+        ```go
+          const (
+            k = 3 // now, iota == 0
+
+            m float32 = iota + .5 // m float32 = 1 + .5
+            n                     // n float32 = 2 + .5
+
+            p = 9             // now, iota == 3
+            q = iota * 2      // q = 4 * 2
+            _                 // _ = 5 * 2
+            r                 // r = 6 * 2
+            s, t = iota, iota // s, t = 7, 7
+            u, v              // u, v = 8, 8
+            _, w              // _, w = 9, 9
+          )
+
+          // iota value resets to zero to first constant specification of each group of constants
+          const x = iota // x = 0
+          const (
+          // iota value resets to zero to first constant specification of each group of constants
+            y = iota // y = 0
+            z        // z = 1
+          )
+        ```
+
+      -- the starting value of iota can be set to other than default 0
+      --
+        ```go
+          const (
+            Failed = iota - 1 // == -1
+            Unknown           // == 0
+            Succeeded         // == 1
+          )
+
+          const (
+            Readable = 1 << iota // == 1
+            Writable             // == 2
+            Executable           // == 4
+          )
+        ```

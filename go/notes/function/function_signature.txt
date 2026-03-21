@@ -1,0 +1,6 @@
+-- signature of function types
+--
+  The signature of a function type is composed of the input parameter definition list and the output result definition list of the function.
+  The function name and body are not parts of a function signature.
+
+  Parameter and result types are important for a function signature, but parameter and result names are not important.

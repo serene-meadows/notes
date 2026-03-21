@@ -1,0 +1,66 @@
+-- package scoped identity 
+--
+  In Go, a non-exported field's identity is PackagePath + Name. 
+  This means even if two fields have the exact same name (e.g., id), if they are in different packages, they are distinct entities.
+
+  example 
+    ```go
+      // --- FILE: internal/alpha/provider.go ---
+      package alpha
+
+      type Provider struct {
+          // Identity: "alpha.data"
+          data int 
+      }
+
+      // Function to allow external packages to "set" the private value
+      func (p *Provider) SetAlphaData(v int) { p.data = v }
+
+
+      // --- FILE: internal/beta/consumer.go ---
+      package beta
+
+      type Consumer struct {
+          // Identity: "beta.data"
+          // No collision with alpha.data because of the package prefix!
+          data string 
+      }
+
+      // Function to allow external packages to "set" the private value
+      func (c *Consumer) SetBetaData(v string) { c.data = v }
+
+
+      // --- FILE: main.go ---
+      package main
+
+      import (
+          "alpha"
+          "beta"
+          "fmt"
+      )
+
+      type System struct {
+          alpha.Provider // Embedding
+          beta.Consumer  // Embedding
+      }
+
+      func main() {
+          s := System{}
+
+          // CASE 1: NON-EXPORTED (PRIVATE)
+          // s.data = 10 // ERROR: s.data is undefined or unexported.
+          // Even though both embedded structs have a 'data' field, 
+          // you cannot access them directly from 'main'.
+          
+          s.SetAlphaData(100)      // Works via exported method
+          s.SetBetaData("Active")  // Works via exported method
+
+
+          // CASE 2: EXPORTED (PUBLIC)
+          // If we changed 'data' to 'Data' (Uppercase) in both packages:
+          // s.Data = "test" // ERROR: ambiguous selector 's.Data'
+          // Because 'Data' is promoted to the top level, Go wouldn't know
+          // if you meant alpha.Data or beta.Data.
+      }
+
+    ```

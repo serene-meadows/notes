@@ -1,0 +1,30 @@
+-- internal package
+-- 
+  a package whose import path containing an internal folder name is viewed as a special package.
+  It can only be imported by the packages in and under the direct parent directory of the internal folder.
+
+  For example
+    package 
+      .../a/b/c/internal/d/e/f
+      and 
+      .../a/b/c/internal
+
+    can only be imported by the packages whose import paths have a .../a/b/c prefix.
+
+
+
+
+
+-- package dependency
+--
+  When one source file in a package imports another package
+  we say the importing package depends on the imported package.
+
+  Go doesn't support circular package dependencies
+  example 
+    if 
+      package 'a' depends on package 'b'
+      package 'b' depends on package 'c'
+    then 
+      package 'c' cannot depend on package 'a'
+

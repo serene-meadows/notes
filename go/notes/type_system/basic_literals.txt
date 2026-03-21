@@ -1,0 +1,314 @@
+-- better readability for numeric types
+--
+  Use _ in numeric literals for better readability
+    any _ is not allowed to be used as the first or the last character of the literal,
+    the two sides of any _ must be either literal prefixes (such as 0X) or legal digit characters.
+
+    example
+      ```go
+        // OK
+        6_9
+        0_33_77_22
+        0x_Bad_Face
+        0X_1F_FFP-16
+        0b1011_0111 + 0xA_B.Fp2i    // can operate between different literal representations
+
+        // ERR
+        _69        // _ can't appear as the first character
+        69_        // _ can't appear as the last character
+        6__9       // one side of _ is a illegal character
+        0_xBadFace // "x" is not a legal octal digit
+        1_.5       // "." is not a legal octal digit
+        1._5       // "." is not a legal octal digit
+
+      ```
+
+
+
+
+
+-- Integer value literals
+--
+  There are four integer value literal forms,
+    hex          -  base 16
+    decimal      -  base 10
+    octal        -  base 8
+    binary form  -  base 2
+
+    example
+      ```go
+        // the hex form (starts with a "0x" or "0X")
+        0xF
+        0XF
+
+
+        // the decimal form (starts without a "0")
+        15
+
+
+        // the octal form (starts with a "0", "0o" or "0O")
+        017
+        0o17
+        0O17
+
+
+        // the binary form (starts with a "0b" or "0B")
+        0b1111
+        0B1111
+
+      ```
+
+
+
+
+
+
+-- Floating Point Literals
+--
+  there are two floating value literal values
+    base 10
+    hexadecimal
+
+  example
+    ```go
+      // base 10
+      1.23
+      01.23
+      .23
+      1.
+
+      // An "e" or "E" starts the exponent part (10-based).
+      // xEn is equivalent to x is multiplied by 10^n
+      // xE-n is equivalent to x is divided by 10^n
+      1.23e2  // == 123.0
+      123E2   // == 12300.0
+      123.E+2 // == 12300.0
+      1e-1    // == 0.1
+      .1e0    // == 0.1
+      0010e-2 // == 0.1
+      0e+5    // == 0.0
+
+
+
+
+
+
+      // hexadecimal
+      // Hexadecimal floating-point literals are a way to represent fractional numbers
+      //   using base-16 (hex) for the digits and base-2 for the exponent.
+      //
+      // must start with Ox or OX
+      // starts with a letter p or P
+      // suffixes with a decimal integral literal
+      //   yPn is equivalent to y is multiplied by 2^n
+      //   yP-n is equivalent to y is divided by 2^n
+      // the reason to use p, is if you use e, it will be interpretted by hex system
+      //
+      0x1p-2  // significand 1
+              // exponent    -2
+              // calculation 1 * 2^(-2) = 0.25 (decimal)
+
+      0x1.Fp+0  // significand 1.F (which is 1 + 15/16 = 1.9375)
+                // exponent    0
+                // calculation 1.9375 * 2^(0) = 1.9375 (decimal)
+
+      0X.8p1  // significand .8 (which is 8/16 = 0.5)
+              // exponent    1
+              // calculation 0.5 * 2^1 = 0.5 (decimal)
+      // following hex decimals are wrong
+      // mantissa means significand
+      0x.p1    // mantissa has no digits
+      1p-2     // p exponent requires hexadecimal mantissa
+      // following is logical err, the e is interpretted as part of the hex number and 
+      // subtraction takes place
+      0x1.5e-2 // hexadecimal mantissa requires p exponent
+
+    ```
+
+
+
+
+
+-- Rune value literals
+--
+  Rune types are an alias for int32
+  so all rune values can be denoted by the integer literals
+
+
+  runes represents a single Unicode Code Point
+  Unicode Point: A unique number assigned to a symbol by the Unicode standard (e.g., U+0041 for 'A').
+
+
+  -- a unicode character might have more than one rune
+  --
+    Generally, we can view a code point as a Unicode character, 
+    but some Unicode characters are composed of more than one code points each.
+      Example A: Accents (Combining Marks) 
+        The character é.
+          Two code points: U+0065 (e) + U+0301 (´)
+          ```go
+            s := 'é' // e + combining accent (2 runes)
+            fmt.Println(utf8.RuneCountInString(string(s))) // Output: 2  
+
+          ```
+
+      A rune is the "atomic unit" of Unicode, 
+      but a "character" is a visual concept that might be composed of several of those atomic units.
+      You cannot assume len(string) or even the number of runes equals the number of visible characters.
+
+
+  -- ways to represent 'a' as a rune  
+  --
+    // character literal (single quotes)
+    'a'
+
+    // decimal (Unicode code point)
+    97
+
+    // octal (exactly 3 octal digits, represents a byte)
+    '\141'
+
+    // hexadecimal byte (exactly 2 hex digits)
+    '\x61'
+
+    // Unicode (exactly 4 hex digits, represents a rune)
+    '\u0061'
+
+    // Unicode (exactly 8 hex digits, represents a rune)
+    '\U00000061'
+
+
+    example 
+      ```go
+          // following all statements give true
+          println('a' == 97)
+          println('a' == '\141')
+          println('a' == '\x61')
+          println('a' == '\u0061')
+          println('a' == '\U00000061')
+          println(0x61 == '\x61')
+          println('\u4f17' == '众')
+
+        ```
+
+  -- special character
+  --
+    If a rune literal is composed by two characters
+      the first one is the character \
+      the second one is not a digital character, x, u and U
+
+    then the two successive characters will be escaped as one special character
+      \a   (Unicode value 0x07) alert or bell
+      \b   (Unicode value 0x08) backspace
+      \f   (Unicode value 0x0C) form feed
+      \n   (Unicode value 0x0A) line feed or newline
+      \r   (Unicode value 0x0D) carriage return
+      \t   (Unicode value 0x09) horizontal tab
+      \v   (Unicode value 0x0b) vertical tab
+      \\   (Unicode value 0x5c) backslash
+      \'   (Unicode value 0x27) single quote
+
+    example 
+      ```go
+        println('\n') // 10
+        println('\r') // 13
+        println('\'') // 39
+
+        println('\n' == 10)     // true
+        println('\n' == '\x0A') // true
+
+      ```
+
+
+
+
+
+-- Rules for representability of basic numeric value literals
+-- 
+
+  Rule 1 
+    A numeric literal can be used to represent as an integer value only if it needn't be rounded.
+    Rounding is allowed when using a numeric literal to represent a non-integer basic numeric values.
+    in other words
+      integers                      -> no rounding allowed
+      non integers (float/ complex) -> rounding allowed
+
+
+  Rule 2 
+    Each basic numeric type has a representable value range.
+    if a literal overflows the value range of a type, then the literal is not representable as values of the type.
+
+
+
+  example 
+    ```go
+      // Rule 1
+      int(10)     // OK
+      int(10.0)   // OK
+      int(10.5)   // ERR
+      float32(0.49999999) // OK -
+
+      // Rule 2
+      int8(127)  // OK      
+      int8(128)  // ERR - OVERFLOW
+      uint8(255) // OK
+      uint8(256) // ERR - OVERFLOW
+      float64(1e308)  // OK
+      float64(1e1000) // ERR - OVERFLOW
+
+    ```
+
+
+
+
+-- String value literals
+--
+  String values in Go are UTF-8 encoded
+
+  -- UTF-8 encoding
+  --
+    UTF-8 is an encoding for Unicode
+    Unicode assigns a unique number (code point) to every character
+
+    UTF-8 defines how those numbers are stored as bytes
+    UTF-8 uses 1 to 4 bytes per character
+
+    english characters - represented by one byte
+    chinese characters - represented by three bytes
+
+  
+  -- Two types of string literals
+  --
+    intepretted form
+    raw form
+
+    ```go
+      // interpretted form
+      "Hello \n World"    // '\n' processed as special character
+
+      // raw form
+      `Hello \n World`    // '\n' processed as two normal chars '\' and 'n'
+
+    ```
+
+
+  since it's string is a sequence of bytes, we can use the different rune literals as building blocks
+  and not just the character literal
+  example
+    ```go
+      // The following interpreted string literals are equivalent.
+      "\141\142\143"
+      "\x61\x62\x63"
+      "\x61b\x63"
+      "abc"
+
+    ```
+
+
+
+
+
+      
+-- Complex value literals 
+--
+  // TODO:

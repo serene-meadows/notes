@@ -1,0 +1,23 @@
+-- type alias
+--
+  ```go
+    type (
+      Name = string
+      Age  = int
+    )
+
+    type table = map[string]int
+    type Table = map[Name]Age
+
+  ``` 
+
+  Like type definitions, type aliases can also be declared within function bodies.
+  A type name (or literal) and its aliases all denote an identical type.
+  By the above declarations, Name is an alias of string, so both denote the same type. 
+
+
+  note: although type aliases have a 'name' they might denote unnamed types
+  in our example 
+    both table and Table refer to unnamed types
+  
+

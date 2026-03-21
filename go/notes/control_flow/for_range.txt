@@ -1,0 +1,23 @@
+-- for range
+--
+  for-range loop blocks can be used to iterate integers, all kinds of containers, channels, and some functions
+
+  slices/ arrays -> returns index, value
+  maps -> returns key, value
+  integers -> range 10 -> returns 0 .. 9
+
+
+  iterating over a collection
+    numbers := []int{1, 2, 3, 4, 5}
+    for index, value := range numbers {
+      fmt.Printf("Index: %d, Value: %d", index, value)
+    }
+
+
+  range over integers
+    for i := range 10 {
+      // code block
+    }
+      // range -> [0, 10)
+
+

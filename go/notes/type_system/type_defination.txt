@@ -1,0 +1,52 @@
+-- type definition
+--
+  we can define new types using the keyword type
+
+  type names declared at package level cannot be named init
+  types can be defined within function bodies.
+
+  a new defined type and its respective source type in type definitions are two distinct types
+
+  the new defined type and the source type will share the same underlying type 
+   and their values can be converted to each other.
+
+  example  
+    ```go
+      // Define a solo new type.
+      type NewTypeName SourceType
+
+      // Define multiple new types together.
+      type (
+        NewTypeName1 SourceType1
+        NewTypeName2 SourceType2
+      )
+
+    ```
+
+  example 
+    ```go
+      // The following new defined and source types are all
+      // basic types. The source types are all predeclared.
+      type (
+        MyInt int
+        Age   int
+        Text  string
+      )
+
+      // The following new defined and source types are all
+      // composite types. 
+      type IntPtr *int
+      type Book struct{author, title string; pages int}
+      type Convert func(in0 int, in1 bool)(out0 int, out1 string)
+      type StringArray [5]string
+      type StringSlice []string
+
+      func f() {
+        // The names of the three defined types
+        // can be only used within the function.
+        type PersonAge map[string]int
+        type MessageQueue chan string
+        type Reader interface{Read([]byte) int}
+      }
+
+    ```

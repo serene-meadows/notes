@@ -1,0 +1,13 @@
+The type of an argument is not required to be identical with the corresponding parameter type.
+The only requirement for the argument is it must be assignable (a.k.a., implicitly convertible) to the corresponding parameter type.
+
+a function can be either declared before or after any of its calls.
+
+
+
+
+
+-- exiting (returning) phase of a function call
+--
+  The exiting phase of a function call starts when the called function is returned
+  In other words, when a function call is returned, it is possible that it hasn't exited yet.

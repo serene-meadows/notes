@@ -1,0 +1,101 @@
+-- type
+--
+  we can use `type` keyword to create 
+    defined/ custom types 
+    aliases
+
+
+
+
+
+-- aliases
+--
+  alias is a way to create an alternate name for an existing type
+  they are not new types
+  
+  -- syntax 
+  --
+    type MyAlias = ExistingType
+
+    example
+      ```go
+      // boolean and bool denote the same type.
+      type boolean = bool
+
+      // Text and string denote the same type.
+      type Text = string
+
+      // U8, uint8 and byte denote the same type.
+      type U8 = uint8
+
+      // char, rune and int32 denote the same type.
+      type char = rune
+
+      ```
+
+
+
+
+
+-- defined/ custom types
+-- 
+  unlike an alias 
+  a defined type is distinct 
+
+  -- syntax
+  -- 
+    type MyNewType UnderlyingType
+
+    example 
+      ```go
+        // status and bool are two different types.
+        type status bool
+
+        // MyString and string are two different types.
+        type MyString string
+
+        // Id and uint64 are two different types.
+        type Id uint64
+
+        // real and float32 are two different types.
+        type real float32
+
+      ```
+
+
+
+
+
+-- why use custom types?
+--
+  -- implements type safety
+  -- 
+    for example, 
+      we can create two types, INR and DOLLAR (underlying type int)
+      unless explicitly casting, we will not be able to add them to each other
+      thus preventing bugs
+
+      ```go
+        // distinct types
+        type USD int
+        type INR int
+      
+      ```
+
+  -- it can also be used to add/ extend functionality to types
+  --
+    done by attaching methods to types 
+
+    example
+      ```go
+        // extending functionality   
+        type MyInt int
+        func (mi MyInt) IsZero() bool {
+          return mi == 0
+        }
+
+      ```
+
+
+    
+    

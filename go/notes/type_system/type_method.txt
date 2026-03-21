@@ -1,0 +1,4 @@
+-- methods
+--
+  types can have functions associated to them
+  these are called methods

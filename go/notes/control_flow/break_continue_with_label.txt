@@ -1,0 +1,53 @@
+
+A break or continue statement can also contain a label, but the label is optional
+Generally, break containing labels are used in nested breakable control flow blocks
+continue statements containing labels are used in nested loop control flow blocks.
+
+
+
+
+
+--break with label
+--
+  the label must be declared just before a breakable control flow block
+    which contains the break statement
+  The break statement will make execution jump out of the breakable control flow block, 
+  even if the breakable control flow block is not the innermost breakable control flow block containing break statement.
+
+
+
+
+
+-- continue with label
+--
+  the label must be declared just before a loop control flow block which contains the continue statement
+  The continue statement will end the current loop iteration of the loop control flow block in advance
+  even if the loop control flow block is not the innermost loop control flow block containing the continue statement.
+
+
+
+
+
+example 
+  ```go
+    func FindSmallestPrimeLargerThan(n int) int {
+    Outer:
+      for n++; ; n++{
+        for i := 2; ; i++ {
+          switch {
+          case i * i > n:
+            break Outer
+          case n % i == 0:
+            continue Outer
+          }
+        }
+      }
+      return n
+    }
+
+  ```
+
+
+
+
+

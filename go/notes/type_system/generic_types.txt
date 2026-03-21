@@ -1,0 +1,6 @@
+-- generic types
+--
+  Go supports custom generic types (and functions).
+  A generic type must be instantiated to be used as value types.
+
+  A generic type is a defined type and its instantiated types are named types 

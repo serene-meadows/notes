@@ -1,0 +1,105 @@
+-- syntax
+--
+  for initialization; condition; post {
+    // code block
+  }
+  all 3 
+    initialization, condition, post are optional
+    Unlike many other programming languages, the just mentioned three parts following the for keyword can't be enclosed in a pair of ().
+
+
+  If the InitSimpleStatement and PostSimpleStatement portions are both absent (just view them as blank statements) 
+  their nearby two semicolons can be omitted
+  the form is called as condition-only for loop form
+  It is the same as the while loop in other languages
+    ```go
+      var i = 0
+      for ; i < 10; {
+        fmt.Println(i)
+        i++
+      }
+      for i < 20 {
+        fmt.Println(i)
+        i++
+      }
+
+    ```
+
+
+  if condition is absent, it is treated as true
+    for initialization; ; post {} <-> for initialization; true; post {}
+
+    example 
+    ```go
+      for i := 0; ; i++ { // <=> for i := 0; true; i++ {
+        if i >= 10 {
+          // "break" statement will be explained below.
+          break
+        }
+        fmt.Println(i)
+      }
+
+      // The following 4 endless loops are
+      // equivalent to each other (for most cases).
+      for ; true; {
+      }
+
+      for true {
+      }
+
+      for ; ; {
+      }
+
+      for {
+      }
+
+    ```
+
+
+  -- common types
+  --
+    c-style loop
+      ```go
+        for i := 0; i < 10; i++ {
+          // code block
+        }
+
+      ```
+
+    while loop
+      ```go
+        for i < 10 {
+          // code block
+        }
+
+      ```
+
+    infinite loop
+      ```go
+        for {
+          // code block
+        }
+
+      ```
+
+
+
+
+
+-- shadow condition variable
+--
+  ```go
+    for i := 0; i < 3; i++ {
+      fmt.Print(i)
+
+      // The left i is a new declared variable,
+      // and the right i is the loop variable.
+      i := i
+
+      // The new declared variable is modified, but
+      // the old one (the loop variable) is not yet.
+      i = 10
+      _ = i
+    }
+  ```
+
