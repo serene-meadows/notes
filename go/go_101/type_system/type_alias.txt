@@ -1,0 +1,129 @@
+-- alias
+--
+  A type alias creates a new identifier—an alternative name—for an existing
+  type. The most important rule to remember is:
+    An alias does not create a new type.
+
+
+  The alias and the original type it refers to are completely identical and
+  interchangeable. The compiler treats them as the exact same type.
+
+  
+  -- declaration
+  --
+    The syntax uses an equals sign `=` to signify an alias declaration:
+
+    ```go
+      type AliasName = ExistingType
+
+      // This is distinct from a type definition (`type NewType ExistingType`), which
+      // does create a new, distinct type.
+
+    ```
+
+
+
+
+
+-- Declaration Examples
+--
+  Type aliases can be declared at the package level or within a function body.
+
+  ```go
+    type (
+      // `Name` is just another way to write `string`.
+      Name = string
+      // `Age` is just another way to write `int`.
+      Age = int
+    )
+
+    // The standard library provides a well-known example:
+    // `type byte = uint8`
+    // `type rune = int32`
+
+  ```
+
+
+
+
+
+-- Practical Implications: Interchangeability
+--
+  Since an alias and its original type are identical, no explicit conversion is
+  needed to use them together.
+
+  example
+    ```go
+      // `UserID` is an alias for `int64`. They are the same type.
+      type UserID = int64
+
+      // `Processor` is an alias for a function type.
+      type Processor = func(string) error
+
+      func processItem(p Processor, item string) error {
+        return p(item)
+      }
+
+      func main() {
+        var id int64 = 123
+        var userID UserID = 456
+
+        // No conversion needed. You can assign directly between the original
+        // type and its alias because they are identical.
+        id = userID
+        userID = id
+
+        fmt.Printf("ID: %d, Type: %T\n", id, id)         // ID: 456, Type: int64
+        fmt.Printf("UserID: %d, Type: %T\n", userID, userID) // UserID: 456, Type: int64
+
+        // --- Using a function alias ---
+        myProcessor := func(s string) error {
+          fmt.Printf("Processing item: %s\n", s)
+          return nil
+        }
+        processItem(myProcessor, "widget")
+      }
+
+    ```
+
+
+
+
+
+-- An Important Nuance: Aliasing Unnamed Types
+--
+  This is a key point: a type alias can be given a name, but it might denote
+  an unnamed type
+
+  example
+    ```go
+      // In this example, `table` is an alias for the unnamed map type `map[string]int`.
+      type table = map[string]int
+
+      // Likewise, `Table` is also an alias for an unnamed map type. Even though `Name`
+      // and `Age` are aliases for named types (`string` and `int`), the final composite
+      // type `map[Name]Age` is still an unnamed map type literal.
+      type Table = map[Name]Age
+
+
+      // -- Why does this matter? --
+      // It affects assignability. Because `table` and `Table` both denote identical
+      // unnamed map types, variables of these types can be assigned to each other
+      // without conversion.
+
+      func aliasUnnamedExample() {
+        var m1 table = make(map[string]int)
+        m1["a"] = 1
+
+        var m2 Table
+        m2 = m1 // SUCCESS: No conversion needed because their underlying
+        //          unnamed types are identical (`map[string]int`).
+
+        fmt.Println(m2)
+      }
+
+    ```
+
+  In summary, the alias provides a convenient "name" to refer to the type,
+  but it doesn't change the underlying type's "named" or "unnamed" status.
+

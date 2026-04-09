@@ -1,0 +1,205 @@
+-- Lengths and Capacities (`len` and `cap`)
+--
+  Go provides two built-in functions to inspect the size of containers:
+  - `len(v)`: Returns the number of elements currently stored in the container.
+  - `cap(v)`: Returns the capacity (the maximum potential size) of the container.
+
+  Both return an `int`. If the argument is a constant, the result is a constant.
+
+
+  -- Arrays (Fixed Size)
+  --
+    Because an array's length is part of its type (e.g., `[5]int`), its
+    length and capacity are ALWAYS equal and can NEVER change at runtime.
+
+
+    example
+      ```go
+        var a [5]int
+        fmt.Printf("Array - len: %d, cap: %d\n", len(a), cap(a)) // len: 5, cap: 5
+
+      ```
+
+
+  -- Maps (Dynamic Length, No Capacity)
+  --
+    Maps grow dynamically as you add items. Conceptually, their capacity is
+    unlimited (bound only by system memory).
+    Therefore, the `cap()` function is NOT APPLICABLE to maps.
+
+
+    example
+      ```go
+        var m map[int]bool
+        fmt.Printf("Map (nil)   - len: %d\n", len(m)) // len: 0
+
+        m2 := map[int]bool{1: true, 0: false}
+        fmt.Printf("Map (items) - len: %d\n", len(m2)) // len: 2
+
+        // _ = cap(m) // COMPILE ERROR: invalid argument m (type map[int]bool) for cap
+
+      ```
+
+
+  -- Slices (Dynamic Length AND Capacity)
+  --
+    Slices are dynamic windows into an underlying array.
+    - `len`: The number of elements currently visible in the slice's window.
+    - `cap`: The total number of elements in the underlying array, counting
+             from the start of the slice's window to the end of the array.
+
+    For slices, Capacity is ALWAYS >= Length. Both can change at runtime.
+
+
+    example
+      ```go
+        var s[]int // A nil slice
+        fmt.Printf("Slice (nil)   - len: %d, cap: %d\n", len(s), cap(s)) // len: 0, cap: 0
+
+
+        s2 :=[]int{2, 3, 5} // An initialized slice
+        fmt.Printf("Slice (items) - len: %d, cap: %d\n", len(s2), cap(s2)) // len: 3, cap: 3
+
+
+        // We create an array of 5 elements.
+        underlyingArray := [5]int{10, 20, 30, 40, 50}
+
+
+        // We create a slice that "looks" at indices 1 and 2 (values 20, 30).
+        windowSlice := underlyingArray[1:3]
+
+
+        // The length is 2 (it contains two items: 20, 30).
+        // The capacity is 4 (from index 1 to the end of the array: 20, 30, 40, 50).
+        // This means the slice can safely "grow" up to 2 more elements without
+        // needing to allocate new memory.
+        fmt.Printf("Slice (window)- len: %d, cap: %d\n", len(windowSlice), cap(windowSlice))
+
+      ```
+
+
+
+
+
+
+-- Internal Structure Definition of Slice Types
+--
+  the internal structure of slice types defined by the standard Go compiler/runtime is like
+
+    ```go
+      type _slice struct {
+        elements unsafe.Pointer // referencing underlying elements
+        len      int            // length
+        cap      int            // capacity
+      }
+
+    ```
+
+
+
+
+
+-- Slice Memory Layout & Append Mechanics
+--
+  -- The Slice "Header" (Direct Part)
+  --
+    As discussed previously, a slice is just a small "header" (the direct part) 
+    that describes a contiguous section of a backing array (the indirect part).
+
+    At runtime, a slice header consists of exactly three fields:
+    1. A Pointer: Points to the first element of the underlying array that this
+       slice can "see".
+    2. Length (`len`): The number of active, accessible elements in the slice.
+    3. Capacity (`cap`): The total number of elements in the underlying array,
+       counting from the pointer to the very end of the allocated memory block.
+
+
+  -- The "Window" and Redundant Slots
+  --
+    You can think of a slice as a "window" looking into a larger array.
+
+    - The elements from index `0` to `len - 1` belong to the slice.
+    - The elements from index `len` to `cap - 1` are "redundant" or hidden slots.
+      The current slice cannot directly read or write them, but the memory is
+      reserved for future growth.
+    - WARNING: Those hidden slots might actually be active elements belonging to
+      a DIFFERENT slice that shares the same underlying array!
+
+
+  -- The `append()` Function
+  --
+    The built-in `append()` function adds new elements to the end of a slice.
+    Because slices are just headers, `append` always returns a NEW slice header
+    (which you typically assign back to the original variable).
+
+      `s = append(s, 10, 20)`
+
+
+    The most important question `append` asks is:
+    "Does the base slice have enough capacity to hold these new elements?"
+
+    -- The Two Scenarios of Append (Shared vs. New Memory)
+    --
+      -- Scenario A: Sufficient Capacity (In-Place Append)
+      --
+        If (number of new elements) <= (cap - len):
+        - NO new memory is allocated.
+        - `append` simply places the new elements into the "hidden slots" of the
+          existing underlying array.
+        - The returned slice and the original slice SHARE the same underlying memory.
+
+    -- Scenario B: Insufficient Capacity (Reallocation)
+    --
+      If (number of new elements) > (cap - len):
+      - The underlying array is full. `append` CANNOT fit the new elements.
+      - Go allocates a brand NEW, larger underlying array somewhere else in memory.
+      - It copies all the old elements over, adds the new ones, and returns a slice
+        pointing to the NEW array.
+      - The returned slice and the original slice DO NOT share memory anymore.
+
+
+  -- example
+  --
+    ```go
+      // Create a slice with Length 2, Capacity 4.
+      // We use make() to explicitly set len and cap.
+      baseSlice := make([]int, 2, 4)
+      baseSlice[0] = 10
+      baseSlice[1] = 20
+      
+
+      fmt.Printf("Base   - len: %d, cap: %d, data: %v\n", len(baseSlice), cap(baseSlice), baseSlice)
+
+
+      // -- SCENARIO A: Sufficient Capacity 
+      // We append 1 element. We have 2 empty slots in capacity, so it fits.
+      // `sharedSlice` and `baseSlice` will point to the SAME underlying array.
+      sharedSlice := append(baseSlice, 30)
+
+
+      // If we mutate the shared portion, it affects both!
+      sharedSlice[0] = 999 
+
+
+      fmt.Println("\n-- After appending 1 element (fits in capacity)")
+      fmt.Printf("Base   - len: %d, cap: %d, data: %v  <-- Notice index 0 changed!\n", len(baseSlice), cap(baseSlice), baseSlice)
+      fmt.Printf("Shared - len: %d, cap: %d, data: %v\n", len(sharedSlice), cap(sharedSlice), sharedSlice)
+
+
+      // -- SCENARIO B: Insufficient Capacity 
+      // We append 3 elements to `baseSlice`. 
+      // `baseSlice` only has 2 empty slots left in its capacity. IT DOES NOT FIT.
+      // Go allocates a completely new array for `newSlice`.
+      newSlice := append(baseSlice, 40, 50, 60)
+
+
+      // If we mutate `newSlice`, it does NOT affect `baseSlice` anymore, 
+      // because they point to different memory locations.
+      newSlice[1] = 777 
+
+
+      fmt.Println("\n-- After appending 3 elements (exceeds capacity)")
+      fmt.Printf("Base   - len: %d, cap: %d, data: %v  <-- Unaffected by newSlice mutation!\n", len(baseSlice), cap(baseSlice), baseSlice)
+      fmt.Printf("New    - len: %d, cap: %d, data: %v\n", len(newSlice), cap(newSlice), newSlice)
+
+    ```

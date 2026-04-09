@@ -1,0 +1,141 @@
+-- Memory and Addresses
+--
+  -- Memory Address 
+  --
+    A memory address is stored as an unsigned native integer word. 
+    - On 32-bit architectures, a word is 4 bytes. Theoretical limit: 2^32 bytes (4GB).
+    - On 64-bit architectures, a word is 8 bytes. Theoretical limit: 2^64 bytes (16EB).
+
+    Addresses are usually represented in hexadecimal format (e.g., `0x1234CDEF`).
+  
+
+  -- Value Address
+  --
+    When a variable is declared, Go allocates a block of memory for it. The 
+    "address of a value" refers to the starting memory address of the direct
+    part of that value.
+
+
+
+
+
+-- Pointers: The Basics
+--
+  A pointer is a variable that stores the memory address of another value
+  It "references" that other value.
+  
+
+  -- Pointer Types (`*T`)
+  --
+    An unnamed pointer type is written as `*T`, where `T` is the "base type".
+    A pointer of type `*T` can ONLY store the memory address of a value of type `T`.
+
+
+  -- Named vs. Unnamed Pointer Types 
+  --
+    While you can create named pointer types (`type Ptr *int`), it is generally 
+    discouraged in Go. Unnamed pointer types (`*int`) are heavily preferred for 
+    readability and simplicity.
+
+
+  -- The Zero Value
+  --
+    The zero value for any pointer type is `nil`. A `nil` pointer does not 
+    hold a valid memory address.
+
+
+
+
+
+-- Addressability
+--
+  To get the address of a value, that value must be "addressable" (hosted 
+  somewhere in memory that we are allowed to point to).
+
+
+  - Addressable: Variables (`var x int = 5`).
+  - Unaddressable: Constants (`const x = 5`), literal values (`123`, `"hi"`), 
+    function call return values, and results of explicit type conversions.
+
+
+
+
+
+-- Getting and Using Pointers
+--
+  --  Way 1: The Address-Of Operator (`&`)
+  --
+    ```go
+      // Use `&` before an addressable value to get its memory address.
+      var x int = 10
+      var p1 *int = &x // p1 now holds the address of x. 
+
+    ```
+
+
+  -- Way 2: The `new` Function
+  --
+    ```go
+      // `new(T)` allocates memory for a zero value of type `T` and returns a 
+      // pointer (`*T`) to that memory.
+      var p2 *int = new(int) // p2 points to a newly allocated integer (value 0)
+
+    ```
+
+
+  -- Dereferencing (`*`)
+  --
+    ```go
+      // Use `*` before a pointer to access or modify the value at that address.
+      // WARNING: Dereferencing a `nil` pointer causes a runtime panic!
+
+      *p2 = 123 // Set the value at the address p2 points to.
+
+      fmt.Printf("p1 points to value: %d\n", *p1) // Output: 10
+      fmt.Printf("p2 points to value: %d\n", *p2) // Output: 123
+
+      // Pointers can be compared. They are equal if they point to the same address.
+      p3 := &x
+      fmt.Println(p1 == p3) // Output: true (both point to x)
+
+    ```
+
+
+
+
+
+-- Pointers and Function Arguments (Pass-by-Value)
+--
+  CRITICAL RULE: In Go, ALL assignments and function argument passing are 
+  "pass-by-value" (a shallow copy is made). 
+
+
+  If you pass a variable to a function, the function gets a copy of that value
+  If you want a function to modify the original variable, you MUST pass a pointer.
+
+
+  example - The Problem: Passing by Value
+    ```go
+      func failDouble(n int) {
+        n += n // Only modifies the local copy of 'n'.
+      }
+
+    ```
+
+  example - The Solution: Passing a Pointer
+    ```go
+      func successDouble(n *int) {
+        *n += *n // Dereferences the pointer to modify the original value.
+        
+        // Interestingly, modifying the pointer *itself* locally does nothing to the caller.
+        // `n` is just a copied memory address. Setting the copy to nil has no effect 
+        // outside this function.
+        n = nil 
+      }
+
+    ```
+
+
+
+
+

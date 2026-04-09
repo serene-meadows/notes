@@ -1,0 +1,280 @@
+-- The Core Rule: Operand Type Requirements
+--
+  Binary operators generally require their two operands to be of the SAME type.
+  Go's strict type system manages this through implicit conversions of untyped values
+
+
+  -- Scenario A: Both Operands are Typed
+  -- 
+    They MUST be the exact same type.
+
+      ```go
+        var a int32 = 5; var b int64 = 10; 
+         _ = a + b // COMPILE ERROR: mismatched types
+
+      ```
+
+
+  -- Scenario B: One Typed, One Untyped (Constant)
+  --
+    The untyped operand must be representable as the type of the typed operand.
+
+      ```go
+        var a int32 = 5
+        _ = a + 10 // OK: untyped `10` is implicitly converted to int32.
+
+      ```
+
+
+  -- Scenario C: Both Untyped
+  --
+    They must be compatible (both numeric, both strings, or both booleans).
+    The result is an untyped value.
+      ```go
+        _ = 3.14 + 10 // OK: Result is untyped float (13.14)
+
+      ```
+
+
+
+
+
+-- Constant Expressions
+--
+  - If ALL operands in an expression are constants, it is a "Constant Expression".
+  - Evaluated entirely at COMPILE TIME with high precision.
+  - The result of a constant expression is always another constant.
+  - If even ONE operand is a runtime variable, it becomes a non-constant expression.
+
+
+
+
+
+-- Arithmetic Operators
+--
+  +----------+----------------+-----------------------------------------------+
+  | Operator | Name           | Requirements                                  |
+  +----------+----------------+-----------------------------------------------+
+  |   + -    | Add / Subtract | Both operands must be the same basic          |
+  |   * /    | Mult / Div     | numeric type (int, float, complex).           |
+  +----------+----------------+-----------------------------------------------+
+  |    %     | Remainder      | Both operands must be the same INTEGER type.  |
+  +----------+----------------+-----------------------------------------------+
+
+
+  -- Unary Operators
+  --
+    `+n` (Positive): Equivalent to 0 + n
+    `-n` (Negative): Equivalent to 0 - n
+    `^n` (Bitwise NOT): Equivalent to m ^ n (where m is a mask of all 1-bits).
+    Note: Go does NOT have a power operator (`**`). Use `math.Pow()`.
+
+
+  example
+    ```go
+      var a, b float32 = 12.0, 3.14
+      var c, d int16 = 15, -6
+
+      _ = a * b    // OK: Typed floats
+      _ = c % d    // OK: Typed integers
+      _ = 12 - a   // OK: Untyped 12 converts to float32
+      _ = 12 + 'A' // OK: Two untyped numerics (12 + 65 = 77)
+
+      // _ = a % b // ERROR: floats cannot use remainder operator
+      // _ = c + a // ERROR: mismatched types (int16 and float32)
+
+    ```
+
+
+
+
+
+-- Bitwise Operators
+--
+  +----------+---------------+------------------------------------------------+
+  | Operator | Name          | Example (Binary subscripts)                    |
+  +----------+---------------+------------------------------------------------+
+  |    &     | Bitwise AND   | 1100₂ & 1010₂  -> 1000₂                        |
+  |    |     | Bitwise OR    | 1100₂ | 1010₂  -> 1111₂                        |
+  |    ^     | Bitwise XOR   | 1100₂ ^ 1010₂  -> 0110₂                        |
+  |    &^    | Bitwise CLEAR | 1100₂ &^ 1010₂ -> 0100₂ (AND NOT)              |
+  +----------+---------------+------------------------------------------------+
+
+  Note: The above operators require both operands to be the same INTEGER type.
+
+
+  -- Shift Operators (<< and >>)
+  --
+    Left operand: The integer being shifted.
+    Right operand: The shift count (must be a non-negative integer).
+    Note: Types do NOT need to be identical!
+
+    Note: Right shift fills freed bits with the "sign bit" (highest bit).                            |
+    Example: int8 value -128 (10000000₂) >> 2 results in 11100000₂ (-32). 
+
+
+  example
+    ```go
+      var val int8 = -128 // 10000000₂
+      var shift uint8 = 2
+
+      // Right shift fills freed bits with the "sign bit" for signed integers.
+      _ = val >> shift // 11100000₂ (-32)
+
+      // _ = val << -1 // ERROR: right operand must not be negative
+
+    ```
+
+
+  -- The Shift Operator Typing Trap
+  --
+    Shift operations have highly specific type deduction rules when the left
+    operand is an untyped constant.
+
+
+    If `var = untyped << runtime_variable`:
+    The untyped constant defaults to `int` BEFORE the shift happens.
+
+
+    ```go
+      const constShift = uint(2)
+      var runtimeShift = uint(2)
+
+      // -- Scenario 1: Shift count is a CONSTANT --
+      // The compiler looks ahead. `1` becomes a float64 directly.
+      var _ float64 = 1 << constShift // OK -> float64(4.0)
+
+      // -- Scenario 2: Shift count is a RUNTIME VARIABLE --
+      // The compiler evaluates `1 << runtimeShift` strictly as an integer operation.
+      // `1` defaults to `int`. 
+      // Then it tries to assign an `int` to a `float64`, which fails.
+      
+      // var _ float64 = 1 << runtimeShift // COMPILE ERROR: cannot use int as float64
+
+      // The Fix: Explicitly type the left operand first.
+      var _ = float64(1) << runtimeShift // OK
+
+    ```
+
+      
+
+
+
+-- The Overflow Rules
+--
+  Rule 1: TYPED Constants CANNOT overflow.
+    ```go
+      const x int8 = 128 // ERROR: 128 overflows int8
+
+    ```
+
+
+  Rule 2: NON-CONSTANTS silently wrap around / truncate.
+    ```go
+      var a uint8 = 255
+      var b uint8 = 1
+      var c = a + b // OK: c == 0 (Wraps around)
+      _ = c
+
+    ```
+
+
+  Rule 3: UNTYPED Constants CAN overflow their default types, as long as 
+    they fit into the final typed destination.
+
+    ```go
+      const Huge = 0x1FFFFFFFF * 0x1FFFFFFFF // Overflows int, but legal as an untyped constant.
+      // var e int = Huge // ERROR: now it tries to fit into `int` and fails.
+
+    ```
+
+
+
+
+
+
+-- Division and Remainder Edge Cases
+--
+  - Integer Division (`x / y`): Truncates towards zero.
+  - Remainder (`x % y`): The sign of the result matches the dividend (`x`).
+
+    e.g.,  -5 % 3 == -2   |   5 % -3 == 2
+
+  - Divide by Zero:
+    - Integers: Triggers a runtime PANIC.
+    - Floats: Returns `+Inf`, `-Inf`, or `NaN` (0.0 / 0.0).
+
+
+
+
+
+-- Statements vs Expressions (`++`, `--`, `op=`)
+--
+  `+=`, `-=`, etc. are standard assignment shortcuts.
+  `x op= y` is equivalent to `x = x op y`.
+
+
+  `++` and `--` are STATEMENTS in Go, not expressions.
+  They do not return a value. They MUST follow the operand.
+
+
+  ```go
+    a := 10
+    a++ // OK: a is now 11
+
+    // b := a++ // ERROR: a++ yields no value
+    // ++a      // ERROR: unexpected ++ (prefix notation not allowed in Go)
+
+  ```
+
+
+
+
+
+-- String and Boolean Operators
+--
+  -- String Concatenation
+  --
+    `+` concatenates strings. Both operands must be strings.
+
+
+  -- Boolean Operators (`&&`, `||`, `!`)
+  --
+    Go guarantees SHORT-CIRCUIT evaluation:
+      `A && B`: If A is false, B is NEVER evaluated.
+      `A || B`: If A is true, B is NEVER evaluated.
+
+
+
+
+
+--  Comparison Operators (`==`, `!=`, `<`, `>`, `<=`, `>=`)
+--
+  The result of any comparison is ALWAYS an untyped boolean.
+  `==` and `!=` apply to all comparable types (including structs/arrays).
+  `<`, `>`, `<=`, `>=` apply only to ordered types (numbers and strings).
+
+
+  Warning: Comparing floating-point numbers with `==` is unreliable due to 
+  precision loss. Compare their absolute difference against a small threshold instead.
+
+
+
+
+
+-- Operator Precedence
+--
+  Precedence levels (highest to lowest):
+  5.  *   /   %   <<  >>  &   &^
+  4.  +   -   |   ^
+  3.  ==  !=  <   <=  >   >=
+  2.  &&
+  1.  ||
+
+  TRAP: In Go, shifts (`<<`, `>>`) have the SAME high precedence as multiplication.
+
+
+
+
+
+  

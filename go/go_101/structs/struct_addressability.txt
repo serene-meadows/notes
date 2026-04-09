@@ -1,0 +1,131 @@
+-- Struct Field Addressability
+--
+  "Addressability" in Go refers to whether a value has a reachable memory
+  location that you can point to using the address-of operator (`&`).
+  Generally, variables are addressable, while constants and literals are not.
+  
+
+
+
+
+-- The Cascade Rule of Addressability
+--
+  The addressability of a struct's fields is directly tied to the addressability
+  of the struct itself.
+
+  Rule A:
+    If a struct value IS addressable (e.g., it's a variable), then
+    all of its fields are also addressable.
+
+
+  Rule B:
+    If a struct value IS NOT addressable (e.g., it's a literal or a
+    return value), then its fields are NOT addressable. Unaddressable fields
+    cannot be modified.
+
+
+  example
+    ```go
+      type Book struct {
+        Pages int
+      }
+
+      func addressableExample() {
+        // `book` is a variable, therefore it is stored in memory and is ADDRESSABLE.
+        var book = Book{}
+
+        // Because `book` is addressable, its field `book.Pages` is also addressable.
+        // We can safely take its address using `&`.
+        p := &book.Pages
+
+        // We can mutate the field through the pointer.
+        *p = 123
+        fmt.Println(book) // Output: {123}
+      }
+
+    ```
+
+
+
+
+
+-- Unaddressable Structs (Composite Literals)
+--
+  All composite literals, including struct literals like `Book{}`, are
+  UNADDRESSABLE. They represent a value in transit, not a fixed memory location.
+
+  Because the literal is unaddressable, you cannot modify its fields directly
+  or take the address of its fields.
+
+
+  example
+    ```go
+      type Book struct {
+        Pages int
+      }
+
+
+      func unaddressableExample() {
+        // -- ILLEGAL MODIFICATION --
+        // Book{} creates a temporary, unaddressable value. We cannot assign to its fields.
+        // Book{}.Pages = 123 // COMPILE ERROR: cannot assign to Book{}.Pages
+
+        // -- ILLEGAL ADDRESSING --
+        // Operator Precedence Note: The dot operator (`.`) has higher precedence
+        // than the address-of operator (`&`).
+        // Therefore, `&Book{}.Pages` is evaluated as `&(Book{}.Pages)`.
+
+        // Since `Book{}` is unaddressable, `Book{}.Pages` is unaddressable,
+        // making it illegal to apply `&` to it.
+        // p := &Book{}.Pages // COMPILE ERROR: cannot take the address of Book{}.Pages
+      }
+
+    ```
+
+
+
+
+
+-- The Syntactic Sugar Exception (`&CompositeLiteral{}`)
+--
+  As established, composite literals (`Book{}`) are unaddressable.
+  However, Go provides a highly convenient exception (syntactic sugar) that
+  allows you to prepend `&` directly to a composite literal.
+
+
+  How it works:
+    When the compiler sees `&Book{100}`, it secretly creates a hidden, addressable
+    temporary variable, assigns the literal to it, and then returns the address
+    of that temporary variable.
+
+  
+  example
+    ```go
+      type Book struct {
+        Pages int
+      }
+
+
+      func syntacticSugarExample() {
+        // `Book{100}` alone is unaddressable.
+        // But `&Book{100}` is perfectly legal Go.
+        p := &Book{Pages: 100}
+
+        // Under the hood, the Go compiler translates the above line into something like this:
+        // tmp := Book{Pages: 100}
+        // p := &tmp
+
+        // Because `p` points to a real (albeit hidden) variable in memory,
+        // we can freely mutate its fields (utilizing Go's implicit dereferencing).
+        p.Pages = 200
+
+        fmt.Println(p.Pages) // Output: 200
+      }
+
+    ```
+  
+    
+
+
+
+

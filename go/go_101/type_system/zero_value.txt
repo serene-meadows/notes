@@ -1,0 +1,126 @@
+-- The Core Concept
+--
+  In Go, every variable that is declared without an explicit initial value is
+  automatically initialized to its zero value. This ensures that variables
+  always start in a predictable, usable state, preventing bugs from uninitialized
+  memory
+
+  Note: This concept applies to variables only. Constants must be initialized
+  at declaration and therefore do not have a "zero value" in this context.
+
+
+
+
+
+-- Zero Values for Basic Types
+--
+  - Booleans: `false`
+    - `var b bool` // b is false
+
+
+  - Numeric Types: `0`
+    - `var i int`      // i is 0
+    - `var f float64`  // f is 0.0
+    - `var c complex128` // c is (0+0i)
+
+
+  - String Type: `""` (the empty string)
+    - `var s string` // s is ""
+
+
+
+
+
+-- Zero Values for Composite Value Types (Recursive)
+--
+  For arrays and structs, the zero value is created by recursively setting each
+  element or field to its own zero value. The container itself is not `nil`.
+
+
+  -- arrays
+  --
+    The zero value is an array where every element is set to its
+    element type's zero value.
+      - `var a [3]int` // a is [0, 0, 0]
+
+
+  -- structs
+  --
+    The zero value is a struct where every field is set to its
+    field type's zero value.
+
+      ```go
+        type User struct { Name string; Age int }
+        var u User // u is User{Name: "", Age: 0}
+
+      ```
+
+
+
+
+
+-- `nil`: The Zero Value for Reference Types
+--
+  For types that act as headers, descriptors, or pointers to underlying data
+  structures, the zero value is `nil`. A `nil` value indicates an uninitialized,
+  "zero" state for that type.
+
+
+  -- slices
+  --
+    A `nil` slice has a length and capacity of 0 and does not point
+    to any underlying array.
+
+      - `var s []int` // s is nil
+
+
+  -- maps
+  --
+    A `nil` map is empty. You can read from a nil map (which will always
+    return the zero value for the value type), but writing to it will cause a panic.
+
+      - `var m map[string]int` // m is nil
+  
+
+  -- channels
+  --
+    A `nil` channel is unusable. Reads and writes will block forever.
+
+      - `var c chan bool` // c is nil
+
+
+  -- pointers
+  -- 
+    A `nil` pointer does not point to any memory location.
+
+      - `var p *int` // p is nil
+
+
+  -- functions
+  --
+    A `nil` function variable has no function assigned to it.
+    Calling it will cause a panic.
+
+      - `var f func()` // f is nil
+
+
+  -- interfaces
+  --
+    A `nil` interface has both its dynamic type and dynamic value
+    set to `nil`.
+
+    - `var i interface{}` // i is nil
+    - `var err error`     // err is nil (since error is an interface type)
+
+
+
+
+
+-- Practical Application: JSON Unmarshalling
+--
+  Zero values are particularly important when working with external data, like JSON.
+  When you unmarshal JSON data into a struct, any fields defined in the struct
+  but missing from the JSON data will be left with their zero value. This provides
+  a predictable default state.
+
+

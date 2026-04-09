@@ -1,0 +1,164 @@
+-- named/ unnamed types
+--
+  Go's type system makes a crucial distinction between "named" and "unnamed"
+  types. Understanding this difference is key to mastering Go's rules for
+  type identity, assignment, and conversion.
+
+
+
+
+
+-- named types / defined type
+--
+  a named type is any type that is identified by a name (an identifier). If you
+  can refer to the type with a single word, it is a named type.
+
+  This category includes:
+    1.  Predeclared Types: The built-in types provided by the language, such
+        as `int`, `string`, `bool`, `float64`, `error`, etc.
+    2.  Defined Types: Any type you create using the `type` keyword. 
+    3.  Generic Type Instantiations: A generic type that has been given
+        concrete type arguments (e.g., `Stack[int]`).
+    4.  Type Parameters: The placeholder in a generic definition (e.g., `T` in
+        `func Print[T any](v T)`).
+
+
+  example 
+    ```go
+      type Age int       // `Age` is a new named type with an underlying type of `int`.
+      type Score float64 // `Score` is a new named type.
+
+      type User struct { // `User` is a new named type.
+        Name string
+      }
+
+    ```
+
+
+  Note: A type alias (`type Name = string`) does NOT create a new named type.
+  It simply creates another identifier for the same, original type.
+
+
+
+
+
+-- unnamed type
+--
+  an unnamed type, is a type that is not given a name and is instead defined
+  directly by its structure using a type literal. All unnamed types are
+  composite types
+
+
+  This category includes most composite type declarations where `type` is not used:
+    - Pointers: `*int`, `*User`
+    - Slices: `[]string`, `[]int`
+    - Maps: `map[string]int`
+    - Channels: `chan bool`
+    - Arrays: `[5]int`
+    - Functions: `func(int) string`
+    - Inline Structs: `struct{ ID int }`
+  
+
+  example
+    ```go
+      // The variable `p` has the unnamed type `*int`.
+      var p *int
+
+      // The variable `users` has the unnamed type `[]User`.
+      var users []User
+
+    ```
+
+
+
+  
+
+-- implications
+--
+  The distinction between named and unnamed types directly impacts how the Go
+  compiler handles type identity and assignment.
+
+
+  Rule 1: Different Named Types are Always Distinct
+    Two different named types are never considered identical, even if they share
+    the same underlying structure. Therefore, you must use an explicit type
+    conversion to assign a value from one to the other.
+
+
+    example 
+      ```go
+        func namedTypeExample() {
+          type MyInt int
+          var a int = 10
+          var b MyInt = 20
+
+          // a = b // COMPILE ERROR: cannot use b (type MyInt) as type int in assignment
+          a = int(b) // OK: Explicit conversion is required.
+          _ = a
+        }
+
+      ```
+
+  Rule 2: Unnamed Types are More Flexible
+    A value of an unnamed type can be assigned to a variable of a named type (and
+    vice versa) without an explicit conversion, provided their underlying type
+    literals are structurally identical.
+
+    This is most commonly seen with inline struct literals.
+
+
+    example 
+      ```go
+        func unnamedTypeExample() {
+          // `User` is a NAMED type.
+          type User struct {
+            Name string
+            Age  int
+          }
+
+          // The variable `admin` has an UNNAMED struct type defined by a literal.
+          // Its structure is identical to the `User` struct.
+          admin := struct {
+            Name string
+            Age  int
+          }{
+            Name: "Alice",
+            Age:  30,
+          }
+
+          // We can assign the unnamed struct `admin` to the named `User` variable `u`
+          // because their underlying structures match perfectly.
+          var u User
+          u = admin // SUCCESS: Assignment is allowed without conversion.
+
+          // The reverse is also true.
+          var admin2 = u // SUCCESS
+          _ = admin2
+        }
+
+      ```
+
+  Rule 3: All Variables of the Same Unnamed Type are Identical
+    If you declare multiple variables using the same unnamed type literal, the
+    compiler considers them to have the same type.
+
+
+    example 
+      ```go
+        func identicalUnnamedTypes() {
+          // `p1` and `p2` have the same unnamed type: `struct{ ID int }`
+          var p1 = struct{ ID int }{ID: 1}
+          var p2 = struct{ ID int }{ID: 2}
+
+          p1 = p2 // SUCCESS: This is a valid assignment.
+          _ = p1
+        }
+
+      ```
+
+
+
+
+
+
+-- defined types/ named type

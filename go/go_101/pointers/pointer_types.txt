@@ -1,0 +1,15 @@
+-- two types of pointers
+--
+  type-safe pointers
+  type-unsafe pointers
+
+
+
+
+
+-- type-unsafe pointers
+--
+  unsafe.Pointer provided by the unsafe standard package
+  is like void* in C
+
+// todo

@@ -1,0 +1,237 @@
+-- declaration
+--
+  the keyword const is used to declare named constants
+
+
+  -- untyped constants
+  --
+    An untyped constant is a constant whose type is not explicitly specified.
+    The compiler infers a default type from the literal value assigned. This
+    provides flexibility as the constant can be used where a value of any
+    compatible type is needed.
+
+
+    // declaring constants in one line
+      ```go
+        const Yes, No = true, false
+        const TwoPi, HalfPi, Unit2 = π * 2, π * 0.5, "degree"
+
+
+        // non-ASCII letters can be used in identifiers.
+        const π = 3.1416
+        const Pi = π // <=> const Pi = 3.1416
+      ```
+
+
+    // Declare multiple constants in a group.
+    ```go
+      const (
+        No         = !Yes
+        Yes        = true
+        MaxDegrees = 360
+        Unit       = "radian"
+      )
+    ```
+
+
+  -- typed constants
+  --
+    A typed constant is a constant that has been explicitly given a type at
+    declaration. The value assigned to it must be representable by that type,
+    otherwise a compile-time error will occur.
+
+
+    example - typed constants - OK
+      ```go
+        const X float32 = 3.14
+
+        const (
+          A, B int64   = -3, 5
+          Y    float32 = 2.718
+        )
+
+      ```
+        // the above example is equivalent to
+          ```go
+            const X = float32(3.14)
+
+            const (
+              A, B = int64(-3), int64(5)
+              Y    = float32(2.718)
+            )
+
+          ```
+
+
+    example - typed constants - ERR
+      ```go
+        // The compiler will enforce type constraints at declaration time.
+
+
+        // error: 256 overflows uint8
+        const a uint8 = 256
+
+        // error: 256 overflows uint8
+        const b = uint8(255) + uint8(1)
+
+        // error: 128 overflows int8
+        const c = int8(-128) / int8(-1)
+
+        // error: -1 overflows uint
+        const MaxUint_a = uint(^0)
+
+        // error: -1 overflows uint
+        const MaxUint_b uint = ^0
+        // the reason ^0 gives -1, even though the consxt is uint(...)
+        // its because the default type of a number is int, and since ^0 is an operation
+        // it will use the default value of int (signed) which leads to -1, which not convertible
+        // to uint
+
+      ```
+
+
+
+
+
+-- scope of constants
+--
+  constants can be declared both at package level (out of any function body)
+  and in function bodies
+
+  constants declared in function bodies are called local constants
+  and those declared at package level are called package level constants or global constants
+
+  The declaration orders of two package-level constants are not important.
+
+
+
+
+
+-- semantics
+--
+  The `=` symbol in a constant declaration represents a "bind" operation, not an
+  "assignment". This means the identifier (the constant's name) becomes a
+  compile-time alias for the literal value. The value is substituted directly
+  into the code wherever the constant is used.
+
+
+
+
+
+-- autocomplete in constant block declaration
+--
+  Within a `const (...)` block, you can omit the value and type for constants
+  after the first one. The compiler will automatically "copy" the expression
+  from the first preceding complete declaration.
+
+
+  example
+    ```go
+      const (
+        X float32 = 3.14
+        Y           // Y float32 = 3.14
+        Z           // Z float32 = 3.14
+
+
+        A, B = "Go", "language"
+        C, _        // C, _ = "Go", "language" (blank identifier is required here)
+      )
+
+    ```
+      // the previous code is equivalent to
+        ```go
+          const (
+            X float32 = 3.14
+            Y float32 = 3.14
+            Z float32 = 3.14
+
+            A, B = "Go", "language"
+            C, _ = "Go", "language"
+          )
+
+        ```
+
+
+
+
+
+-- autocomplete enhanced with iota
+--
+  `iota` is a special predeclared identifier that simplifies the definition of
+  incrementing constants, often used for creating enumerations (enums).
+
+  Key Properties of `iota`:
+    1. Reset on `const`: `iota` is reset to 0 every time the `const` keyword appears.
+    2. Increments by Line: It increments by 1 for each subsequent constant
+       specification (each line) within the block.
+    3. Expression Reuse: It is often used in combination with the auto-completion
+       feature, where the expression involving `iota` is repeated for subsequent lines.
+
+
+  -- example
+  --
+    ```go
+      const (
+        Sunday = iota // Sunday = 0
+        Monday        // Monday = 1 (expression `iota` is reused)
+        Tuesday       // Tuesday = 2
+        Wednesday     // Wednesday = 3
+        Thursday      // Thursday = 4
+        Friday        // Friday = 5
+        Saturday      // Saturday = 6
+      )
+
+
+      // `iota` resets in a new `const` block.
+      const (
+        First  = iota // First = 0
+        Second        // Second = 1
+      )
+
+    ```
+
+
+  -- example - using a custom starting value
+  --
+    ```go
+      const (
+        StatusFailed  = iota - 1 // StatusFailed = 0 - 1 = -1
+        StatusUnknown            // StatusUnknown = 1 - 1 = 0
+        StatusSuccess            // StatusSuccess = 2 - 1 = 1
+      )
+
+    ```
+
+
+  -- example - Creating bitmasks for permissions using bit-shifting
+  --
+    ```go
+      const (
+        // The expression `1 << iota` is reused for each line.
+        Read    = 1 << iota // 1 << 0 == 1  (binary 001)
+        Write   = 1 << iota // 1 << 1 == 2  (binary 010)
+        Execute = 1 << iota // 1 << 2 == 4  (binary 100)
+      )
+
+    ```
+    
+  
+  example
+    ```go
+      const (
+        k = 3 // now, iota == 0
+
+        m float32 = iota + .5 // m float32 = 1 + .5
+        n                     // n float32 = 2 + .5
+
+        p = 9             // now, iota == 3
+        q = iota * 2      // q = 4 * 2
+        _                 // _ = 5 * 2
+        r                 // r = 6 * 2
+        s, t = iota, iota // s, t = 7, 7
+        u, v              // u, v = 8, 8
+        _, w              // _, w = 9, 9
+      )
+
+    ```
+

@@ -1,0 +1,160 @@
+A Go program initializes its resources in a strict, predictable order. 
+Understanding this order is crucial for preventing subtle bugs, especially
+when dealing with global state and multiple packages.
+
+
+1. Dependency Packages are loaded and initialized.
+2. Package-level variables are evaluated and initialized.
+3. `init()` functions are executed.
+4. The `main()` function begins execution.
+
+
+
+
+
+-- Package Loading Order
+--
+  Go initializes packages using a bottom-up approach based on dependencies.
+  - If Package A imports Package B, Package B is fully initialized BEFORE
+    Package A begins its initialization.
+  - Each package is loaded and initialized ONCE and ONLY ONCE, even if
+    it is imported by multiple other packages.
+  - Standard library packages (like `fmt`) are initialized first.
+
+
+
+
+
+-- Package-Level Variable Initialization
+--
+  Within a single package, all package-level variables are initialized BEFORE 
+  any `init()` function is called.
+
+
+  -- The Dependency Resolution Rule
+  --
+    Go does NOT simply initialize variables from top to bottom. Instead, it 
+    builds a dependency graph. A variable is initialized only AFTER all the
+    variables it depends on have been initialized.
+    If there are no dependencies, declaration order (top-to-bottom) is used.
+
+
+    example
+      ```go
+        package main
+
+        import "fmt"
+
+
+        // `f()` depends on `z` and `y`
+        func f() int { return z + y }
+
+        // `g()` depends on `y`
+        func g() int { return y / 2 }
+
+        var (
+          w       = x
+          x, y, z = f(), 123, g()
+        )
+
+        // -- How the Compiler Resolves the Order: --
+        // 1. Analyze dependencies:
+        //    - `w` depends on `x`.
+        //    - `x` depends on `f()`, which depends on `z` and `y`.
+        //    - `y` is a constant (123). It depends on NOTHING.
+        //    - `z` depends on `g()`, which depends on `y`.
+        //
+        // 2. Initialize from least dependent to most dependent:
+        //    - Step 1: `y` has no dependencies. -> `y = 123`
+        //    - Step 2: `z` only depends on `y` (which is ready). -> `z = g() = 123/2 = 61`
+        //    - Step 3: `x` depends on `z` and `y` (both ready). -> `x = f() = 61 + 123 = 184`
+        //    - Step 4: `w` depends on `x` (which is ready). -> `w = 184`
+        //
+        // Resulting Order: y -> z -> x -> w
+
+      ```
+
+
+
+
+
+-- The `init()` Function
+--
+  `init()` is a special Go function used to set up state prior to execution.
+
+
+  -- Key Rules of `init()`
+  -- 
+    1. You can have MULTIPLE `init()` functions in a single package, and even 
+       multiple `init()` functions in a single file.
+    2. You cannot call `init()` manually in your code; the runtime calls it.
+    3. All `init()` functions run sequentially (one at a time) before `main()
+
+
+  -- Execution Order of `init()`
+  --
+    1. Package Level: Dependency packages run their `init()` functions first.
+    2. File Level (Lexical): Within a package, if `init()` functions are in
+       different files, they are invoked in the alphabetical order of the
+       source file names (e.g., `a.go` runs before `b.go`).
+    3. Declaration Level: Within a single file, multiple `init()` functions
+       are invoked in the order they appear (top to bottom).
+
+
+  -- example
+  --
+    ```go
+      // --- FILE: a.go ---
+      func init() {
+        fmt.Println("This runs first (alphabetical file name).")
+      }
+
+      // --- FILE: b.go ---
+      func init() {
+        fmt.Println("This runs second.")
+      }
+
+      func init() {
+        fmt.Println("This runs third (top-to-bottom within b.go).")
+      }
+
+    ```
+
+
+
+
+
+-- Best Practices
+--
+  Avoid Complex `init()` Logic: Keep `init()` functions simple. They are
+  best used for registering drivers (like SQL drivers), setting up complex
+  static variables, or performing one-time validations.
+
+
+  Never Rely on Cross-File `init()` Order: Relying on the alphabetical 
+  ordering of files for initialization is extremely fragile. If File B depends
+  on File A's `init()` having run, you should explicitly write an initialization
+  function and call it, rather than using `init()`.
+
+
+  No Circular Dependencies: Go strictly forbids circular package imports 
+  (Package A imports B, and B imports A). It also forbids circular variable
+  dependencies (var A = B; var B = A). The compiler will catch these.
+
+
+
+
+
+func main() {
+	// By the time this runs, all dependencies are loaded, package variables 
+	// are evaluated, and all init() functions have finished.
+	fmt.Println("Finally, main() begins!")
+}
+
+
+
+
+
+
+
+

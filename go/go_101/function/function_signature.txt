@@ -1,0 +1,117 @@
+-- The Core Concept: A Function's Blueprint
+--
+  In Go, the "signature" of a function is its formal definition that describes
+  its inputs and outputs. It acts as a blueprint or a contract that defines
+  how to call the function.
+
+
+  -- What's Included
+  --
+    1. The number and types of its input parameters.
+    2. The number and types of its output results.
+
+
+  -- What's NOT Included
+  --
+    1. The function's name.
+    2. The names of the parameters and results.
+    3. The function's implementation (its body).
+
+
+  -- The Function Type
+  --
+    A function's signature defines its "type". Because functions are first-class
+    citizens in Go, you can declare variables of a function type, just as you
+    would an `int` or a `string`.
+
+
+  example
+    ```go
+      // Let's analyze a sample function:
+      func add(x int, y int) int {
+        return x + y
+      }
+
+
+      // The SIGNATURE (and thus, the TYPE) of this function is:
+      //
+      //   func(int, int) int
+      //
+      // It takes two `int` parameters and returns a single `int`.
+
+      // All of the following functions have the EXACT SAME signature and type, even
+      // though their names, parameter names, and implementations are different.
+      // They are all interchangeable and can be assigned to the same function-type variable.
+
+
+      func subtract(a int, b int) int {
+        return a - b
+      }
+
+
+      func multiply(op1, op2 int) (result int) {
+        result = op1 * op2
+        return
+      }
+
+    ```
+
+
+
+
+
+-- example
+--
+  ```go
+    // `binaryOperation` is a variable of a function type.
+    // It can hold ANY function that matches the signature `func(int, int) int`.
+    var binaryOperation func(int, int) int
+
+
+    func main() {
+      // --- Assigning a compatible function ---
+      // The `add` function matches the signature, so this is a valid assignment.
+      binaryOperation = add
+
+
+      // We can now call the function through the variable.
+      result1 := binaryOperation(10, 5)
+      fmt.Printf("Result of add: %d\n", result1) // Output: 15
+
+
+      // --- Assigning another compatible function ---
+      // `subtract` also has the signature `func(int, int) int`.
+      binaryOperation = subtract
+
+      result2 := binaryOperation(10, 5)
+      fmt.Printf("Result of subtract: %d\n", result2) // Output: 5
+
+
+      // --- Assigning an anonymous function ---
+      // An anonymous function (function literal) can also be assigned if it
+      // matches the required signature.
+      binaryOperation = func(i1 int, i2 int) int {
+        return i1 * i2
+      }
+
+
+      result3 := binaryOperation(10, 5)
+      fmt.Printf("Result of anonymous multiply: %d\n", result3) // Output: 50
+
+
+      // --- What WOULDN'T work ---
+      // func sum(nums ...int) int { ... }
+      // binaryOperation = sum // COMPILE ERROR: `sum` has a different signature (variadic)
+    }
+
+
+    func add(x int, y int) int {
+      return x + y
+    }
+
+
+    func subtract(a, b int) int {
+      return a - b
+    }
+
+  ```

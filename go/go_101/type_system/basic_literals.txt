@@ -1,0 +1,339 @@
+-- literal
+--
+  A literal is a notation for representing a fixed value in source code.
+
+
+
+
+
+-- numeric literal
+--
+  -- Improving Readability with Underscores
+  --
+    You can use underscores `_` as separators within numeric literals to improve
+    readability. They have no effect on the value.
+
+    Rules for using `_`:
+      1. Cannot be the first or last character.
+      2. Must be surrounded by valid digits or base prefixes (like `0x`).
+
+      example
+        ```go
+          // OK
+          6_9
+          0_33_77_22
+          0x_Bad_Face
+          0X_1F_FFP-16
+          0b1011_0111 + 0xA_B.Fp2i    // can operate between different literal representations
+
+          // ERR
+          _69        // _ can't appear as the first character
+          69_        // _ can't appear as the last character
+          6__9       // one side of _ is a illegal character
+          0_xBadFace // "x" is not a legal octal digit
+          1_.5       // "." is not a legal octal digit
+          1._5       // "." is not a legal octal digit
+
+        ```
+
+
+  -- Integer literals
+  --
+    Integers can be represented in four different bases.
+      hex          -  base 16
+      decimal      -  base 10
+      octal        -  base 8
+      binary form  -  base 2
+
+      example
+        ```go
+          // All of the following variables hold the decimal value 42.
+          var (
+            // Decimal (base 10): No prefix.
+            dec_val = 42
+
+            // Binary (base 2): Prefix `0b` or `0B`.
+            bin_val = 0b101010
+
+            // Octal (base 8): Prefix `0`, `0o`, or `0O`.
+            oct_val = 0o52
+
+            // Hexadecimal (base 16): Prefix `0x` or `0X`. Digits are 0-9 and a-f.
+            hex_val = 0x2A
+          )
+
+        ```
+
+
+  -- Floating Point Literals
+  --
+    there are two floating value literal values
+      base 10
+      hexadecimal
+
+    -- decimal floats
+    --
+      ```go
+        // Can include a decimal point or use `e`/`E` for scientific notation (power of 10).
+        var (
+          f1 = 1.23
+          f2 = .23
+          f3 = 1.
+          f4 = 1.23e2 // 1.23 * 10^2 = 123.0
+          f5 = 1e-1   // 1.0 * 10^-1 = 0.1
+        )
+
+      ```      
+
+    -- hexa decimal
+    --
+      This form allows for exact representation of floating-point numbers.
+      Format: `0x[significand]p[exponent]`
+      - Significand: A hex number that can have a fractional part.
+      - Exponent: A decimal number representing a power of 2. `p` is used
+        instead of `e` to avoid confusion with the hex digit `e`.
+      - Calculation: significand * 2^exponent
+
+      example
+        ```go
+          var (
+            // 0x1p-2  =>  1 * 2^(-2)  =>  1 * (1/4)  =>  0.25
+            hex_f1 = 0x1p-2
+
+            // 0x1.Fp+0 => (1 + 15/16) * 2^0 => 1.9375 * 1 => 1.9375
+            hex_f2 = 0x1.Fp0
+          )
+
+          // following hex decimals are wrong
+          // mantissa means significand
+          0x.p1    // mantissa has no digits
+          1p-2     // p exponent requires hexadecimal mantissa
+          // following is logical err, the e is interpretted as part of the hex number and 
+          // subtraction takes place
+          0x1.5e-2 // hexadecimal mantissa requires p exponent
+
+        ```
+
+
+
+
+
+-- Rune literals (charater literals)
+--
+  Rune types are an alias for int32
+  so all rune values can be denoted by the integer literals
+
+
+  A `rune` is an alias for `int32` and represents a single Unicode Code Point.
+  A Unicode Code Point is a unique number assigned to every character.
+
+
+  -- rune vs character
+  --
+    While a rune represents a single code point, a visible "character" might be
+    composed of multiple code points (e.g., a letter and a combining accent mark).
+
+    Example: Accents (Combining Marks) 
+      The character é.
+      Two code points: U+0065 (e) + U+0301 (´)
+        ```go
+          s := 'é' // e + combining accent (2 runes)
+          fmt.Println(utf8.RuneCountInString(string(s))) // Output: 2  
+
+        ```
+
+    A rune is the "atomic unit" of Unicode, 
+    but a "character" is a visual concept that might be composed of several of those atomic units.
+    You cannot assume len(string) or even the number of runes equals the number of visible characters.
+
+
+  -- representation forms
+  --
+    
+    // character literal (single quotes)
+    'a'
+
+    // decimal (Unicode code point)
+    97
+
+    // 8-bit octal value (`\ooo`) (exactly 3 octal digits)
+    '\141'
+
+    // 8-bit hexadecimal value (`\xhh`) (exactly 2 hex digits)
+    '\x61'
+
+    // 16-bit hexadecimal Unicode value (`\uhhhh`) (exactly 4 hex digits)
+    '\u0061'
+
+    // 32-bit hexadecimal Unicode value (`\Uhhhhhhhh`) (exactly 8 hex digits)
+    '\U00000061'
+
+
+    example 
+      ```go
+          // following all statements give true
+          println('a' == 97)
+          println('a' == '\141')
+          println('a' == '\x61')
+          println('a' == '\u0061')
+          println('a' == '\U00000061')
+          println(0x61 == '\x61')
+          println('\u4f17' == '众')
+
+        ```
+
+
+  -- special character escape sequence
+  --
+    Backslash `\` is used to create special character values.
+      the first one is the character \
+      the second one is not a digital character, x, u and U
+
+    then the two successive characters will be escaped as one special character
+      \a   (Unicode value 0x07) alert or bell
+      \b   (Unicode value 0x08) backspace
+      \f   (Unicode value 0x0C) form feed
+      \n   (Unicode value 0x0A) line feed or newline
+      \r   (Unicode value 0x0D) carriage return
+      \t   (Unicode value 0x09) horizontal tab
+      \v   (Unicode value 0x0b) vertical tab
+      \\   (Unicode value 0x5c) backslash
+      \'   (Unicode value 0x27) single quote
+
+    example 
+      ```go
+        println('\n') // 10
+        println('\r') // 13
+        println('\'') // 39
+
+        println('\n' == 10)     // true
+        println('\n' == '\x0A') // true
+
+      ```
+
+
+
+
+
+-- String value literals
+--
+  A string in Go is an immutable sequence of bytes. Go source files are UTF-8
+  by default, and string literals are typically UTF-8 encoded text.
+
+
+  -- UTF-8 encoding
+  --
+    UTF-8 is an encoding for Unicode
+    Unicode assigns a unique number (code point) to every character
+
+    UTF-8 defines how those numbers are stored as bytes
+    UTF-8 uses 1 to 4 bytes per character
+
+    english characters - represented by one byte
+    chinese characters - represented by three bytes
+
+  
+  -- Two types of string literals
+  --
+    intepretted form
+    raw form
+
+    -- interpretted form
+    --  
+      Double quotes ("")
+      These strings recognize and process backslash escape sequences like `\n`, `\t`.
+
+
+    -- raw string literals
+    --
+      Backticks (``)
+      These strings treat all characters literally. No escape sequences are processed.
+      They can span multiple lines.
+
+
+    example
+      ```go
+        // interpretted form
+        "Hello \n World"    // '\n' processed as special character
+
+        // raw form
+        `Hello \n World`    // '\n' processed as two seperate chars '\' and 'n'
+
+      ```
+
+
+  -- building string from byte values
+  --
+    Since strings are byte sequences, you can construct them using byte-level
+    escape sequences
+
+    example
+      ```go
+        // The following are all equivalent ways to create the string "abc".
+        var s1 = "abc"
+        var s2 = "\x61\x62\x63"      // Using hex byte values
+        var s3 = "\141\142\143"      // Using octal byte values
+        var s4 = "\x61b\x63"         // Mixing literal chars and escapes
+
+      ```
+
+
+
+
+
+-- complex literals      
+--
+  A complex number literal consists of a real and an imaginary part, with the 
+  imaginary part followed by the suffix `i`.
+
+  ```go
+      var c1 = 3 + 4i       // real=3, imag=4
+      var c2 = 5i           // real=0, imag=5
+      var c3 = 6.2          // real=6.2, imag=0 (a pure float is a valid complex literal)
+
+  ```
+
+
+
+
+
+-- Rules for representability of basic numeric value literals
+-- Rules for representability 
+-- 
+  A literal can only be assigned to a typed constant or variable if its value
+  can be represented by the target type without loss in a way that violates
+  Go's rules.
+
+  Rule 1: 
+    Rounding is NOT allowed when converting a literal to an integer type.
+    It IS allowed when converting to a floating-point or complex type.
+
+  Rule 2: 
+    Each basic numeric type has a representable value range.
+    if a literal overflows the value range of a type, then the literal is not representable as values of the type.
+
+    The literal's value must fit within the target type's range.
+
+
+  example 
+    ```go
+      // Rule 1
+      int(10)     // OK
+      int(10.0)   // OK
+      int(10.5)   // // ERROR: cannot use 10.5 as int (truncation/rounding not allowed)
+      var f1 float32 = 0.5 // OK
+      var f2 float32 = 0.4999999999999999 // OK, will be rounded to 0.5
+
+
+      // Rule 2
+      var u1 uint8 = 255 // OK (max value for uint8)
+      // var u2 uint8 = 256 // ERROR: 256 overflows uint8
+
+      var i8 int8 = 127 // OK (max value for int8)
+      // var i9 int8 = 128 // ERROR: 128 overflows int8
+
+      // float64 can handle huge numbers, but still has limits.
+      var bigFloat float64 = 1e308
+      // var tooBigFloat float64 = 1e309 // ERROR: constant overflows float64
+
+    ```

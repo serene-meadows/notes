@@ -1,0 +1,216 @@
+A `defer` statement defers the execution of a function call until the
+surrounding function has completed its normal execution and entered its
+"exiting phase" (just before it actually returns to the caller).
+
+
+
+
+
+-- The Core Concept & Execution Order (LIFO)
+--
+  When a `defer` statement is encountered, the deferred function call is pushed
+  onto a dedicated "defer-call stack" belonging to the current function.
+
+  Because it acts as a stack, deferred functions are executed in
+  Last-In, First-Out (LIFO) order. The last `defer` pushed is the first to run.
+
+
+  ```go
+    func lifoExample() {
+      defer fmt.Println("1. This runs LAST.")
+      defer fmt.Println("2. This runs SECOND.")
+      defer fmt.Println("3. This runs FIRST.")
+
+      fmt.Println("0. Normal execution finishes first.")
+    }
+    // Expected Output:
+    // 0. Normal execution finishes first.
+    // 3. This runs FIRST.
+    // 2. This runs SECOND.
+    // 1. This runs LAST.
+
+  ```
+
+
+
+
+
+-- Modifying Named Return Values
+--
+  Deferred functions are executed after the `return` statement is evaluated,
+  but before the function actually hands control back to the caller.
+
+  Because closures capture variables by reference, a deferred anonymous function
+  can read and actually MODIFY the named return variables of its parent function.
+
+
+  example
+    ```go
+      func Triple(n int) (r int) {
+        // The deferred closure captures the named return variable `r`.
+        defer func() {
+          r += n // Modifies the return value right before the function exits.
+        }()
+
+
+        // This sets `r` to (n + n), then triggers the exiting phase.
+        // `r` is 10. Then the defer runs, adding 5 to `r`. Final returned value is 15.
+        return n + n
+      }
+
+    ```
+
+
+
+
+
+-- defer evaluation
+--
+    Rule A: Arguments to a deferred function are evaluated IMMEDIATELY when the 
+            `defer` statement is reached.
+    Rule B: The BODY of the deferred function is executed LATER, during the exit phase.
+    Rule C: Closures capture outer variables by REFERENCE, not by value.
+
+    
+
+    example
+      ```go
+        func evaluationMomentExample() {
+          var x = 0
+
+
+          // -- Case 1: Direct function call (Arguments evaluated immediately) --
+          for i := 0; i < 3; i++ {
+            // Because `i` and `x` are passed as arguments to `fmt.Println`, 
+            // their current values are evaluated and "locked in" right now.
+            // It pushes:
+            // defer fmt.Println("a:", 0 + 0)
+            // defer fmt.Println("a:", 1 + 0)
+            // defer fmt.Println("a:", 2 + 0)
+            defer fmt.Println("a:", i+x)
+          }
+
+
+          // -- Case 2: Anonymous closure (Body evaluated later) --
+          for i := 0; i < 3; i++ {
+            // The function takes no arguments. The body evaluates later.
+            // It captures the variables `i` and `x` by reference.
+            defer func() {
+              fmt.Println("b:", i+x)
+            }()
+          }
+
+
+          // We change `x` to 10 before the function exits. 
+          // The closures in Case 2 will see this new value!
+          x = 10 
+        }
+
+      ```
+
+    -- The Loop Variable Gotcha (Go <= 1.21 vs Go >= 1.22)
+    --
+      In the `evaluationMomentExample` above, what happens to the captured loop 
+      variable `i` in Case 2? This depends entirely on your Go version.
+
+
+      -- Legacy Go (1.21 and older): The Shared Variable Trap
+      --
+        In older Go versions, the loop variable `i` was declared ONCE per loop and 
+        shared across all iterations.
+        When the loop finished, `i` was 3, and `x` was 10.
+        All three deferred closures pointed to that exact same `i` variable.
+
+        // Output in Go 1.21:
+        // a: 2  (Case 1 LIFO)
+        // a: 1
+        // a: 0
+        // b: 13 (Case 2 LIFO: i=3, x=10)
+        // b: 13 
+        // b: 13
+
+
+      -- Modern Go (1.22 and newer): Per-Iteration Scoping
+      --
+        To fix this massive source of bugs, Go 1.22 changed the rules. The loop 
+        variable `i` is now scoped PER ITERATION. Every loop step creates a brand
+        new `i` variable in memory.
+
+        
+        So, the closures capture three distinct `i` variables (holding 0, 1, and 2),
+        but they still share the outer `x` variable (holding 10).
+
+        // Output in Go 1.22+:
+        // a: 2  (Case 1 LIFO)
+        // a: 1
+        // a: 0
+        // b: 12 (Case 2 LIFO: closure captures iteration where i=2, sees x=10)
+        // b: 11 (closure captures iteration where i=1, sees x=10)
+        // b: 10 (closure captures iteration where i=0, sees x=10)
+
+
+
+
+-- defer
+--
+  A deferred function call is a function call which follows a defer keyword
+
+  Like goroutine function calls, all the results of the function call (if the called function has return results) must be discarded in the function call statement.
+
+  -- life cycle
+  --
+    When a defer statement is executed, the deferred function call is not executed immediately.
+    Instead, it is pushed into a defer-call stack maintained by its innermost nesting function call.
+    After a function call fc(...) returns (but has not fully exited yet) and enters its exiting phase,
+    all the deferred function calls pushed into its defer-call stack will be removed from the defer-call stack and executed
+    in first-in, last-out order, that is, the reverse of the order in which they were pushed into the defer-call stack.
+    Once all these deferred calls are executed, the function call fc(...) fully exits.
+
+  example
+    ```go
+      package main
+
+      import "fmt"
+
+      func main() {
+        defer fmt.Println("The third line.")
+        defer fmt.Println("The second line.")
+        fmt.Println("The first line.")
+      }
+
+    ```
+    // output
+    // The first line.
+    // The second line.
+    // The third line.
+
+
+
+
+
+-- Deferred Function Calls Can Modify the Named Return Results of Nesting Functions
+--
+  example
+    ```go
+      package main
+
+      import "fmt"
+
+      func Triple(n int) (r int) {
+        defer func() {
+          r += n // modify the return value
+        }()
+
+        return n + n // <=> r = n + n; return
+      }
+
+      func main() {
+        fmt.Println(Triple(5)) // 15
+      }
+
+    ```
+
+
+
+
+

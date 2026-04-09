@@ -1,0 +1,195 @@
+-- type
+--
+  we can use `type` keyword to create
+    defined/ custom types
+    alias
+
+
+
+
+
+-- aliases
+--
+  A type alias creates an alternative name for an existing type. It is important
+  to understand that an alias is not a new type; it is just another name
+  for the same underlying type.
+
+  The standard library's `byte` is a good example of a widely used alias.
+  It is defined as: `type byte = uint8`
+  rune is itself an alias for int32
+
+
+  -- syntax
+  --
+    type MyAlias = ExistingType
+
+    example
+      ```go
+        // boolean and bool denote the same type.
+        type boolean = bool
+
+        // Text and string denote the same type.
+        type Text = string
+
+        // U8, uint8 and byte denote the same type.
+        type U8 = uint8
+
+        // char, rune and int32 denote the same type.
+        type char = rune
+
+      ```
+
+
+  -- practical implication
+  --
+    Since an alias and its original type are identical, values of these types can
+    be used interchangeably without any explicit conversion.
+
+    example
+      ```go
+        type Text = string
+
+        func aliasExample() {
+          var s string = "Hello"
+          var t Text = "World"
+
+          // No conversion needed because `string` and `Text` are the same type.
+          s = t
+          t = s
+          fmt.Println(s, t)
+        }
+
+      ```
+
+
+
+
+
+-- defined/ custom types
+--
+  A defined type (or custom type) creates a completely new and distinct type
+  from an underlying type. Even though they share the same underlying structure
+  and memory layout, the Go compiler treats them as different types.
+
+
+  -- syntax
+  --
+    type MyNewType UnderlyingType
+
+    example
+      ```go
+        // status and bool are two different types.
+        type status bool
+
+        // MyString and string are two different types.
+        type MyString string
+
+        // Id and uint64 are two different types.
+        type Id uint64
+
+        // real and float32 are two different types.
+        type real float32
+
+      ```
+
+
+  -- practical implication
+  --
+    Because these are distinct types, you cannot use them interchangeably. You
+    must perform an explicit type conversion to assign a value from one type to
+    the other
+
+    example 
+      ```go
+        type MyString string
+
+        func customTypeExample() {
+          var s string = "Hello"
+          var m MyString = "World"
+
+          // s = m // COMPILE ERROR: cannot use m (type MyString) as type string
+          // m = s // COMPILE ERROR: cannot use s (type string) as type MyString
+
+          // You must use an explicit conversion.
+          s = string(m)
+          m = MyString(s)
+          fmt.Println(s, m)
+        }
+
+      ```
+  
+
+
+
+
+-- why use custom types?
+--
+  Using custom types is a powerful feature for writing safer, clearer, and more
+  maintainable code.
+
+
+  -- enforcing type safety
+  --
+    Custom types prevent you from accidentally mixing logically different kinds
+    of values, even if they are stored in the same way (e.g., as integers).
+
+    example
+      ```go
+        // Define distinct types for different currencies.
+        type USD int
+        type INR int
+
+        func currencyExample() {
+          var walletUSD USD = 100
+          var walletINR INR = 8000
+
+          // This prevents a common logical bug: you cannot add different currencies.
+          // var total = walletUSD + walletINR // COMPILE ERROR: invalid operation (mismatched types USD and INR)
+
+          // If you need to perform this operation, you must do so explicitly,
+          // indicating that you are aware of the conversion.
+          // For example, assuming an exchange rate of 1 USD = 83 INR.
+          var totalINR INR = walletINR + INR(walletUSD*83)
+          fmt.Printf("Total in INR: %d\n", totalINR)
+        }
+      ```
+
+
+
+
+
+-- Attaching Methods to Extend Behavior
+--
+  One of the most significant benefits of custom types is the ability to attach
+  methods to them. This allows you to add new functionality and behavior, even
+  to types that are otherwise primitive (like `int` or `string`).
+
+  You cannot define methods on built-in types directly, but you can on a
+  custom type you create.
+
+  example
+    ```go
+      // Let's define a custom type `MyInt` with an underlying type of `int`.
+      type MyInt int
+
+      // Now we can attach a method named `isZero` to our new `MyInt` type.
+      func (mi MyInt) IsZero() bool {
+        // Inside the method, `mi` is the value of the MyInt instance.
+        return mi == 0
+      }
+
+      func methodExample() {
+        var num MyInt = 0
+        fmt.Printf("Is %d zero? %v\n", num, num.IsZero()) // Output: Is 0 zero? true
+
+        var anotherNum MyInt = 10
+        fmt.Printf("Is %d zero? %v\n", anotherNum, anotherNum.IsZero()) // Output: Is 10 zero? false
+
+        // var i int = 5
+        // i.IsZero() // COMPILE ERROR: i.IsZero undefined (type int has no method IsZero)
+
+    ```
+
+
+
+

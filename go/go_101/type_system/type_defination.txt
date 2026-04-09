@@ -1,0 +1,147 @@
+-- Creating a New, Distinct Type
+--
+  A type definition uses the `type` keyword to create a completely new and
+  distinct named type from an existing type (called the source type).
+
+
+  The most important rule to remember is:
+    A new defined type and its source type are always considered different types by the compiler
+
+
+  This is the key difference from a type alias (`type Name = string`), which simply
+  provides another name for the same type.
+
+    
+  -- define a single new type:
+  --
+    ```go
+      type NewTypeName SourceType
+
+    ```
+
+
+  -- Define multiple types in a block:
+  --
+    type (
+       NewTypeName1 SourceType1
+       NewTypeName2 SourceType2
+     )
+
+
+
+
+
+-- Underlying Type and Conversion
+--
+  While the new type and its source type are distinct, they share the same
+  underlying type, This means they have the same memory layout and structure.
+
+
+  Because they share an underlying type, values of one type can be explicitly 
+  converted to the other. This conversion is required by the compiler.
+
+
+  -- example
+  --
+    ```go
+      type MyInt int
+      type Age int
+      type Text string
+
+    ```
+
+
+
+
+
+-- Enforcing Type Safety
+--
+  The primary benefit of creating a new type is to improve type safety, preventing
+  you from accidentally mixing logically different kinds of values.
+
+  example
+    ```go
+      // We define two new types, `USD` and `EUR`, both with an underlying type of `int`.
+      // They represent logically different concepts.
+      type USD int
+      type EUR int
+
+      func main() {
+        walletUSD := USD(100)
+        walletEUR := EUR(85)
+
+        // Because `USD` and `EUR` are distinct named types, the compiler will prevent
+        // you from mixing them in operations. This helps catch logical bugs.
+        //
+        // The following line will cause a compile-time error:
+        // total := walletUSD + walletEUR // COMPILE ERROR: invalid operation (mismatched types USD and EUR)
+
+        // To perform such an operation, you must signal your intent to the compiler
+        // by using an explicit type conversion. This makes the code clearer and safer.
+        // For example, if we assume 1 USD = 0.85 EUR for this calculation:
+        totalEUR := walletEUR + EUR(walletUSD)
+        fmt.Printf("Total in EUR: %d\n", totalEUR) // Output: Total in EUR: 170
+
+        // Note: We can also convert back to the underlying `int` type.
+        var amount int = int(walletUSD)
+        fmt.Printf("Amount as int: %d\n", amount) // Output: Amount as int: 100
+      }
+
+    ```
+
+
+
+
+
+-- Attaching Methods
+--
+  A major reason to create a defined type is to attach methods to it, adding
+  new behaviors even to simple types like `int` or `string`. You cannot define
+  methods on built-in types directly, but you can on your new defined types.
+
+
+  example 
+    ```go
+      type MyString string
+
+      func (ms MyString) IsEmpty() bool {
+        return ms == ""
+      }
+
+    ```
+
+
+
+
+
+-- Composite and Function Types
+--
+  You can create new types from any source type, including composite types.
+
+  ```go
+    type (
+      IntPtr      *int
+      Book        struct{ title string; pages int }
+      StringSlice []string
+      UserCache   map[string]Book
+    )
+
+  ```
+
+
+
+
+
+-- Scope
+--
+  Types can be defined at the package level (visible throughout the package) or
+  locally within a function body (visible only within that function). A type name
+  declared at the package level cannot be `init`.
+
+
+
+
+
+
+
+

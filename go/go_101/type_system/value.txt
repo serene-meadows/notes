@@ -1,0 +1,270 @@
+-- value
+--
+  a value is an instance of a type. Every value in Go has a specific type
+  and is represented by an expression (e.g., a literal, a constant, a variable,
+  or a function call).
+
+
+  -- zero values
+  --
+    Every type has a zero value, which is its default state when a variable
+    is declared without an explicit initial value.
+
+    - `0` for numeric types (`int`, `float64`, etc.)
+    - `false` for `bool`
+    - `""` (the empty string) for `string`
+    - `nil` for pointers, slices, maps, channels, functions, and interfaces.
+
+  
+    -- literals
+    --
+      -- Basic literals
+      --
+        10, 3.14, "hi", true
+
+
+      -- Composite literals (struct + containers)
+      --
+        []int{1,2,3}
+        map[string]int{"a":1}
+        struct{ x int }{x:10}
+
+
+      -- Function literals
+      --
+        func(x int) int { return x + 1 }
+
+
+      -- no literals for:
+      --
+        pointer, channel, interface
+
+
+
+
+
+-- The Core Mental Model: Direct and Indirect Parts
+--
+  To understand how Go manages memory, it's helpful to think of a value as 
+  potentially having two parts (this is a mental model, not official Go terminology):
+
+    1. Direct Part: This is the memory block directly associated with the
+       variable itself. It is what is stored "on the stack" for a local variable.
+       The direct part always exists and has a fixed, known size at compile time.
+
+    2. Indirect Part: These are one or more separate memory blocks on the
+       heap that are referenced by a pointer within the value's direct part.
+       Indirect parts may or may not exist and can be of variable size.
+
+
+
+
+
+-- Applying the Model: Two Categories of Types
+--
+  Based on this model, we can group Go types into two categories.
+
+
+  --  Category 1: Self-Contained Values (Direct Part Only)
+  --
+    These types hold all of their data directly within the value's main memory block.
+    They have no indirect parts.
+
+    - Booleans: `bool`
+    - Numeric types: `int`, `float64`, etc.
+    - Pointer types: `*int` (the pointer itself is the value)
+    - Struct types: The fields are laid out sequentially in memory.
+    - Array types: The elements are laid out sequentially in memory.
+
+
+  --  Category 2: Header/Descriptor Values (Direct + Indirect Parts)
+  --
+    These types are more complex. Their direct part is a small, fixed-size
+    "header" or "descriptor" that points to a larger, variable-sized indirect
+    part on the heap where the actual data is stored.
+
+
+    -- slices
+    --
+      The direct part is a struct containing a pointer to the
+      underlying array, a length, and a capacity. The underlying array is the
+      indirect part.
+
+        ```go
+          struct { ptr *T; len, cap int }
+
+        ```
+
+
+    -- strings
+    --
+      The direct part is a struct containing a pointer to a
+      byte sequence and a length. The byte sequence is the indirect part.
+      
+        ```go
+          struct { ptr *byte; len int }
+
+        ```
+    
+
+    -- Maps, Channels, Functions
+    --
+      The direct part is a single pointer that
+      references a larger, complex runtime data structure on the heap
+
+        ```go
+          // map types
+          type _map *hashtableImpl
+
+          // channel types
+          type _channel *channelImpl
+
+          // function types
+          type _function *functionImpl
+          
+          // So, internally, types of the three kinds are just pointer types.
+          // In other words, the direct parts of values of these types are pointers internally
+          // For each non-zero value of these types, its direct part (a pointer) references its indirect underlying implementation part.
+
+        ```
+
+
+    -- interfaces
+    --
+      The direct part is a struct containing two pointers: one
+      to type information and one to the dynamic value it holds. The type info
+      and the dynamic value are the indirect parts.
+
+      example - blank interface type 
+        ```go
+          // doesn't specify any methods
+          type _interface struct {
+            dynamicType  *_type         // the dynamic type
+            dynamicValue unsafe.Pointer // the dynamic value
+          }
+
+          // Internally, interface types are also pointer wrapper struct types. 
+          // The internal definition of an interface type has two pointer fields 
+          // Each non-zero interface value has two indirect underlying parts which store the dynamic type and dynamic value of that interface value.
+          // The two indirect parts are referenced by the dynamicType and dynamicValue fields of that interface value.
+
+        ```
+
+      example - interface specifies methods
+        ```go
+          type _interface struct {
+            dynamicTypeInfo *struct {
+              dynamicType *_type       // the dynamic type
+              methods     []*_function // method table
+            }
+            dynamicValue unsafe.Pointer // the dynamic value
+          }
+          // The methods field of the dynamicTypeInfo field of an interface value stores the implemented methods of 
+          // the dynamic type of the interface value for the (interface) type of the interface value.
+
+        ```
+
+
+
+
+
+
+-- Value Size: `unsafe.Sizeof`
+-- 
+  The built-in function `unsafe.Sizeof(v)` returns the size in bytes of the
+  direct part of a value `v`. It does not include the size of any
+  indirect parts.
+
+
+  This means that for header/descriptor types, `unsafe.Sizeof` returns the size
+  of the header, which is a constant value regardless of how much data the
+  value actually holds.
+
+
+  example
+    ```go
+      // A string's direct part is a (pointer + length), which is 16 bytes on a 64-bit system.
+      var shortStr string = "hi"
+      var longStr string = "this is a very long string stored elsewhere on the heap"
+      fmt.Printf("Size of short string: %d bytes\n", unsafe.Sizeof(shortStr))
+      fmt.Printf("Size of long string:  %d bytes\n", unsafe.Sizeof(longStr))
+
+      // A slice's direct part is a (pointer + length + capacity), which is 24 bytes on a 64-bit system.
+      var shortSlice = []int{1, 2}
+      var longSlice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+      fmt.Printf("Size of short slice:  %d bytes\n", unsafe.Sizeof(shortSlice))
+      fmt.Printf("Size of long slice:   %d bytes\n", unsafe.Sizeof(longSlice))
+
+    ```
+      // Expected Output (on a 64-bit machine):
+      // Size of short string: 16 bytes
+      // Size of long string:  16 bytes
+      // Size of short slice:  24 bytes
+      // Size of long slice:   24 bytes
+
+
+
+
+
+-- How Assignment Works: A Shallow Copy
+--
+  All assignments in Go, including function parameter passing, work by making a
+  copy of the value. Critically, this means only the direct part is copied.
+
+  This is often called a "shallow copy." If the value has an indirect part, the
+  copy's direct part will point to the exact same indirect part in memory.
+  
+
+  example 
+    ```go
+      func assignmentExample() {
+        original := []int{1, 2, 3}
+        // `copy` is a new slice header, but it points to the same underlying array.
+        theCopy := original
+
+        // Modifying the underlying data through the copy...
+        theCopy[0] = 99
+
+        // ...will be visible through the original.
+        fmt.Println("Original:", original) // Output: Original: [99 2 3]
+        fmt.Println("Copy:    ", theCopy)     // Output: Copy:    [99 2 3]
+      }
+
+    ```
+
+
+
+
+
+-- note on optimization
+--
+  Go specifies that strings and interfaces are
+  value types, meaning their underlying data should be copied on assignment.
+  However, because string data is immutable and interface dynamic values are
+  often treated as read-only, the Go compiler can optimize by not copying the
+  indirect part, as the program's behavior remains the same. The mental model
+  of a copy is still the correct way to think about the semantics.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

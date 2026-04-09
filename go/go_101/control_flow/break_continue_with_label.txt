@@ -1,0 +1,130 @@
+In Go, the standard `break` and `continue` statements operate on the innermost
+enclosing loop (`for`) or `switch`/`select` block.
+
+However, when dealing with nested control flow blocks, you sometimes need to
+break out of an outer loop or skip to the next iteration of an outer loop.
+Go provides labeled `break` and `continue` for this purpose.
+
+
+
+
+
+-- labels
+--
+  A "label" is simply an identifier followed by a colon (`:`). It is placed 
+  directly before the control flow block (`for`, `switch`, `select`) that
+  you want to control.
+
+  ```go
+    MyLoop: // This is the label
+    for i := 0; i < 5; i++ {
+        // ...
+    }
+
+  ```
+
+
+
+
+
+-- Labeled `break`
+--
+  A `break` statement followed by a label will terminate the execution of the 
+  labeled block, jumping control to the first statement immediately after it.
+
+  -- Rule
+  --
+    The label must be attached to an enclosing `for`, `switch`, or `select` block.
+
+
+  example
+    ```go
+      func labeledBreakExample() {
+        fmt.Println("Starting nested loops...")
+
+
+      OuterBreak: // Label for the outer loop
+        for i := 0; i < 3; i++ {
+          for j := 0; j < 3; j++ {
+            fmt.Printf("i=%d, j=%d\n", i, j)
+            if i == 1 && j == 1 {
+              fmt.Println("Breaking out of the OuterBreak loop!")
+              // A normal `break` here would only exit the inner `j` loop.
+              // This labeled break exits the outer `i` loop entirely.
+              break OuterBreak
+            }
+          }
+        }
+
+        fmt.Println("Execution continues after the outer loop.")
+      }
+
+    ```
+
+    // output
+    // Starting nested loops...
+    // i=0, j=0
+    // i=0, j=1
+    // i=0, j=2
+    // i=1, j=0
+    // i=1, j=1
+    // Breaking out of the OuterBreak loop!
+    // Execution continues after the outer loop.
+
+
+
+
+
+-- Labeled `continue`
+--
+  A `continue` statement followed by a label will end the current iteration 
+  of the labeled loop and immediately start the next iteration of that same loop
+
+  -- Rule
+  --
+    The label must be attached to an enclosing `for` loop.
+
+  
+  example
+    ```go
+      func labeledContinueExample() {
+        fmt.Println("Starting nested loops with continue...")
+
+
+      OuterContinue: // Label for the outer loop
+        for i := 0; i < 3; i++ {
+          fmt.Printf("Outer loop (i=%d) - Start of iteration\n", i)
+          for j := 0; j < 3; j++ {
+            if i == 1 && j == 1 {
+              fmt.Printf("  -> Skipping to the next iteration of OuterContinue (i=%d)\n", i)
+              // A normal `continue` would skip to the next `j`.
+              // This labeled continue skips the rest of the inner loop
+              // AND the rest of the outer loop's current iteration,
+              // proceeding directly to i=2.
+              continue OuterContinue
+            }
+            fmt.Printf("  Inner loop (j=%d)\n", j)
+          }
+          fmt.Printf("Outer loop (i=%d) - End of iteration\n", i)
+        }
+      }
+
+    ```
+    
+    // output
+    // Starting nested loops with continue...
+    // Outer loop (i=0) - Start of iteration
+    //   Inner loop (j=0)
+    //   Inner loop (j=1)
+    //   Inner loop (j=2)
+    // Outer loop (i=0) - End of iteration
+    // Outer loop (i=1) - Start of iteration
+    //   Inner loop (j=0)
+    //   -> Skipping to the next iteration of OuterContinue (i=1)
+    // Outer loop (i=2) - Start of iteration
+    //   Inner loop (j=0)
+    //   Inner loop (j=1)
+    //   Inner loop (j=2)
+    // Outer loop (i=2) - End of an iteration
+
+

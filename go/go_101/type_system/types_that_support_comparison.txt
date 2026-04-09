@@ -1,0 +1,157 @@
+In Go, "comparable" refers to whether values of a certain type can be compared
+using the equality operators `==` and `!=`. This distinction is fundamental to
+the language's type safety and has important implications, especially for map keys
+
+
+
+
+
+-- The Incomparable Types 
+--
+  There are three fundamental types in Go that are incomparable. You cannot
+  use `==` or `!=` to check if two values of these types are equal.
+
+    1.  Slices (`[]T`)
+    2.  Maps (`map[K]V`)
+    3.  Functions (`func(...)`)
+
+
+  reasoning: These types are essentially descriptors or headers that point to
+  underlying, dynamic data structures. Comparing them for equality is not a
+  well-defined operation. For example, should two slices be equal if they point
+  to the same memory, or if they contain the same elements? The language designers
+  chose to disallow direct comparison to avoid this ambiguity.
+
+
+  example - ERR comparisons 
+    ```go
+      s1 := []int{1, 2}
+      s2 := []int{1, 2}
+      // fmt.Println(s1 == s2) // COMPILE ERROR: slice can only be compared to nil
+
+
+      m1 := map[string]int{"a": 1}
+      m2 := map[string]int{"a": 1}
+      // fmt.Println(m1 == m2) // COMPILE ERROR: map can only be compared to nil
+
+    ```
+
+
+
+
+
+-- The "Recursive" Rule: How Incomparability Spreads
+--
+  The incomparability of slices, maps, and functions "infects" any composite
+  type that contains them.
+
+  structs: A struct type is incomparable if any of its fields are of an
+           incomparable type.
+  arrays: An array type is incomparable if its element type is incomparable.
+
+
+  example
+    ```go
+      // This struct is COMPARABLE because all its fields are comparable.
+      type Point struct {
+        X, Y int
+      }
+      // p1 := Point{1, 2}; p2 := Point{1, 2}; fmt.Println(p1 == p2) // LEGAL -> true
+
+
+      // This struct is INCOMPARABLE because its `Tags` field is a slice.
+      type User struct {
+        ID   int
+        Tags []string
+      }
+      // u1 := User{1, []string{"a"}}; u2 := User{1, []string{"a"}}
+      // fmt.Println(u1 == u2) // COMPILE ERROR: invalid operation (struct containing []string is not comparable)
+
+
+      // This array is COMPARABLE because its element type (`int`) is comparable.
+      var a1 [2]int = [2]int{1, 2}
+      var a2 [2]int = [2]int{1, 2}
+      // fmt.Println(a1 == a2) // LEGAL -> true
+
+
+      // This array is INCOMPARABLE because its element type (`[]int`) is a slice.
+      var b1 [2][]int = [2][]int{{1}, {2}}
+      var b2 [2][]int = [2][]int{{1}, {2}}
+      // fmt.Println(b1 == b2) // COMPILE ERROR: invalid operation (array of slices is not comparable)
+
+    ```
+
+
+
+
+
+-- The Important Exception: Comparison with `nil`
+--
+  While you cannot compare two values of an incomparable type, you can
+  compare a value of any of these types to the untyped literal `nil`.
+
+  This is the only comparison operation allowed for slices, maps, and functions.
+
+  ```go
+    func nilComparisonExample() {
+      var s []int
+      fmt.Println(s == nil) // LEGAL and true
+
+      var m map[string]int
+      fmt.Println(m == nil) // LEGAL and true
+
+      var f func()
+      fmt.Println(f == nil) // LEGAL and true
+    }
+
+  ```
+
+
+
+
+
+-- The Comparable Types
+--
+  All other types in Go are comparable. This includes:
+    - Booleans: `true`, `false`
+    - Numbers: All integer, float, and complex types
+    - Strings: Comparison is done byte by byte
+    - Pointers: Two pointers are equal if they point to the same memory location
+    - Channels: Two channels are equal if they were created by the same `make` call
+    - Interfaces: Two interface values are equal if their dynamic types and
+      dynamic values are both equal.
+    - Structs and Arrays: As long as they are composed entirely of other
+      comparable types.
+
+
+
+
+
+-- Practical Implication: Map Keys
+--
+  The concept of comparability is most critical when working with maps.
+  rule: The key type of any map MUST be a comparable type.
+
+  This is because the map needs to perform equality checks on keys to find,
+  store, and retrieve values.
+
+  example
+    ```go
+      func mapKeyExample() {
+        type Point struct {
+          X, Y int
+        }
+
+
+        // A struct with only comparable fields (like `Point`) can be a map key.
+        positions := make(map[Point]string)
+        positions[Point{1, 2}] = "Goal" // LEGAL
+
+        // A slice cannot be a map key because it is an incomparable type.
+        // data := make(map[[]int]string) // COMPILE ERROR: invalid map key type []int
+      }
+
+    ```
+
+
+

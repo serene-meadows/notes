@@ -1,0 +1,178 @@
+-- generic types
+--
+  Introduced in Go 1.18, generics allow you to write functions and types that
+  can work with a set of different types, a feature also known as "parametric
+  polymorphism". This leads to more reusable, flexible, and type-safe code,
+  often reducing the need for code duplication or less-safe `interface{}` logic.
+
+
+
+
+
+-- type parameters
+--
+  A generic function or type is "generic" because it is defined with one or more
+  type parameters. These are placeholders for actual types that will be
+  specified later by the calling code.
+
+  -- syntax
+  --
+    Type parameters are declared in square brackets `[...]` immediately after the
+    function or type name.
+
+    example
+      ```go
+        // Generic Function:
+        func MyFunc[T any](arg T) { /* ... */ }
+
+        // Generic Type:
+        type MyStruct[T any] struct {
+          Value T
+        }
+
+      ```
+
+
+-- type constraints
+--
+  A type constraint is an interface that specifies the set of permissible types
+  that can be used as arguments for a type parameter. It defines the "contract"
+  that a type argument must satisfy.
+
+
+  -- any constraint
+  --
+    The predeclared identifier `any` is an alias for an empty interface (`interface{}`).
+    It is the least restrictive constraint, allowing a type parameter to be
+    instantiated with any type.
+
+    example
+      ```go
+        // A generic slice that can hold elements of any type.
+        type GenericSlice[T any] []T
+      ```
+
+
+  -- custom constraints
+  --
+    You can define custom constraints using interfaces to permit a specific set
+    of types or to require certain behaviors (methods).
+
+    example - A constraint that allows only integer and float types.
+      ```go
+        // The `|` operator creates a union of types.
+        type Number interface {
+          int | int64 | float32 | float64
+        }
+
+
+
+        // This generic function can now operate on any type that is part of the `Number` set.
+        func Add[T Number](a, b T) T {
+          return a + b
+        }
+
+      ```
+
+    
+    example - A constraint that requires a specific method.
+      ```go
+        type Stringer interface {
+          String() string
+        }
+
+        // This function can accept any type that has a `String() string` method.
+        func Print[T Stringer](v T) {
+          fmt.Println(v.String())
+        }
+
+      ```
+
+      
+
+
+
+-- Instantiation: Using Generic Types
+--
+  A generic type is a blueprint. To use it, you must instantiate it by
+  providing concrete type arguments for its type parameters.
+  This process creates a new, non-generic named type.
+
+
+  -- Instantiating Generic Types
+  --
+    The syntax for instantiation is `GenericType[TypeArgument]`.
+
+    ```go
+      // Let's define a generic `Stack` that can hold elements of any type.
+      type Stack[T any] struct {
+        elements []T
+      }
+
+      func (s *Stack[T]) Push(elem T) {
+        s.elements = append(s.elements, elem)
+      }
+
+      func (s *Stack[T]) Pop() (T, bool) {
+        if len(s.elements) == 0 {
+          var zero T // The "zero value" for type T
+          return zero, false
+        }
+        lastIndex := len(s.elements) - 1
+        elem := s.elements[lastIndex]
+        s.elements = s.elements[:lastIndex]
+        return elem, true
+      }
+
+      func main() {
+        // 1. Instantiate the generic `Stack` to create a `Stack[int]`.
+        //    The result is a concrete type that works only with integers.
+        var intStack Stack[int]
+        intStack.Push(10)
+        intStack.Push(20)
+        val, _ := intStack.Pop()
+        fmt.Println(val) // Output: 20
+        // intStack.Push("hello") // COMPILE ERROR: cannot use "hello" as type int
+
+        // 2. Instantiate the generic `Stack` to create a `Stack[string]`.
+        var stringStack Stack[string]
+        stringStack.Push("hello")
+        stringStack.Push("world")
+        sVal, _ := stringStack.Pop()
+        fmt.Println(sVal) // Output: world
+      }
+
+    ```
+
+
+  -- Instantiating Generic Functions (and Type Inference)
+  --
+    When calling a generic function, you can explicitly provide the type argument.
+    However, in most cases, the Go compiler can infer the type argument from
+    the function's regular arguments, making the code more concise.
+
+    example 
+      ```go
+        // The `|` operator creates a union of types.
+        type Number interface {
+          int | int64 | float32 | float64
+        }
+
+        // This generic function can now operate on any type that is part of the `Number` set.
+        func Add[T Number](a, b T) T {
+          return a + b
+        }
+
+        func main() {
+          // Explicit instantiation:
+          sum1 := Add[int](5, 10)
+          fmt.Println(sum1)
+
+          // Inferred instantiation:
+          // The compiler sees that the arguments are `float64`, so it infers that
+          // T must be `float64` for this call.
+          sum2 := Add(3.14, 2.71)
+          fmt.Println(sum2)
+        }
+
+      ```

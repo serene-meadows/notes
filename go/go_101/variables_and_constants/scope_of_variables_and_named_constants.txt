@@ -1,0 +1,86 @@
+-- scope of variables and named constants
+--
+  -- scope
+  --
+    Scope refers to the region of code where a declared identifier (a variable or
+    a named constant) is accessible. If you try to access an identifier outside
+    of its scope, you will get a compile-time "undefined" error. 
+
+
+  -- block
+  --
+    A block is a section of code enclosed by curly braces `{ ... }`. Blocks can be
+    nested inside other blocks. These blocks are fundamental to defining scope in Go.
+    Examples include function bodies, `if` statements, `for` loops, etc.
+
+
+  -- shadow
+  --
+    When you declare an identifier in an inner block that has the same name as an
+    identifier in an outer block, the inner identifier "shadows" the outer one.
+
+    This means that within the inner block, any reference to that name will refer
+    to the newly declared inner identifier. The outer identifier becomes temporarily
+    inaccessible by that name until the program execution leaves the inner block.
+
+
+  example 
+    ```go
+      package main
+
+
+      // Package-Level (Global) Scope
+      // An identifier declared at the package level (outside any function) has a
+      // scope that encompasses the entire package.
+      const y = 789
+      var x int = 123
+
+
+      func main() { // main function starts a new, nested block
+
+        // The scope of a local identifier begins at the end of its declaration
+        // and ends at the closing brace `}` of its innermost containing block.
+
+        // This `x` is declared within the `main` function's block.
+        // It shadows the package-level variable `x`.
+        var x = true
+
+
+        // A nested inner code block.
+        {
+          // The short variable declaration `:=` declares new variables on the left.
+          // The right side uses variables from the currently visible scope.
+          x, y := x, y
+          // - New `x` (bool) and `y` (int) are created, local to this inner block.
+          // - The right-side `x` is the boolean `true` from the `main` scope.
+          // - The right-side `y` is the integer `789` from the package scope.
+          // - These new variables now shadow the outer ones.
+
+
+          // Let's re-declare `x` and declare a new `z` using `:=`.
+          // Since `x` already exists in this block, `:=` just assigns a new value.
+          // `z` is a newly declared variable.
+          x, z := !x, y/10 // `x` is now `false`, `z` is `789 / 10 = 78`.
+          y /= 100         // The inner `y` (which was 789) is now `789 / 100 = 7`.
+
+
+          // Inside this block, we use the innermost, shadowed variables:
+          // x -> the boolean, now `false`.
+          // y -> the inner integer, now `7`.
+          // z -> the newly declared integer, `78`.
+          fmt.Println("Inner block:", x, y, z) // Output: Inner block: false 7 78
+
+        } // inner block ends
+        // The variables `x`, `y`, and `z` declared inside the block are now out of scope.
+
+        // We are back in the `main` function's scope.
+        // `x` now refers to the boolean variable declared at the start of `main`.
+        fmt.Println("Outer block:", x) // Output: Outer block: true
+
+        // Trying to access `z` here will fail because its scope was limited to the
+        // inner block which has now ended.
+        // fmt.Println(z) // COMPILE ERROR: undefined: z
+
+      }
+
+    ```

@@ -1,0 +1,198 @@
+The `for-range` statement is Go's idiomatic construct for iterating over a
+variety of data structures, including containers like slices, arrays, maps,
+and channels, as well as strings and (since Go 1.22) integers.
+
+
+
+
+
+-- Ranging Over Slices & Arrays
+--
+  When ranging over a slice or an array, `for-range` returns two values:
+  1. The integer index of the element.
+  2. A copy of the value of the element at that index.
+
+  example
+    ```go
+      func rangeSliceExample() {
+        numbers := []int{10, 20, 30, 40, 50}
+
+        // -- Getting both index and value 
+        fmt.Println("Both index and value:")
+        for index, value := range numbers {
+          fmt.Printf("Index: %d, Value: %d\n", index, value)
+        }
+
+
+        // -- Getting only the index 
+        fmt.Println("\nOnly the index:")
+        for index := range numbers {
+          fmt.Printf("Index: %d\n", index)
+        }
+
+
+        // -- Getting only the value 
+        // Use the blank identifier `_` to ignore the index.
+        fmt.Println("\nOnly the value:")
+        for _, value := range numbers {
+          fmt.Printf("Value: %d\n", value)
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Ranging Over Maps
+--
+  When ranging over a map, `for-range` returns two values:
+  1. The key of an element.
+  2. The value of the element associated with that key.
+
+  - The iteration order over a map is NOT guaranteed.
+
+  
+  example
+    ```go
+      func rangeMapExample() {
+        users := map[string]int{"alice": 30, "bob": 25, "charlie": 35}
+
+        // -- Getting both key and value 
+        fmt.Println("\nBoth key and value:")
+        for key, value := range users {
+          fmt.Printf("Key: %s, Value: %d\n", key, value)
+        }
+
+
+        // -- Getting only the keys 
+        fmt.Println("\nOnly the keys:")
+        for key := range users {
+          fmt.Printf("Key: %s\n", key)
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Ranging Over Strings
+--
+  When ranging over a string, `for-range` decodes the string one UTF-8 encoded
+  rune at a time. It returns two values:
+
+  1. The starting byte index of the rune.
+  2. The `rune` value itself (which is an `int32`).
+
+  
+  example
+    ```go
+      func rangeStringExample() {
+        // "世界" means "world". Each character is 3 bytes in UTF-8.
+        str := "Go 世界"
+
+        fmt.Println("\nRanging over a string:")
+        for index, r := range str {
+          fmt.Printf("Byte Index: %d, Rune: %c\n", index, r)
+        }
+        // Expected Output:
+        // Byte Index: 0, Rune: G
+        // Byte Index: 1, Rune: o
+        // Byte Index: 2, Rune:
+        // Byte Index: 3, Rune: 世
+        // Byte Index: 6, Rune: 界  <-- Note the index jump
+      }
+
+    ```
+
+
+
+
+
+
+-- Ranging Over Integers (Go 1.22+)
+--
+  Starting with Go 1.22, you can range directly over an integer. This provides
+  a simple, C-style loop that yields values from `0` up to (but not including)
+  the integer. It returns only one value: the current iteration number.
+
+
+  example
+    ```go
+      func rangeIntegerExample() {
+        fmt.Println("\nRanging over an integer (Go 1.22+):")
+        // This will loop for i = 0, 1, 2, 3, 4
+        for i := range 5 {
+          fmt.Printf("Iteration: %d\n", i)
+        }
+      }
+
+    ```
+
+
+
+
+
+-- The `for-range` Value Copy Gotcha
+--
+  This is a critical detail: the `value` variable in a `for-range` loop is a
+  copy of the element from the collection, not a direct reference to it.
+  Modifying the `value` variable will NOT change the original collection.
+
+
+  example
+    ```go
+      func rangeCopyGotcha() {
+        numbers := []int{1, 2, 3}
+
+
+        // This loop will NOT modify the `numbers` slice.
+        for _, value := range numbers {
+          value *= 2 // `value` is just a copy, the original slice is untouched.
+        }
+        fmt.Printf("\nAfter attempting to modify by value: %v\n", numbers) // -> [1 2 3]
+
+
+        // The correct way to modify is to use the index to access the original slice.
+        for index := range numbers {
+          numbers[index] *= 2
+        }
+        fmt.Printf("After modifying by index: %v\n", numbers) // -> [2 4 6]
+      }
+
+    ```
+
+
+
+
+
+
+
+
+
+-- for range
+--
+  for-range loop blocks can be used to iterate integers, all kinds of containers, channels, and some functions
+
+  slices/ arrays -> returns index, value
+  maps -> returns key, value
+  integers -> range 10 -> returns 0 .. 9
+
+
+  iterating over a collection
+    numbers := []int{1, 2, 3, 4, 5}
+    for index, value := range numbers {
+      fmt.Printf("Index: %d, Value: %d", index, value)
+    }
+
+
+  range over integers
+    for i := range 10 {
+      // code block
+    }
+      // range -> [0, 10)
+
+

@@ -1,0 +1,127 @@
+-- built in types
+--
+  Go is a statically typed language, which means every variable has a specific
+  type that is known at compile time. The basic types are the fundamental
+  building blocks for all other types.
+
+  
+  -- boolean type
+  --
+    `bool`
+    Represents a truth value.
+    
+    - Possible Values: `true` or `false`
+    - Zero Value: `false`
+
+
+    var isEnabled bool // Defaults to false
+
+
+  -- string type
+  --
+    `string`
+    Represents an immutable sequence of bytes. In Go, strings are typically
+    UTF-8 encoded, making them well-suited for handling international text.
+
+    - Immutable: Once a string is created, its contents cannot be changed.
+    - Zero Value: `""` (the empty string)
+
+
+    var name string // Defaults to ""
+
+
+  -- numeric types
+  --
+    -- integers
+    --
+      Integers are whole numbers. They come in two main varieties: signed (can be
+      positive, negative, or zero) and unsigned (can only be zero or positive).
+
+      -- signed integers
+      --
+        The number indicates the number of bits used for storage.
+        `int8`, `int16`, `int32`, `int64`
+
+
+      -- unsigned integers
+      --
+        `uint8`, `uint16`, `uint32`, `uint64`
+
+
+      -- platform dependent integers
+      --
+        These types have a size that depends on the system architecture (32 or 64 bits).
+        They are the most common choice for general-purpose integer work.
+
+        `int`: The default and most idiomatic choice for an integer.
+        `uint`: For when the value is guaranteed to be non-negative.
+        `uintptr`: An unsigned integer large enough to store the memory address of a
+                   pointer. Used for low-level programming (e.g., with the `unsafe` package).
+
+
+      -- integer aliases
+      --
+        These are alternative names for existing integer types, used to express intent.
+
+        `byte`: An alias for `uint8`. Represents a single byte of data.
+        `rune`: An alias for `int32`. Represents a single Unicode Code Point, which
+                is how Go handles individual characters.
+      
+
+      -- zero value
+      --
+        zero value for all integrs is 0
+
+
+
+    -- floating point numbers
+    --
+      These types represent numbers with a fractional component, following the
+      IEEE 754 standard for floating-point arithmetic.
+
+      `float32`: Single-precision floating-point number.
+      `float64`: Double-precision floating-point number. This is the default type for
+                 floating-point literals (e.g., `3.14`).
+
+
+      -- zero value
+      --
+        Zero Value (for all float types): `0.0`
+
+
+    -- complex numbers
+    --
+      These types represent complex numbers with real and imaginary parts.
+
+      `complex64`: Composed of two `float32`s (one for the real part, one for the imaginary).
+      `complex128`: Composed of two `float64`s. This is the default type for complex
+                    literals (e.g., `3 + 4i`).
+
+
+      -- zero value
+      -- 
+        Zero Value (for all complex types): `(0+0i)`
+
+
+
+        
+
+-- Summary Table
+  +----------------+--------------------------------------+-------------------+
+  |      TYPE      |             DESCRIPTION              |     ZERO VALUE    |
+  +----------------+--------------------------------------+-------------------+
+  | bool           | Boolean value                        | false             |
+  | string         | Immutable sequence of bytes (UTF-8)  | ""                |
+  |----------------|--------------------------------------|-------------------|
+  | int, int8, ... | Signed integers                      | 0                 |
+  | uint, uint8,.. | Unsigned integers                    | 0                 |
+  | byte           | Alias for uint8                      | 0                 |
+  | rune           | Alias for int32 (Unicode code point) | 0                 |
+  | uintptr        | Unsigned integer for pointers        | 0                 |
+  |----------------|--------------------------------------|-------------------|
+  | float32        | Single-precision float               | 0.0               |
+  | float64        | Double-precision float               | 0.0               |
+  |----------------|--------------------------------------|-------------------|
+  | complex64      | Complex number with float32 parts    | (0+0i)            |
+  | complex128     | Complex number with float64 parts    | (0+0i)            |
+  +----------------+--------------------------------------+-------------------+

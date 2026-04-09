@@ -1,0 +1,302 @@
+-- struct
+--
+  A struct is a composite type that groups together zero or more named values
+  of arbitrary types into a single entity. It is Go's primary tool for creating
+  complex, user-defined data structures.
+
+
+  The number of fields of a struct type can be zero.
+
+
+  Struct fields can be of any type:
+    basic types
+    slices
+    maps
+    functions
+    other structs
+
+
+
+
+--  Defining Struct Types
+--
+  You can define a struct using a type literal, which starts with the `struct`
+  keyword followed by a list of field definitions in curly braces `{}`.
+
+
+  -- named struct types
+  --
+    This is the most common approach, creating a new, reusable named type.
+
+    exapmle
+      ```go
+        type Book struct {
+          Title  string
+          Author string
+          Pages  int
+        }
+
+
+        // Consecutive fields of the same type can be declared on a single line.
+        type Point struct {
+          X, Y float64
+        }
+
+      ```
+
+
+  -- Anonymous Struct Types
+  --
+    A struct can be defined "inline" without a name, often for one-off data structures.
+
+    example
+      ```go
+        var book = struct {
+          Title string
+          Pages int
+        }{
+          Title: "The Go Programming Language",
+          Pages: 380,
+        }
+
+      ```
+
+
+  -- You can nest structs inside other structs — both named and anonymous.
+  --
+    example
+      ```go
+        var order = struct {
+          ID       string
+          Customer struct {
+            Name string
+            Age  int
+          }
+          Items []struct {
+            Name  string
+            Price float64
+            Qty   int
+          }
+        }{
+          ID: "ORD123",
+          Customer: struct {
+            Name string
+            Age  int
+          }{
+            Name: "Vikas",
+            Age:  22,
+          },
+          Items: []struct {
+            Name  string
+            Price float64
+            Qty   int
+          }{
+            {Name: "Keyboard", Price: 1500.0, Qty: 1},
+            {Name: "Mouse", Price: 700.0, Qty: 2},
+          },
+        }
+
+      ```
+
+
+    example
+      ```go
+        type Address struct {
+          City  string
+          State string
+        }
+
+        type User struct {
+          Name     string
+          Address  Address // Named struct
+          Metadata struct { // Anonymous struct
+            Active bool
+            Score  int
+          }
+        }
+
+      ```
+
+
+
+
+
+-- Working with Structs
+--
+  -- Assignment
+  --
+    When you assign one struct to another, Go performs a member-wise copy. The
+    entire direct part of the struct is copied field by field.
+
+    example
+      ```go
+        book1 := Book{Title: "Original", Pages: 100}
+        book2 := book1 // book2 is now a complete copy of book1.
+        book2.Title = "Copy"
+
+        fmt.Println(book1.Title) // "Original"
+        fmt.Println(book2.Title) // "Copy"
+
+      ```
+
+
+  -- Implicit Pointer Dereferencing
+  --
+    A major convenience feature in Go is that you can access fields on a pointer
+    to a struct using the same dot notation (`.`) as with a value. The compiler
+    automatically handles the dereference.
+
+    example
+      ```go
+        bookPtr := &Book{Title: "Pointer Magic", Pages: 50}
+
+        // The following two lines are equivalent. Go automatically translates the
+        // first form into the second.
+        bookPtr.Pages = 55       // Idiomatic and preferred.
+        (*bookPtr).Pages = 55 // Also works, but is more verbose.
+
+      ```
+
+
+
+
+
+-- Key Properties and Behaviors
+--
+  -- Comparability
+  --
+    A struct type is comparable if and only if all of its field types are comparable. 
+    including the fields with names as the blank identifier _
+
+    If a struct is comparable, two values can be compared using `==` and `!=`. The
+    comparison proceeds field by field, in the order of declaration. Two structs
+    are equal only if all of their corresponding fields are equal.
+
+    
+    example
+      ```go
+        p1 := Point{X: 1, Y: 2}
+        p2 := Point{X: 1, Y: 2}
+        fmt.Println(p1 == p2) // LEGAL and true.
+
+        type User struct {
+            ID   int
+            Tags []string // A slice is an incomparable type.
+        }
+        // u1 := User{...}; u2 := User{...}
+        // fmt.Println(u1 == u2) // COMPILE ERROR: User is not comparable.
+
+      ```
+
+
+  -- Memory Layout and Padding
+  --
+    The size of a struct is the sum of its field sizes plus potential "padding"
+    bytes. Go adds padding to ensure that each field is memory-aligned.
+    Proper alignment allows the CPU to access data more efficiently.
+    You can optimize a struct's memory footprint by ordering fields from largest to smallest.
+
+
+    A zero-field struct (`struct{}`) has a size of zero.
+
+
+    The padding bytes are used to align the memory addresses of some fields.
+      // To understand Memory Alignment and Padding
+      // you have to think like a CPU. A 64-bit CPU wants to grab data in "blocks" of 8 bytes
+      // If a variable is split across two of those blocks, the CPU has to do double the work to read it.
+      // To prevent this, Go adds Padding (empty, wasted space) to make sure every variable takes the least amount of reads
+
+
+    example
+      ```go
+        // -- Unoptimized Struct (24 bytes on 64-bit machine) 
+        type BadStruct struct {
+            a bool   // 1 byte
+            // 7 bytes of padding added here
+            b int64  // 8 bytes
+            c bool   // 1 byte
+            // 7 bytes of padding added here
+        }
+
+
+        // -- Optimized Struct (16 bytes) 
+        type GoodStruct struct {
+            b int64 // 8 bytes
+            a bool  // 1 byte
+            c bool  // 1 byte
+            // 6 bytes of padding added here to make the total a multiple of 8.
+        }
+
+      ```
+  
+
+
+
+
+-- Type Conversion Rules
+--
+  The rules for converting between struct types depend on their underlying structure
+  and whether they are named or unnamed types.
+
+
+  Rule 1: Explicit Conversion*
+    You can convert a value from struct type `S1` to `S2` if their underlying
+    types are identical, meaning they have the same field names, types, and order.
+    Field tags are ignored for this rule.
+
+
+  Rule 2: Implicit Conversion (Assignment)
+    Assignment is stricter. A value of type `S1` can be assigned to a variable of   
+    type `S2` if their underlying types are identical, this time including tags
+    AND at least one of `S1` or `S2` is an unnamed type.
+
+
+  example
+    ```go
+      // S1 and S2 are aliases for two different UNNAMED struct types.
+      // They differ only by their field tags.
+      type S1 = struct { x int "foo"; y bool }
+      type S2 = struct { x int "bar"; y bool }
+
+
+      // S3 and S4 are new DEFINED (named) types.
+      type S3 S2 // Underlying type is the struct literal from S2.
+      type S4 S3 // Underlying type is also ultimately the struct literal from S2.
+
+
+      func conversionExamples() {
+        var v1 S1
+        var v2 S2
+        var v3 S3
+        var v4 S4
+
+
+        // -- Case 1: Explicit Conversion (Tags differ) 
+        // v1 and v2 are different unnamed types because their tags differ.
+        // We MUST use an explicit conversion. The conversion is allowed because
+        // if we ignore tags, their structures match.
+        v1 = S1(v2)
+        v2 = S2(v1)
+
+
+        // -- Case 2: Implicit Conversion (The "Unnamed Bridge") 
+        // Here, v2 is an UNNAMED type and v3/v4 are NAMED types.
+        // Because their underlying structures (including tags) are identical AND
+        // one side of the assignment is unnamed, Go permits an implicit conversion.
+        v3 = v2 // OK: Assign unnamed to named.
+        v2 = v3 // OK: Assign named to unnamed.
+        v4 = v2 // OK
+        v2 = v4 // OK
+
+
+        // -- Case 3: Explicit Conversion (Named to Named) 
+        // v3 and v4 are two different DEFINED (named) types. Go NEVER allows
+        // implicit assignment between two different named types.
+        // An explicit conversion is required.
+        // v3 = v4 // COMPILE ERROR: cannot use type S4 as type S3 in assignment
+        v3 = S3(v4) // OK: Explicit conversion is allowed.
+      }
+
+    ```
+
+

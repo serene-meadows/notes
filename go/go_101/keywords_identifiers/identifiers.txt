@@ -1,0 +1,116 @@
+An identifier is a user-defined name used to represent program elements such
+as variables, constants, types, functions, and packages.
+
+
+
+
+
+-- Naming Rules & Composition
+--
+  -- The Rules
+  --
+    1. Allowed Characters: Must be composed entirely of Unicode letters, Unicode
+       digits, and underscores (`_`).
+    2. Starting Character: Must start with a Unicode letter or an underscore (`_`).
+       It CANNOT start with a digit.
+    3. Keywords: Go's reserved keywords (e.g., `func`, `type`, `if`, `for`) 
+       cannot be used as identifiers.
+
+
+  ```go
+	// -- VALID Identifiers 
+	var age int             // Standard ASCII
+	var _tempValue string   // Starts with underscore
+	var user123 bool        // Contains digits
+	var 数量 int              // Unicode (Eastern characters are letters)
+
+	// -- INVALID Identifiers (Will cause compile errors) 
+	// var 1stPlace int     // ERROR: Cannot start with a digit
+	// var my-name string   // ERROR: Contains a hyphen (not a letter/digit/_)
+	// var func bool        // ERROR: 'func' is a reserved keyword
+	// var user@name string // ERROR: Contains an invalid symbol '@'
+
+  ```
+
+
+
+
+
+
+-- Visibility: Exported vs. Non-Exported (Public vs. Private)
+--
+  Go does not use keywords like `public`, `private`, or `protected`. Instead,
+  it uses the capitalization of the first letter to determine visibility across
+  package boundaries.
+
+
+  --  Exported Identifiers (Public)
+  --
+    - Rule: Starts with an UPPERCASE Unicode letter (A-Z).
+    - Visibility: Can be accessed from ANY other package that imports this package.
+
+
+  --  Non-Exported Identifiers (Private)
+  --
+    - Rule: Starts with a LOWERCASE letter (a-z) or an underscore (`_`).
+    - Visibility: Can ONLY be accessed from within the SAME package.
+
+
+  -- Note on Non-Latin/Eastern Characters
+  --
+    Characters from Eastern scripts (like Chinese, Japanese, Arabic, etc.) are 
+    considered lowercase/uncased by Go's Unicode definitions. Therefore, an
+    identifier starting with an Eastern character is ALWAYS Non-Exported.
+
+
+  example
+    ```go
+      package mypackage
+
+      // EXPORTED: Can be used in other packages (e.g., `mypackage.AppConfig`)
+      type AppConfig struct {
+        // EXPORTED field
+        Port int 
+        
+        // NON-EXPORTED field: Only visible inside `mypackage`
+        databaseName string 
+        
+        // NON-EXPORTED field: Eastern characters don't have an uppercase concept in Go
+        密码 string 
+      }
+
+      // EXPORTED function
+      func StartServer() {}
+
+      // NON-EXPORTED function
+      func setupDatabase() {}
+
+    ```
+
+
+
+
+
+-- The Blank Identifier (`_`)
+--
+  The underscore `_` used entirely by itself is a special built-in identifier 
+  known as the "blank identifier".
+
+
+  It acts as a "black hole" or a throwaway placeholder. It tells the compiler: 
+  "I am required to put a variable name here by the syntax, but I do not care
+  about the value and will never use it."
+
+
+  It is heavily used in Go to bypass the strict "unused variable" compiler errors.
+
+
+  example
+    ```go
+      // `strconv.Atoi` returns two values: the integer, and an error.
+      // If we are absolutely sure the string is a valid number and want to ignore 
+      // the error, we use the blank identifier.
+      number, _ := strconv.Atoi("100")
+      fmt.Println(number)
+
+    ```

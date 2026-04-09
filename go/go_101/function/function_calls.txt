@@ -1,0 +1,121 @@
+-- Arguments vs. Parameters (Assignability)
+--
+  When you call a function, you pass "arguments" to fill the function's 
+  defined "parameters".
+
+  -- The Assignability Rule
+  --
+    Go is strictly typed, but the type of an argument does NOT always have to be 
+    perfectly identical to the parameter type. The only strict requirement is
+    that the argument must be "assignable" (implicitly convertible) to the
+    parameter's type.
+
+
+  example
+    ```go
+      func printFloat(f float64) {
+        fmt.Printf("Float value: %.2f\n", f)
+      }
+
+      func assignabilityExample() {
+        var exactFloat float64 = 3.14
+        printFloat(exactFloat) // OK: Types are perfectly identical.
+
+        // -- Implicit Conversion (Assignability) --
+        // '5' is an untyped integer constant. Because untyped constants can be 
+        // implicitly converted to any compatible type, this is perfectly legal.
+        printFloat(5) // OK: 5 is implicitly converted to float64(5.0).
+
+        // -- Strict Identity Required for Variables --
+        // var myInt int = 10
+        // printFloat(myInt) // COMPILE ERROR: cannot use myInt (type int) as type float64
+        // printFloat(float64(myInt)) // OK: Explicit conversion required for variables.
+      }
+
+    ```
+
+
+
+
+
+-- Declaration Order Independence
+--
+  Unlike languages like C or C++ (which process files linearly from top to 
+  bottom and require "forward declarations"), the Go compiler parses the
+  entire package at once.
+
+  This means a function can be called before it is declared in the source file.
+
+  ```go
+    func orderExample() {
+      // Calling a function that hasn't been defined yet in the file.
+      message := generateMessage()
+      fmt.Println(message)
+    }
+
+
+    // Defined AFTER it is called. This is perfectly idiomatic Go.
+    func generateMessage() string {
+      return "Hello from the bottom of the file!"
+    }
+
+  ```
+
+
+
+
+
+-- The Two-Step Return: "Returned" vs. "Exited"
+--
+  This is a subtle but critical distinction in Go's execution model, heavily 
+  tied to how the `defer` keyword works.
+
+  When a function encounters a `return` statement, it does NOT immediately
+  exit and hand control back to the caller. Instead, it enters its
+  "Exiting Phase".
+
+
+  -- The Execution Timeline
+  --
+    1. Normal Execution: The function runs its code.
+    2. The Return: A `return` statement is hit. Return values are evaluated.
+    3. The Exiting Phase: The function is "returned" but NOT "exited".
+       - All deferred functions (pushed onto the defer stack) are now executed.
+    4. Fully Exited: After all defers finish, the function finally terminates
+       and control is passed back to the caller.
+
+
+  example
+    ```go
+      func exitingPhaseDemo() (result int) {
+        fmt.Println("1. Executing normal body...")
+
+        // This defer is scheduled to run DURING the exiting phase.
+        defer func() {
+          fmt.Println("3. [Exiting Phase] Defer runs! Modifying the return value.")
+          result += 5 // We can intercept and modify the return value here.
+        }()
+
+        fmt.Println("2. Hitting the return statement...")
+        
+        // This initiates the "Returned" state and starts the Exiting Phase.
+        // It evaluates `result = 10`, but does NOT fully exit the function yet!
+        return 10 
+      }
+
+
+      func main() {
+        // assignabilityExample()
+        // orderExample()
+        
+        finalValue := exitingPhaseDemo()
+        fmt.Printf("4. Fully Exited. Final received value: %d\n", finalValue)
+      }
+
+    ```
+
+    // output
+    // 1. Executing normal body...
+    // 2. Hitting the return statement...
+    // 3. [Exiting Phase] Defer runs! Modifying the return value.
+    // 4. Fully Exited. Final received value: 15

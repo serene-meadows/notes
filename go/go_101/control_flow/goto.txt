@@ -1,0 +1,161 @@
+Go includes a `goto` statement, which provides an unconditional jump to a
+labeled statement within the same function.
+
+
+STRONG WARNING: The use of `goto` is heavily discouraged in modern Go.
+It can easily create confusing, unreadable, and unmaintainable "spaghetti code".
+Standard control flow structures like `for`, `if`, and functions are almost
+always a better, clearer solution. `goto` should be considered a last resort.
+
+
+
+
+
+-- The Basic Syntax
+--
+  A `goto` statement consists of the `goto` keyword followed by a label name.
+  A "label" is an identifier followed by a colon (`:`).
+
+  When `goto MyLabel` is executed, the program's execution pointer immediately
+  jumps to the statement directly following the `MyLabel:` declaration.
+
+
+
+
+
+-- Scope Rules for Labels
+--
+  Scope Rules for Labels
+
+  - A label is declared within a function and is only visible within that function.
+  - A `goto` can jump forward or backward to a label.
+  - A label is only visible within its innermost enclosing block. You cannot
+    `goto` a label that is inside a different, nested scope.
+
+
+  example
+    ```go
+      func scopeExample() {
+        // goto InnerLabel // COMPILE ERROR: InnerLabel is not in this scope.
+
+
+        { // Start of inner block
+          goto ForwardJump // OK: Jumps forward within the same block.
+
+
+        BackwardJump:
+          // ...
+          _ = "noop"
+
+
+        ForwardJump:
+          // goto BackwardJump; // OK: Jumps backward within the same block.
+          _ = "noop"
+        } // End of inner block
+
+
+        // InnerLabel: // This would be a different label from the one inside the block.
+      }
+
+    ```
+
+
+
+
+
+
+-- The "Jumps Over Declaration" Error
+--
+  The Go compiler strictly forbids using `goto` to jump over a variable
+  declaration into a scope where that variable is visible but has not yet been
+  declared. This prevents code from accessing uninitialized memory.
+
+
+  ```go
+    func jumpOverDeclarationError() {
+      i := 0
+
+    LoopStart:
+      if i >= 3 {
+        // This `goto` is ILLEGAL because it jumps past the declaration
+        // of `k` but lands at a point (`Exit`) where `k` is still in scope.
+        // The compiler sees that if this jump is taken, the code after `Exit`
+        // could potentially access `k` before it has been created.
+
+        // goto Exit // COMPILE ERROR: goto Exit jumps over declaration of k
+      }
+
+
+      k := i + 10 // `k` is declared here.
+      fmt.Printf("i=%d, k=%d\n", i, k)
+
+
+      i++
+      goto LoopStart
+
+
+    Exit: // The scope of `k` extends to the end of the function.
+    }
+
+  ```
+    
+    // Fix - 1: Shrink the scope of the variable.
+    // By wrapping the declaration in its own block, its scope ends before `Exit`.
+
+      ```go
+        func fixWithSmallerScope() {
+          i := 0
+
+        Loop:
+          if i >= 3 {
+            goto Exit
+          }
+
+
+          { // Start a new, smaller scope.
+            k := i + 10
+            fmt.Printf("i=%d, k=%d\n", i, k)
+          } // The scope of `k` ends here.
+
+
+          i++
+          goto Loop
+
+        Exit: // `k` is no longer in scope here, so the jump is legal.
+        }
+
+      ```
+
+
+      // Fix 2: Enlarge the scope of the variable.
+      // Declare the variable at the top of the function so the `goto` never jumps
+      // over its declaration.
+
+        ```go
+          func fixWithLargerScope() {
+            var k int // `k` is declared at the top of the function scope.
+            i := 0
+
+  
+          Loop:
+            if i >= 3 {
+              goto Exit
+            }
+
+
+            k = i + 10 // We are now assigning, not declaring.
+            fmt.Printf("i=%d, k=%d\n", i, k)
+            i++
+            goto Loop
+
+
+          Exit:
+          }
+
+        ```
+    
+
+
+
+
+

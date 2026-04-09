@@ -1,0 +1,111 @@
+By default, the `main` goroutine does not wait for other background goroutines 
+to finish. If `main` exits, the program terminates immediately, killing all 
+running goroutines.
+
+
+To fix this, we need concurrency synchronization. A `sync.WaitGroup` is the 
+standard, idiomatic tool used to wait for a collection of goroutines to finish 
+executing.
+
+
+
+
+
+
+-- The Core Concept: An Internal Counter
+--
+  You can think of a `WaitGroup` as a thread-safe, concurrent counter.
+  1. You add to the counter to indicate how many tasks need to be done.
+  2. Each task decreases the counter by 1 when it finishes.
+  3. You tell the main program to "block" (pause) until the counter hits 0.
+
+
+
+
+
+-- The Three Methods
+--
+  A `WaitGroup` exposes exactly three methods:
+
+
+  -- wg.Add(delta int)
+  --
+    Increases (or decreases) the internal counter by `delta`.
+    RULE: You must call `Add()` before launching the goroutine. If you call it
+    inside the goroutine, `Wait()` might execute and exit before the goroutine
+    even has a chance to start and register itself!
+
+
+  -- wg.Done() 
+  --
+    Decrements the internal counter by 1. 
+    It is exactly equivalent to `wg.Add(-1)`.
+    RULE: Always use `defer wg.Done()` at the very beginning of your worker
+    function. This guarantees the counter is decremented even if the function 
+    returns early or panics.
+
+
+  -- wg.Wait()
+  --
+    Blocks the calling goroutine (usually `main`) until the internal counter 
+    becomes exactly 0.
+
+
+
+
+
+
+-- Common Pitfall: Passing by Value
+--
+  if you pass a `WaitGroup` to a function, you MUST pass it by pointer 
+  (`*sync.WaitGroup`).
+
+
+  A `WaitGroup` contains a hidden mutex lock. If you pass it by value, you are
+  passing a copy of the lock. The worker will call `Done()` on its copy, but
+  `main` will be `Wait()`ing on the original. This results in a Deadlock!
+
+
+  example
+    ```go
+      // The worker function takes the WaitGroup as a POINTER.
+      func SayGreetings(id int, greeting string, times int, wg *sync.WaitGroup) {
+        // Idiomatic Go: Use defer to ensure Done() is ALWAYS called,
+        // safeguarding against premature returns or panics.
+        defer wg.Done()
+
+        for i := 0; i < times; i++ {
+          fmt.Printf("[Worker %d] %s\n", id, greeting)
+
+          // Simulate random variable work time (0 to 0.5 seconds)
+          d := time.Millisecond * time.Duration(rand.Intn(500))
+          time.Sleep(d)
+        }
+      }
+
+      func main() {
+        // Initialize the WaitGroup (its zero value is perfectly ready to use)
+        var wg sync.WaitGroup
+
+        // We have 2 tasks to run.
+        // You can add them all at once: `wg.Add(2)`
+        // Or add them one by one right before launching the goroutine.
+        
+        wg.Add(1)
+        go SayGreetings(1, "hi!", 3, &wg) // Pass address of wg
+
+        wg.Add(1)
+        go SayGreetings(2, "hello!", 3, &wg) // Pass address of wg
+
+        fmt.Println("Main: Waiting for workers to finish...")
+
+        // Block here until the counter reaches 0
+        wg.Wait() 
+
+        fmt.Println("Main: All tasks finished. Exiting safely.")
+      }
+
+    ```
+
+      
+

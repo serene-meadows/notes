@@ -1,0 +1,124 @@
+-- anonymous function
+--
+  An anonymous function is simply a function declared without a name identifier.
+  Its syntax is identical to a standard function declaration, just missing the name.
+
+
+  Standard:  func doSomething(x int) { ... }
+  Anonymous: func(x int) { ... }
+
+
+  -- The "No Nested Named Functions" Rule
+  --
+    In Go, you CANNOT define a named function inside another function. 
+    If you need to define a function locally inside `main()` or any other
+    function, it MUST be an anonymous function.
+
+
+
+
+
+-- Functions as "First-Class Citizens"
+--
+  Anonymous functions are heavily used because functions in Go are 
+  "first-class citizens" (or first-class objects). This means functions 
+  are treated exactly like any other value or type.
+
+
+  Because they are first-class, functions can be:
+  1. Assigned to variables.
+  2. Passed as arguments to other functions.
+  3. Returned as values from other functions.
+  4. Stored in data structures (like maps or slices).
+
+
+
+
+
+-- Closures: Capturing the Environment
+--
+  Anonymous functions in Go act as "Closures". 
+
+  The term Closure comes from the fact that the function "closes over" 
+  (or captures) the variables in its surrounding lexical scope.
+
+  Even if the anonymous function is executed later, or passed somewhere else,
+  it retains direct access to the variables that were in scope when it was created.
+  It doesn't just copy their values; it references the actual variables.
+
+
+
+
+
+-- example
+--
+  ```go
+    func main() {
+
+      // -------------------------------------------------------------------------
+      // -- Example 1: Immediately Invoked Function Expression (IIFE)
+      // -------------------------------------------------------------------------
+      // You can define an anonymous function and call it immediately by 
+      // adding `()` to the end of the definition.
+
+      x, y := func() (int, int) {
+        fmt.Println("1. IIFE: This function runs immediately and returns 3, 4")
+        return 3, 4
+      }() 
+
+
+      // -------------------------------------------------------------------------
+      // -- Example 2: IIFE with Arguments
+      // -------------------------------------------------------------------------
+      // You can pass arguments to an IIFE just like a normal function.
+
+      func(a, b int) {
+        fmt.Printf("2. Args passed: a*a + b*b = %d\n", a*a + b*b)
+      }(x, y) // Passing 'x' and 'y' into 'a' and 'b'
+
+
+      // -------------------------------------------------------------------------
+      // -- Example 3: Shadowing Outer Variables
+      // -------------------------------------------------------------------------
+      // If an anonymous function declares a parameter with the same name as an 
+      // outer variable, the inner parameter "shadows" the outer one.
+
+      func(x int) {
+        // Inside this block, 'x' refers to the parameter (which received 'y').
+        // 'y' refers to the outer variable 'y'.
+        // The math here is actually y*y + y*y (4*4 + 4*4 = 32).
+        fmt.Printf("3. Shadowing: x*x + y*y = %d\n", x*x + y*y)
+      }(y) 
+
+
+      // -------------------------------------------------------------------------
+      // -- Example 4: The Closure Effect
+      // -------------------------------------------------------------------------
+      // Notice that this function takes NO arguments. 
+      // Instead, it "closes over" the outer scope, directly accessing and 
+      // reading the exact 'x' and 'y' variables defined at the top of main().
+
+      func() {
+        fmt.Printf("4. Closure: x*x + y*y = %d\n", x*x + y*y)
+      }()
+
+
+      // -------------------------------------------------------------------------
+      // -- Example 5: Assigning to a Variable (First-Class Citizen)
+      // -------------------------------------------------------------------------
+      // Instead of calling it immediately, we assign the anonymous function 
+      // to a variable named `multiply`.
+
+      multiply := func(a, b int) int {
+        return a * b
+      }
+
+      // Now we can use the variable `multiply` just like a regular function.
+      result := multiply(x, y)
+      fmt.Printf("5. Assigned to variable: x * y = %d\n", result)
+    }
+
+  ```
+
+
+

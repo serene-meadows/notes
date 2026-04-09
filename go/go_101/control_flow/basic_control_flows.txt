@@ -1,0 +1,273 @@
+-- Conditionals (Branching Logic)
+--
+  --  `if / else`
+  --
+    The standard two-way conditional execution block. Go's `if` statements do not
+    require parentheses `()` around the condition, but `{}` are always required.
+
+
+    Go also supports an "if with a short statement" idiom, where you can initialize
+    a variable scoped only to the `if/else` block.
+
+
+    ```go
+      if num%2 == 0 {
+        fmt.Println("The number is even.")
+      } else {
+        fmt.Println("The number is odd.")
+      }
+
+      // "if with a short statement" idiom
+      if err := someFallibleOperation(); err != nil {
+        fmt.Println("An error occurred:", err)
+        // `err` only exists inside this if/else block
+      }
+
+    ```
+
+
+  --  `switch`
+  --
+    A multi-way conditional execution block, often cleaner than a long `if-else if`
+    chain. Key features in Go:
+    - No automatic "fall through" from one case to the next.
+    - Cases can be expressions, not just constants.
+
+
+    ```go
+      switch dayOfWeek {
+        case 1:
+          fmt.Println("Monday")
+        case 2:
+          fmt.Println("Tuesday")
+        // ... cases for 3, 4, 5
+        case 6, 7:
+          fmt.Println("It's the weekend!")
+        default:
+          fmt.Println("Invalid day.")
+      }
+
+    ```
+
+
+    --  Type `switch`
+    --
+      A special form of `switch` used to determine the dynamic type of an interface
+      value.
+
+      ```go
+        func typeSwitchExample(i any) { // `any` is an alias for `interface{}`
+          switch v := i.(type) {
+          case int:
+            fmt.Printf("It's an integer with value: %d\n", v)
+          case string:
+            fmt.Printf("It's a string with value: %s\n", v)
+          case bool:
+            fmt.Printf("It's a boolean with value: %t\n", v)
+          default:
+            fmt.Printf("It's an unknown type: %T\n", v)
+          }
+        }
+
+      ```
+
+
+    -- fallthrough
+    --
+      By default, Go does NOT fall through cases.
+      - fallthrough forces execution to continue to the next case.
+      - fallthrough ignores the next case’s condition
+      - It MUST be the last statement in a case
+      - It only goes to the immediate next case
+
+
+    example
+      ```go
+        switch x := 1; x {
+        case 1:
+            fmt.Println("One")
+            fallthrough
+        case 2:
+            fmt.Println("Two")
+        case 3:
+            fmt.Println("Three")
+        }
+
+        // Output:
+        // One
+        // Two
+
+      ```
+
+
+
+
+
+
+-- Loops (Iteration)
+--
+  `for` is Go's ONLY looping keyword
+
+	-- The Complete (C-style) `for` loop
+  --
+    ```go
+      for i := 0; i < 5; i++ {
+        fmt.Println("C-style:", i)
+      }
+
+    ```
+
+
+	-- The Condition-Only (`while`) `for` loop
+  --
+    ```go
+      n := 0
+      for n < 5 {
+        fmt.Println("While-style:", n)
+        n++
+      }
+
+    ```
+
+
+	-- The Infinite `for` loop (often used with `break` or `return`)
+  --
+    ```go
+      for {
+        fmt.Println("Infinite loop, breaking immediately.")
+        break
+      }
+
+    ```
+
+
+  -- `for-range`
+  --
+    The `for-range` loop provides an idiomatic way to iterate over collections
+    like slices, arrays, strings, maps, and channels.
+
+    ```go
+      // Iterating over a slice (gets index and value)
+      items := []string{"a", "b", "c"}
+      for i, item := range items {
+        fmt.Printf("Index: %d, Value: %s\n", i, item)
+      }
+
+
+      // Iterating over a map (gets key and value)
+      users := map[string]int{"alice": 25, "bob": 30}
+      for name, age := range users {
+        fmt.Printf("Name: %s, Age: %d\n", name, age)
+      }
+
+
+      // when used with channels
+      // receives values from the channel
+      // continues until the channel is closed
+      ch := make(chan int) 
+      go func() { 
+        for i := 1; i <= 3; i++ { 
+          ch <- i 
+        } 
+        close(ch) T 
+      }() 
+
+      for v := range ch { 
+        fmt.Println(v) 
+      }
+
+    ```
+
+
+
+
+
+-- Concurrency Control
+--
+  --  `select`
+  --
+    The `select` statement is like a `switch` for concurrency. It blocks until
+    one of its channel operations (`case`) is ready to proceed. If multiple are
+    ready, one is chosen at random.
+
+    ```go
+      func selectExample(ch1, ch2 <-chan string) {
+
+        select {
+
+        case msg1 := <-ch1:
+          fmt.Println("Received from channel 1:", msg1)
+
+        case msg2 := <-ch2:
+          fmt.Println("Received from channel 2:", msg2)
+
+        default:
+          // The default case makes the select non-blocking.
+          fmt.Println("No message received yet.")
+
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Control Flow Modifiers
+--
+  --  `break` and `continue`
+  --
+    - `break`: Immediately terminates the innermost `for`, `switch`, or `select`.
+    - `continue`: Skips the remainder of the current iteration and proceeds to
+      the next iteration of the innermost `for` loop.
+    - Labeled `break`/`continue`: Can be used to control outer loops.
+
+    
+    example
+      ```go
+        func breakContinueExample() {
+        OuterLoop:
+          for i := 0; i < 3; i++ {
+            for j := 0; j < 3; j++ {
+              if i == 1 && j == 1 {
+                // This break only exits the inner loop.
+                // break
+                // This labeled break exits the OuterLoop entirely.
+                break OuterLoop
+              }
+              if i == 0 && j == 1 {
+                // Skips to the next iteration of the inner loop (j=2).
+                continue
+              }
+              fmt.Printf("i=%d, j=%d\n", i, j)
+            }
+          }
+        }
+
+      ```
+
+
+
+
+
+-- goto
+--
+  goto jumps to a labeled statement within the same function.  
+  - Must stay within the same function
+  - Cannot jump over variable declarations (safety rule)
+
+  example
+  ```go
+    func gotoExample() {
+      i := 0
+
+    Loop:
+      if i < 3 {
+        fmt.Println(i)
+        i++
+        goto Loop
+      }
+    }
+
+  ```

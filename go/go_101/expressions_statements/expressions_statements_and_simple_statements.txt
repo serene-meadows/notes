@@ -1,0 +1,131 @@
+-- The Core Distinction
+--
+  - An Expression is a piece of code that computes a value. Every
+    expression can be evaluated to produce a result.
+    - Examples: `2 + 3`, `myVariable`, `isActive()`, `a > 0`
+
+  - A Statement is a piece of code that performs an action. Statements
+    are the building blocks that control the flow and structure of a program.
+    - Examples: `var x = 5`, `x++`, `if x > 0 {...}`, `return`
+
+
+
+
+
+-- Types of Statements
+--
+  Statements can be broadly categorized.
+
+  -- Declaration Statements
+  --
+    These statements introduce new identifiers (names) into the program.
+
+    ```go
+      var a = 123
+      const B = "Go"
+      type Choice bool
+      import "fmt"
+      func f() {}
+
+    ```
+  
+
+  -- simple Statements
+  -- 
+    These are executable actions that form the core logic within functions.
+
+    ```go
+      a = 789             // Assignment
+      c := make(chan bool)  // Short variable declaration
+      a += 5                // Augmented assignment
+      a++                   // Increment statement (not an expression in Go)
+      c <- true             // Channel send
+
+    ```
+
+
+  -- Control Flow Statements
+  --
+    These statements direct the execution path of the program.
+
+    ```go
+      if a > 0 { ... }
+      for i := 0; i < 5; i++ { ... }
+      switch a { case 1: ... }
+      return 123
+
+    ```
+
+
+
+
+
+-- Expressions
+--
+  Expressions always produce a value.
+
+  ```go
+    123             // A literal is an expression.
+    true            // A boolean literal.
+    B               // A constant is an expression.
+    a               // A variable is an expression.
+    a - 789         // An arithmetic operation is an expression.
+    B + " language" // A string concatenation is an expression.
+    a > 0           // A comparison results in an untyped boolean value.
+    f               // Referencing a function by name produces a function value.
+
+  ```
+
+
+
+
+
+-- The Dual-Use Case: When Code is Both
+--
+  Some constructs in Go can be used as EITHER a simple statement OR an expression,
+  depending on the context. This typically applies to operations that have both
+  a side effect (an action) and a return value.
+
+  
+  -- function calls
+  --
+    ```go
+      func myFunction() int {
+        fmt.Println("Function was called!")
+        return 42
+      }
+
+
+      func dualUseFunctionCall() {
+        // Used as a STATEMENT: We care about the side effect (printing),
+        // but we are discarding the return value of 42.
+        myFunction()
+
+        // Used as an EXPRESSION: We care about the return value and are
+        // assigning it to a variable.
+        result := myFunction()
+        _ = result
+      }
+    ```
+
+
+  -- Channel Receives
+  --
+    ```go
+      func dualUseChannelReceive() {
+        c := make(chan bool)
+        go func() { c <- true }()
+
+        // Used as a STATEMENT: We wait for a value to arrive on the channel
+        // but immediately discard it. This is a common way to synchronize goroutines.
+        <-c
+
+        go func() { c <- false }()
+
+        // Used as an EXPRESSION: We care about the value received from the
+        // channel and are assigning it to a variable.
+        value := <-c
+        _ = value
+      }
+
+    ```

@@ -1,0 +1,85 @@
+-- container types
+--
+  In Go, container types are homogeneous, meaning they hold a collection of
+  values that all share the same single type. This uniform type is called the
+  container's element type. This rule is fundamental to Go's type safety.
+
+
+  -- array types
+  --
+    `[N]T`
+    An array is a fixed-length sequence of `N` elements.
+    element type - T
+
+    example 
+      ```go
+        var prices [10]float64 // This is an array of 10 elements.
+                              // The element type is `float64`.
+
+      ```
+
+
+  -- slice types
+  --
+    `[]T`
+    A slice is a dynamically-sized, flexible view into an array.
+    element type - T
+
+    example
+      ```go
+        var names []string // This is a slice of strings.
+                           // The element type is `string`.
+
+      ```
+  
+
+  -- map types
+  --
+    `map[TKey]TValue`
+
+    A map is an unordered collection of key-value pairs. It has
+    both a key type and a value type. The element type refers to the value type.
+
+    element type - TValue
+
+
+    example 
+      ```go
+        var scores map[string]int // This is a map with string keys an int values.
+                                 // The element type (value type) is `int`.
+          
+      ```
+
+
+  -- channel type
+  --
+    `chan T`, `chan<- T`, or `<-chan T`
+
+    A channel is a conduit for communication between goroutines.
+    It transports values of a specific type.
+    element type: T
+
+    example 
+      ```go
+        var signals chan bool // This is a channel used to send and receive booleans.
+                             // The element type is `bool`.
+
+      ```
+
+
+
+  -- string type
+  --
+    While not always thought of as a typical container, a `string` is an immutable
+    sequence of bytes. In Go, source code and strings are typically UTF-8 encoded.
+    When you index a string, you access its individual bytes.
+
+    element type: byte (which is an alias for `uint8`)
+
+
+    example 
+      ```go
+        var greeting string = "Hello"
+        var firstByte byte = greeting[0] // firstByte is the byte value for 'H' (which is 72).
+
+      ```

@@ -1,0 +1,255 @@
+-- variables
+--
+  A variable is a named storage location for a value that can be modified at
+  runtime.
+
+
+  Key Properties:
+    1. Mutable: The value held by a variable can be changed after it's declared.
+    2. Typed: Every variable in Go has a specific type (e.g., `int`, `string`,
+       `bool`), which is determined at compile time and cannot be changed.
+    3. Addressable: Every variable resides in memory and has a memory address.
+       Constants, in contrast, are not addressable.
+
+
+
+
+
+-- scope
+--
+  Variables can be declared at the package level (outside functions) or at the
+  local level (inside functions).
+  - Package (Global) Variables: Accessible throughout the entire package.
+  - Local Variables: Accessible only within the block (`{...}`) where they are declared.
+
+
+
+
+
+-- variable declaration
+--
+  there are two basic types of variable declaration
+    standard
+    short 
+
+
+  -- standard declaration
+  --
+    The standard way to declare a variable uses the `var` keyword. This form is
+    the most explicit and can be used both at the package level and locally.
+
+
+    -- Declaration with Type and Initial Value
+    --
+      The most explicit form: `var <name> <type> = <value>`
+
+      example 
+        ```go
+          var lang string = "Go"
+          var announceYear int = 2009
+
+          // When declaring multiple variables on one line, the type must be shared.
+          var compiled, dynamic bool = true, false
+          
+        ```
+
+
+    -- Declaration with Type Inference
+    --
+      If you provide an initial value, Go can infer the type, so you can omit it.
+
+      example 
+        ```go
+          var website = "https://golang.org" // Type inferred as `string`
+          var version = 1.18                 // Type inferred as `float64`
+          var majorVersion = 1               // Type inferred as `int`
+
+          // Types do not need to be common when inferred on a single line.
+          var language, isDynamic = "Go", false // Inferred as `string` and `bool`
+
+        ```
+
+
+    -- Declaration with Zero Values
+    -- 
+      If a variable is declared without an initial value, it is automatically
+      initialized to the "zero value" of its type.
+
+      example
+        ```go
+          var lang, website string       // Initialized to "" (zero value for string)
+          var interpreted, isFast bool   // Initialized to `false` (zero value for bool)
+          var n int                      // Initialized to `0` (zero value for numeric types)
+
+        ```
+
+
+    -- Declaration Block
+    --
+      Multiple variables can be grouped into a block for better organization.
+
+      ```go
+        var (
+          lang, bornYear, compiled     = "Go", 2007, true
+          announceAt, releaseAt    int = 2009, 2012
+          createdBy                string
+        )
+
+      ```
+
+
+
+
+  -- short declaration
+  -- 
+    The short variable declaration form is a concise way to declare and initialize
+    local variables. It is the most common form used inside functions.
+
+    -- rules
+    --
+      1.  Local Scope Only: Can only be used inside functions. Cannot be used
+          at the package level.
+      2.  No `var` or Type: The `var` keyword and the type are omitted. The type is
+          always inferred from the value on the right.
+      3.  Declaration and Assignment: `:=` is a declaration, not just an assignment (`=`).
+      4.  At Least One New Variable: When used in a multi-variable declaration, at
+          least one of the variables on the left must be new. Existing variables are
+          simply assigned a new value (re-assigned).     
+
+
+    example 
+      ```go
+        func main() {
+          // `lang` and `year` are both newly declared.
+          lang, year := "Go", 2007
+          fmt.Println(lang, year) // Output: Go 2007
+
+          // Here, `year` already exists, so it is just re-assigned a new value.
+          // `createdBy` is a newly declared variable. This is allowed.
+          year, createdBy := 2009, "Google"
+          fmt.Println(year, createdBy) // Output: 2009 Google
+
+          // This is a PURE ASSIGNMENT using `=` because all variables already exist.
+          lang, year = "Golang", 2012
+          fmt.Println(lang, year) // Output: Golang 2012
+
+          /*
+          // COMPILE ERROR: no new variables on left side of :=
+          lang, year := "Go", 2023
+          */
+        }
+
+      ```
+
+
+
+
+
+-- semantics
+-- 
+  -- pure assignment
+  --
+    In the above variable declarations, the sign = means assignment
+    Once a variable is declared, we can modify its value by using pure value assignments.
+
+    The expression items at the left of = symbol in a pure assignment are called destination or target values.
+    the destination must be 
+      addressable values, map index expressions, or the blank identifier. 
+
+
+    example 
+      ```go
+        const N = 123
+        var x int
+        var y, z float32
+
+        N = 9 // error: constant N is not modifiable
+        y = N // ok: N is deduced as a float32 value
+        x = y // error: type mismatch
+        x = N // ok: N is deduced as an int value
+        y = x // error: type mismatch
+        z = y // ok
+        _ = y // ok
+
+        x, y = y, x // error: type mismatch
+        x, y = int(y), float32(x) // ok
+        z, y = y, z               // ok
+        _, y = y, z               // ok
+        z, _ = y, z               // ok
+        _, _ = y, z               // ok
+        x, y = 69, 1.23           // ok
+
+      ```
+
+
+  -- no assignment chain.
+  --
+    example - ERR
+      ```go
+        var a, b int
+        a = b = 123 // syntax error
+
+      ```
+      
+
+
+
+
+-- unused variable rule
+--
+  The Go compiler enforces a strict rule: every declared local variable must
+  be used at least once. This helps prevent bugs caused by unused variables.
+  This rule does not apply to package-level variables.
+
+  example - ERR 
+    ```go
+      var globalVar = "I don't need to be used"
+
+      func unusedDemo() {
+        // `q` is declared and used in the assignment to `globalVar`.
+        var q = 789
+        globalVar = string(q)
+
+        // `r` is declared, but its value is never read. This is an error.
+        var r = false // COMPILE ERROR: r declared but not used
+
+        // `s` is declared but never used.
+        s := "bar" // COMPILE ERROR: s declared but not used
+
+        // To fix this during development, you can "use" them by assigning
+        // them to the blank identifier `_`.
+        _ = r
+        _ = s
+      }
+    ```
+
+
+
+
+
+-- Package-Level Initialization Order
+--
+  The initialization of package-level variables is determined by their
+  dependency order, not necessarily their declaration order. Go figures out
+  which variables depend on others and initializes them accordingly.
+
+  example 
+    // `y` has no dependencies, so it's initialized first.
+    // `c` depends on `y`.
+    // `b` depends on `c`.
+    // `a` depends on `b`.
+    // `x` depends on `a`.
+    // Initialization Order: y -> c -> b -> a -> x
+    ```go
+      var x, y = a+1, 5         // 8 5
+      var a, b, c = b+1, c+1, y // 7 6 5
+    ```
+
+  -- circular dependencies 
+  --
+    A circular dependency among package-level variables is a compile-time error.
+    example - ERR 
+      ```go
+        var i = j // i depends on j
+        var j = i // j depends on i -> COMPILE ERROR: initialization loop
+      ```

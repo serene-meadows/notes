@@ -1,0 +1,132 @@
+Go code is organized into units called "packages". A package is simply a 
+collection of source files in the same directory that are compiled together.
+
+
+To use exported code elements (functions, types, variables, etc.) from one 
+package in another, you must explicitly import the target package.
+
+
+
+
+
+-- The `builtin` Exception
+--
+  The only exception to this rule is Go's `builtin` standard package (often 
+  called the universe package), which contains fundamental identifiers like
+  `int`, `string`, `len()`, `make()`, and `panic()`. These are globally 
+  available without an import statement.
+
+
+
+
+
+-- Package Naming Conventions (Path vs. Name)
+--
+  There is a crucial distinction in Go between a package's IMPORT PATH and 
+  its declared PACKAGE NAME.
+
+
+  Import Path: The string you write in the `import` statement. This is 
+  the physical path to the DIRECTORY containing the code.
+
+  Package Name: The identifier declared at the top of the file
+  (e.g., `package utils`). This is the prefix you use in your code.
+
+
+  -- The Convention
+  --
+    The name of the package SHOULD match the base name of its directory. 
+    Failing to do this causes massive confusion for anyone using your code.
+
+
+  example
+    -- Bad Practice Example (Mismatch)
+    --
+      // File located at: myproject/internal/utils/helpers.go
+      ```go
+        package toolset // POOR PRACTICE: Doesn't match folder name 'utils'
+        
+        func DoSomething() {}
+
+      ```
+
+
+      // File using the code: main.go
+      ```go
+        package main
+
+
+        // You import the DIRECTORY path...
+        import "github.com/myorg/myproject/internal/utils"
+
+
+        func main() {
+          // ...but you must call it by its declared PACKAGE NAME.
+          // This is highly counter-intuitive to read!
+          toolset.DoSomething() 
+
+          // utils.DoSomething() // COMPILE ERROR: undefined: utils
+        }
+
+      ```
+
+
+
+
+
+-- Package Dependencies and Circular Imports
+--
+  When a file in Package A imports Package B, we say that Package A depends 
+  on Package B.
+
+  -- The Golden Rule of Dependencies 
+  -- 
+    Go strictly FORBIDS circular package dependencies (import cycles). 
+    The compiler will halt and throw an error if it detects a loop in the
+    dependency graph. This forces developers to maintain a clean, unidirectional
+    architecture and significantly speeds up compile times.
+
+
+    -- Illegal Dependency Graph Example
+    --
+      //   Package A  ---> imports --->  Package B
+      //       ^                             |
+      //       |                             v
+      //   imports <---  Package C  <--- imports
+
+
+    In this scenario:
+      1. A depends on B.
+      2. B depends on C
+      3. C attempts to import A.
+
+    Go Compiler Result: FATAL ERROR: import cycle not allowed.
+  
+    
+    -- Resolving Import Cycles
+    --
+      If you encounter a cycle, you usually need to refactor your code by:
+      1. Extracting the shared functionality into a new, independent Package D
+         that both conflicting packages can import.
+      2. Using Interfaces to break the hard dependency.
+    
+
+    -- Why does Go enforce this?
+    --
+      Fast Compilation: Unidirectional graphs allow the compiler to build packages
+      in parallel and cache them efficiently. It never has to re-evaluate a package
+      it has already processed.
+
+
+
+
+
+-- using functions from another file (same package) in go
+--
+  In Go, all .go files inside the same directory (and same package name)
+  are compiled together as one unit.
+
+
+  So:
+    You do NOT need to import another file in the same package
+    You can directly call functions across files

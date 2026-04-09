@@ -1,0 +1,786 @@
+-- Code Blocks and Identifier Scopes
+--
+  In Go, a "code block" is a structural container that defines the boundary
+  for where an identifier (variable, constant, type, or function) is visible
+  and accessible. This visibility is called the identifier's "scope."
+
+
+-- The Four Kinds of Code Blocks
+--
+  1. the universe block
+     The outermost block. It contains all source code in the project plus
+     predeclared identifiers like 'int', 'string', 'true', 'false', and 'make'.
+
+
+  2. the package block
+     Contains all source code in a package, EXCLUDING import declarations.
+     Everything declared here is shared across all files in the same package.
+
+
+  3. the file block
+     Contains all source code within a specific file, INCLUDING imports.
+     Imports are file-scoped; 'fmt' imported in file_a.go is not visible in
+     file_b.go, even if they are in the same package.
+
+
+  4. the local block
+     - Explicit: Code enclosed in braces {}.
+     - Implicit: Blocks created by control flow (if, for, switch) without
+       visible braces for certain segments.
+
+
+
+
+
+-- The Nesting Hierarchy
+--
+  [ The Universe Block ]
+          │
+          ├── [ Package Block (lib) ] <───┐ (Functions nest in BOTH)
+          │                               │
+          └── [ File Block (util.go) ] <──┘
+                │
+                └── [ Implicit Local Block (e.g., if/for header) ]
+                      │
+                      └── [ Explicit Local Block (e.g., { body }) ]
+
+
+  NOTE: Unlike standard compiler terminology, in this mental model:
+  - File blocks are directly nested in the Universe.
+  - Function bodies are nested in BOTH the Package block and the File block.
+
+
+
+
+
+-- Implicit vs. Explicit Local Blocks
+--
+  Most control flow keywords initiate two nested blocks:
+  An outer IMPLICIT block (for headers/short declarations) and an
+  inner EXPLICIT block (the braced body).
+
+
+  example
+    ```go
+      func controlFlowBlocks() {
+        // -- Example: The 'if' block
+        // 1. Implicit Block starts here (contains 'x')
+        if x := 10; x > 5 {
+          // 2. Explicit Block starts here (nested inside implicit)
+          y := 20
+          fmt.Println(x + y)
+        }
+        // x and y are both out of scope here.
+
+
+        // -- Example: The 'switch' block
+        // 'case' and 'default' keywords initiate their own implicit blocks
+        // nested inside the switch's explicit block.
+        switch n := 1; n {
+        case 1:
+          msg := "found" // Implicitly scoped to this case
+          fmt.Println(msg)
+        default:
+          // msg is not visible here
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Function Scoping (Parameters and Results)
+--
+  Even though input parameters and return results are written outside the
+  function's braces {}, they are scoped to the function's explicit body block.
+
+  example
+    ```go
+      func scopeDemo(input int) (result int) {
+        // 'input' and 'result' are treated as if declared inside these braces.
+        result = input * 2
+        return
+      }
+
+    ```
+
+
+
+
+
+-- Shadowing Example
+--
+  This example demonstrates how identifiers in inner blocks "shadow" (hide)
+  identifiers in outer blocks with the same name.
+
+
+  ```go
+    // [Package Block]
+    var x = "Package Level"
+
+
+    func main() {
+      // [File/Function Local Block]
+
+      // Shadows the package-level x
+      x := "Function Level"
+
+
+      {
+        // [Explicit Nested Block]
+        // Shadows the function-level x
+        x := "Inner Block Level"
+        fmt.Println("1. Inner:", x)
+      }
+
+
+      fmt.Println("2. Middle:", x)
+
+      // [Implicit 'if' block]
+      if x := "If-Header Level"; true {
+        // [Explicit 'if' body]
+        fmt.Println("3. If-Implicit:", x)
+
+
+        x := "If-Body Level" // Shadows the header 'x'
+        fmt.Println("4. If-Explicit:", x)
+      }
+    }
+
+  ```
+
+    // CODE OUTPUT:
+    //
+    // 1. Inner: Inner Block Level
+    // 2. Middle: Function Level
+    // 3. If-Implicit: If-Header Level
+    // 4. If-Explicit: If-Body Level
+
+
+
+
+
+-- Source Code Element Declaration Places
+--
+  In Go, "declaring" an element means binding a non-blank identifier (a name)
+  to a specific coding construct. Once declared, that name represents that
+  element within its allowed scope.
+
+
+  There are six primary kinds of source code elements:
+  1. Package Imports
+  2. Defined Types & Type Aliases
+  3. Named Constants
+  4. Variables
+  5. Functions (Named)
+  6. Labels (used for break, continue, goto)
+
+
+  -- The Declaration Map (Where can elements be declared?)
+  --
+    +----------------------+----------+---------+------+-------+
+    | Element Type         | Universe | Package | File | Local |
+    +----------------------+----------+---------+------+-------+
+    | Predeclared (int...) |   YES    |   no    |  no  |  no   |
+    | Package Imports      |    no    |   no    | YES  |  no   |
+    | Types / Aliases      |    no    |   YES   | YES  |  YES  |
+    | Named Constants      |    no    |   YES   | YES  |  YES  |
+    | Variables            |    no    |   YES   | YES  |  YES  |
+    | Functions (Named)    |    no    |   YES   | YES  |  no   |
+    | Labels               |    no    |   no    |  no  |  YES  |
+    +----------------------+----------+---------+------+-------+
+
+
+  -- Key Conclusions
+  --
+    - Imports: Can only be declared in File blocks (at the top of the file).
+    - Functions: Can only be declared at the Package/File level. Named functions
+      cannot be declared inside local blocks (use anonymous functions instead).
+    - Labels: Can ONLY be declared inside local blocks (function bodies).
+
+
+
+
+
+-- Uniqueness and Collision Rules
+--
+  -- Rule A: Innermost Block Uniqueness
+  --
+    You cannot declare two elements with the same name if they share the exact
+    same innermost block.
+
+
+    example
+      ```go
+        func collisionExample() {
+          var x int = 1
+          // var x string = "high" // COMPILE ERROR: x redeclared in this block
+          _ = x
+        }
+
+      ```
+
+
+  -- Rule B: Package-Level vs. Import Names
+  --
+    A package-level identifier (variable, type, etc.) must not collide with
+    any package import names in any file within that package.
+
+
+    example
+      ```go
+        package main
+        import f "fmt"
+
+        var f = 10 // COMPILE ERROR: f redeclared in this block (collides with import f)
+
+      ```
+
+
+  -- Rule C: Label Scoping
+  --
+    Labels are unique to the function body they are declared in. You cannot have
+    two identical labels in one function, and you cannot 'goto' a label
+    in a different function.
+
+
+    example
+      ```go
+        func labelDemo() {
+        Loop:
+          for i := 0; i < 10; i++ {
+            if i == 5 {
+              break Loop
+            }
+          }
+          // AnotherLoop: // OK
+        }
+
+      ```
+
+
+
+
+
+-- Special Case: Implicit Blocks (Control Flow)
+--
+  Go control flow structures (if, switch, for, select) create "implicit" blocks.
+  Generally, you cannot perform standard declarations (like 'type' or 'var')
+  directly in the header of these blocks, EXCEPT for "Short Variable Declarations" (:=).
+
+
+  example
+    ```go
+      func implicitBlockDemo() {
+        // Short declaration in 'if' header:
+        if result := 42; result > 0 {
+          // 'result' is declared in the implicit block surrounding this if-statement
+        }
+
+        // Short declaration in 'switch' header:
+        switch n := 2; n {
+        case 1:
+        }
+
+        // Short declaration in 'for' header:
+        for i := 0; i < 5; i++ {
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Package-Level Source Elements
+--
+  Elements declared inside a Package block but outside any function are
+  "Package-level" elements. These are the building blocks of your API.
+
+
+  example
+    ```go
+      package mypackage
+
+      import "fmt" // File block
+
+      const ExportedConst = 100 // Package level
+      var packageVar int        // Package level
+
+      type MyType struct{}       // Package level
+
+      func MyFunction() {       // Package level
+        const localConst = 1  // Local level
+        var localVar = 2      // Local level
+        _ = localConst
+        _ = localVar
+      }
+
+    ```
+
+
+
+
+
+-- Scopes of Declared Identifiers
+--
+  Scope refers to the "visible range" or "identifiable range" of an identifier.
+  Within its scope, an identifier can be used to refer to the constant, type,
+  variable, function, label, or package it was bound to.
+
+
+  -- Hierarchy of Scopes
+  --
+    1. UNIVERSE SCOPE:
+       Predeclared identifiers (int, string, true, make, etc.). Visible everywhere.
+
+
+    2. FILE SCOPE:
+       Package import identifiers. Visible only within the specific file where
+       they are declared.
+
+
+    3. PACKAGE SCOPE:
+       Constants, types, variables, and functions declared outside any function.
+       Visible to all files within that same package.
+
+
+    4. FUNCTION/LOCAL SCOPE:
+       - Receivers, parameters, and return variables: Visible throughout the
+         entire function body.
+       - Local variables/constants: Begin at the END of their specification
+         and end at the bottom of the innermost block.
+       - Local types: Begin immediately after the identifier name and end
+         at the bottom of the innermost block.
+
+
+
+
+
+-- Package Level vs. Local Level (Initialization Order)
+--
+  There is a fundamental difference in how identifiers are resolved based on
+  where they are declared.
+
+
+  ```go
+    -- Package Level (Out-of-Order Allowed)
+    // Package-level variables can reference identifiers declared later in the file.
+    var a = b // Valid: 'b' is visible throughout the package block
+    var b = 123
+
+
+    // -- Local Level (Strict Order)
+    // Local identifiers are only visible AFTER their declaration is complete.
+
+
+    // func localOrder() {
+    //     var c = d // COMPILE ERROR: undefined: d
+    //     var d = 123
+    // }
+  ```
+
+
+
+
+
+-- Recursive Definitions: Types vs. Variables
+--
+  A "Local Type" identifier enters its scope immediately after the name is written.
+  A "Local Variable" identifier enters its scope only after the entire statement.
+
+
+  example
+    ```go
+      func recursiveDemo() {
+        // -- Variables/Constants cannot self-reference during declaration
+
+        // var v int = v   // ERROR: v is undefined
+        // const C int = C // ERROR: C is undefined
+
+
+        // -- Types CAN self-reference (Recursive Types)
+        // NOTE: A type can refer to itself only through indirection (pointer, slice, map, etc)
+        //       however for interfaces you can do it directly too
+        // ERR: type X struct { a X }
+        // OK : type X interface { ret() X }
+
+
+        // This works because the name 'T' enters the scope as soon as 'type T' is parsed.
+
+        type T struct {
+          *T    // Pointer to itself
+          x []T // Slice of itself
+        }
+
+
+        type S []S        // A slice of its own type
+        type M map[int]M  // A map where values are its own type
+        type P *P         // A pointer to its own type
+
+
+        // -- Usage of Recursive Types
+        var p P
+        p = &p // p now points to itself
+        // We can dereference infinitely
+        _ = *****************p
+
+        var s = make(S, 1)
+        s[0] = s // The first element is the slice itself
+
+
+        // Printing recursive structures like 's' using fmt.Print
+        // will cause a stack overflow because the formatter tries to follow the
+        // infinite recursion.
+        // fmt.Println(s) // PANIC: stack overflow
+      }
+
+    ```
+
+
+
+
+
+-- The "iota" and "true" Loop Trap
+--
+  At the package level, you cannot use a predeclared identifier to initialize
+  a shadowing variable of the same name, because the package-level name
+  is already seen as "itself."
+
+
+  example
+    ```go
+      // [PACKAGE LEVEL]
+      // const iota = iota // ERROR: constant definition loop (refers to the new iota, not the universe iota)
+      // var true = true   // ERROR: typechecking loop
+
+      func shadowingContext() {
+        // [LOCAL LEVEL]
+        // Here, 'iota' and 'true' on the right refer to the UNIVERSE block
+        // because the local names haven't entered the scope yet.
+        const iota = iota // OK: local iota (0)
+        var true = true   // OK: local true (bool)
+
+        fmt.Printf("Shadowed true: %v\n", true) // Output: true
+      }
+
+    ```
+
+
+
+
+
+-- Label Scope and Anonymous Functions
+--
+  Labels (used with goto/break/continue) have a unique scope:
+  1. Visible throughout the entire innermost function body.
+  2. EXCLUDED from any anonymous functions nested within that body.
+
+
+  example
+    ```go
+      func labelScopeDemo() {
+        goto Target // Valid: Forward jump
+
+
+      Target:
+        fmt.Println("Target Reached")
+
+        func() {
+          // goto Target // COMPILE ERROR: label Target not defined
+          // A label in a parent function is invisible inside a closure.
+        }()
+      }
+
+    ```
+
+
+
+
+
+-- The Blank Identifier (_)
+--
+  The blank identifier is special: it has NO SCOPE.
+  It does not bind a name, and it cannot be referenced later.
+  It acts strictly as a placeholder to discard values.
+
+
+
+
+
+-- Identifier Shadowing
+--
+  "Shadowing" occurs when an identifier (variable, constant, or type) is 
+  declared in an inner scope with the exact same name as an identifier in an 
+  outer scope. 
+
+  
+  Inside the inner scope, the outer identifier becomes "shadowed" (invisible). 
+  Any reference to that name will point to the inner declaration.
+
+
+  -- The Core Shadowing Rules
+  --
+    1. Nesting: An identifier in a nested block shadows the same name in 
+       surrounding blocks (Universe > Package > File > Local).
+    2. Scope Exclusion: When an identifier is shadowed, the outer identifier's 
+       scope essentially has a "hole" in it where the shadowing identifier lives.
+    3. Exception (Labels): Labels are function-scoped and CANNOT be shadowed. 
+       You cannot declare a label with a name that already exists in the same 
+       function, even in a nested block.
+
+
+  -- Multi-Level Shadowing Demonstration
+  --
+    This example uses 6 different variables all named 'x'. By using pointers, 
+    we can track the specific memory address of each version of 'x'.
+
+
+    ```go
+      var p0, p1, p2, p3, p4, p5 *int
+      var x = 9999 // x#0 (Package Level)
+
+
+      func shadowingDeepDive() {
+        p0 = &x      // Points to x#0 (9999)
+
+
+        var x = 888  // x#1 (Local block level) shadows x#0
+        p1 = &x
+
+
+        // The 'for' header starts an implicit block.
+        for x := 70; x < 77; x++ { // x#2 shadows x#1
+          p2 = &x 
+
+
+          x := x - 70 // x#3 shadows x#2 (inside the explicit loop body)
+          p3 = &x
+
+
+          // The 'if' header starts another implicit block.
+          if x := x - 3; x > 0 { // x#4 shadows x#3
+            p4 = &x
+
+            x := -x // x#5 shadows x#4
+            p5 = &x
+          }
+          // In the last iteration (x#2=76), x#2 increments to 77 and the loop ends.
+        }
+
+
+        // Output logic: fmt.Println dereferences the saved pointers.
+        // x#0=9999, x#1=888, x#2=77, x#3=6, x#4=3, x#5=-3
+        fmt.Printf("Deep Shadow Output: %v %v %v %v %v %v\n", 
+          *p0, *p1, *p2, *p3, *p4, *p5)
+      }
+
+        // EXPECTED OUTPUT:
+        // 
+        // Deep Shadow Output: 9999 888 77 6 3 -3
+
+    ```
+
+
+
+
+
+-- Shadowing in Functions (The Recursion Trap)
+--
+  A common point of confusion is shadowing a function variable while trying 
+  to use it recursively. 
+
+
+  -- Scenario A: Shadowing during Assignment (Unexpected Behavior) 
+  --
+    In Go, the right side of a ":=" or "var = " is evaluated BEFORE the 
+    identifier on the left enters the scope.
+
+
+    example
+      ```go
+        var f = func(b bool) {
+          fmt.Print("Goat")
+        }
+
+
+        func shadowingTrap() {
+          fmt.Print("Scenario A: ")
+          // When the anonymous function is being defined, the local 'f' does 
+          // not exist yet. Therefore, the 'f' inside the body refers to the 
+          // PACKAGE level 'f'.
+          var f = func(b bool) {
+            fmt.Print("Sheep")
+            if b {
+              fmt.Print(" ")
+              f(!b) // <--- Refers to the PACKAGE variable f
+            }
+          }
+          f(true)       // Scenario A: Sheep Goat
+          fmt.Println()
+        }
+
+      ```
+
+
+    -- Scenario B: The Fix (Pre-declaration) 
+    --
+      By declaring the variable first, the name enters the scope. Then we assign 
+      the function literal to it.
+
+
+      example
+        ```go
+          func shadowingFix() {
+            fmt.Print("Scenario B: ")
+            var f func(b bool) // 'f' is now in the local scope
+            
+            f = func(b bool) {
+              fmt.Print("Sheep")
+              if b {
+                fmt.Print(" ")
+                f(!b) // <--- Refers to the LOCAL variable f
+              }
+            }
+            f(true)       // Scenario B: Sheep Sheep
+            fmt.Println()
+          }
+
+        ```
+
+
+
+
+
+-- Advanced Shadowing & Predeclared Identifiers
+--
+  Shadowing is a powerful mechanism, but when combined with the short variable 
+  declaration operator (:=), it creates one of the most common logic traps 
+  in the Go language. 
+
+
+  -- The Short Variable Declaration Trap (The "err" Bug)
+  --
+    The `:=` operator declares new variables in the current scope. If you use 
+    it inside a nested block (like an `if` or `for` loop), it will create 
+    brand NEW variables, even if those variables exist in an outer scope.
+
+
+    example
+      ```go
+        // parseInt demonstrates the "shadowed err" bug.
+        func parseInt(s string) (int, error) {
+          n, err := strconv.Atoi(s)
+          if err != nil {
+            // -- THE TRAP 
+            // Here, the developer wants to parse a bool if the int parse fails.
+            // However, using `b, err :=` creates a NEW variable named 'err' 
+            // local to THIS if-block. 
+            // This inner 'err' shadows the outer 'err' instead of updating it.
+            b, err := strconv.ParseBool(s)
+            if err != nil {
+              return 0, err // Returns the INNER error (correctly)
+            }
+
+            // If Boolean parsing succeeds, execution continues...
+            if b {
+              n = 1
+            }
+            // The scope of the inner 'err' ends here.
+          }
+
+          // BUG: This 'err' refers to the OUTER 'err' (from strconv.Atoi).
+          // Because the inner 'err' shadowed the outer one, the outer 'err' 
+          // remained non-nil. The function returns a valid result 'n' but 
+          // still reports an error!
+          return n, err
+        }
+
+      ```
+
+
+
+
+
+-- Keywords vs. Predeclared Identifiers
+--
+  Go is unique because many words that look like keywords are actually 
+  "Predeclared Identifiers."
+
+
+  -- Keywords (25 Total)
+  --
+    Examples: func, if, for, return, package, switch...
+    RULE: These are RESERVED. You cannot use them as names for variables or types.
+
+
+  -- Predeclared Identifiers (Universe Block)
+  --
+    Examples: int, bool, string, len, cap, make, nil, true, false, error...
+    RULE: These are NOT reserved. They are simply names defined in the outermost 
+    'Universe' block. You CAN shadow them with your own declarations (though 
+    you usually shouldn't).
+
+
+  -- Extreme Shadowing (Bad Practice Demo)
+  --
+    ```go
+      // The following code is syntactically legal but represents terrible practice. 
+      // It demonstrates that almost everything in Go can be shadowed.
+
+
+      // Shadows built-in 'len' function with a constant.
+      const len = 3
+
+
+      // Shadows built-in 'true' with a package-level variable.
+      var true = 0
+
+
+      // Shadows built-in 'nil' with a custom struct type.
+      type nil struct{}
+
+
+      // Shadows built-in 'int' with a function.
+      func int() {}
+
+
+      func weirdShadowingDemo() {
+        fmt.Println("Starting a weird program...")
+
+        
+        // We save the original fmt.Println to a variable because 
+        // we are about to shadow the word 'fmt' itself.
+        var output = fmt.Println
+
+
+        // Shadows the package import 'fmt' with a local array.
+        var fmt = [len]nil{{}, {}, {}}
+
+
+        // 'len' is now a constant (3), not a function. len(fmt) would fail.
+        var n = cap(fmt) 
+
+
+        // The iteration variable 'true' shadows our package 'true' (0).
+        for true := 0; true < n; true++ {
+
+          
+          // Shadows built-in 'false' with an element from our array.
+          var false = fmt[true]
+
+          
+          // Shadows the loop variable 'true' with a new local 'true'.
+          var true = true + 1
+
+          
+          // 'fmt' is an array, so fmt.Println would fail. We use our saved copy.
+          output(true, false)
+        }
+      }
+
+    ```
+

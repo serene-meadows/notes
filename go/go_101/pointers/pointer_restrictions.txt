@@ -1,0 +1,47 @@
+To prioritize memory safety and prevent the severe bugs common in C/C++ 
+(like buffer overflows and dangling pointers), Go imposes strict limitations
+on what you can do with pointers.
+
+
+
+
+
+-- No Pointer Arithmetic
+--
+  In Go, you cannot perform arithmetic operations directly on memory addresses.
+  You cannot add to, subtract from, or increment a pointer to move to the next
+  memory location.
+
+  
+  example
+    ```go
+      var x int = 10
+      p := &x
+
+      // p++       // COMPILE ERROR: invalid operation (pointer arithmetic not allowed)
+      // p = p + 4 // COMPILE ERROR: invalid operation (mismatched types)
+
+      // -- The `*p++` Exception --
+      // The compiler allows `*p++`. Because the dereference operator `*` has 
+      // lower precedence in this specific context than the increment operator `++` 
+      // is evaluated on the *value*, not the pointer.
+      // It is evaluated as `(*p)++`.
+      
+      *p++ 
+      fmt.Println(x) // Output: 11 (The VALUE was incremented, not the address)
+
+    ```
+
+
+
+
+
+-- Strict Pointer Comparison (`==` and `!=`)
+--
+  You cannot compare arbitrary pointer types. Two pointers can only be compared  
+  if they meet one of the following conditions:
+
+    1. Identical Types: Their types are exactly the same.
+    2. Implicitly Convertible: One can be implicitly assigned to the other 
+       (identical underlying types + at least one unnamed type).
+    3. Comparison to `nil`: One of the operands is the untyped `nil` identifier.

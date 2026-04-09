@@ -1,0 +1,58 @@
+Keywords are reserved words with predefined meanings. They are the structural 
+backbone of the language and act as instructions for the compiler.
+Go is designed to be lightweight and has exactly 25 keywords.
+
+
+CRITICAL RULE: Keywords CANNOT be used as identifiers (variable names,
+function names, type names, etc.) anywhere in your program.
+
+
+
+
+
+-- The 25 Go Keywords 
+--
+  -- Declarations (Used to define elements)
+  --
+     - const: Declare named constants
+     - func: Declare functions
+     - import: Import packages
+     - package: Declare the package name of a file
+     - type: Declare custom types and aliases
+     - var: Declare variables
+
+
+  -- Control Flow - Conditionals & Branching (Decision making)
+  --
+     - if / else: Standard conditional branches
+     - switch: Multi-branch conditional
+     - case: Specific branch in a switch or select
+     - default: Fallback branch in a switch or select
+     - fallthrough: Forces execution to proceed to the next case in a switch
+     - select: Control structure specifically for channel operations
+
+
+  -- Control Flow - Loops (Repetition)
+  --
+     - for: Go's only loop keyword
+     - range: Iterate over slices, arrays, maps, channels, or strings
+     - break: Terminate a loop/switch/select early
+     - continue: Skip the current iteration of a loop and move to the next
+
+
+  -- Control Flow - Jumps & Concurrency (Execution handling)
+  --
+     - go: Launch a goroutine (concurrent execution)
+     - defer: Schedule a function call to run just before the current function exits
+     - goto: Jump execution to a labeled statement (rarely used, highly discouraged)
+     - return: Exit a function and optionally return values
+
+
+  -- Types & Blocks (Data structures)
+  --
+     - chan: Define a channel type
+     - interface: Define an interface type
+     - map: Define a map type
+     - struct: Define a struct type
+
+

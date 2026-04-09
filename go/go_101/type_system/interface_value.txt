@@ -1,0 +1,193 @@
+-- interface
+--
+  An interface in Go is a type that defines a set of method signatures. It specifies
+  what a type can do, not what it is or how it does it. It is a contract for behavior.
+
+
+
+
+
+-- Interface Implementation (Implicitly)
+--
+  Go's approach to interfaces is implicit. There is no `implements` keyword.
+  A type is said to "implement" an interface if its method set is a superset
+  of the interface's method set. In other words, if a type has all the methods
+  that the interface requires, it automatically satisfies that interface.
+
+
+
+
+
+-- An interface can also embed another interface
+--
+  If interface B embeds interface A, then B's method set includes all of A's methods.
+  Any type that implements B must also implement A.
+
+  example
+    ```go
+      type Reader interface { Read(p []byte) (n int, err error) }
+      type Closer interface { Close() error }
+      type ReadCloser interface { // ReadCloser embeds Reader and Closer
+          Reader
+          Closer
+      }
+
+    ```
+
+
+
+
+
+-- The Interface Value: A Two-Part Container
+--
+  An interface value is a value whose type is an interface. It acts as a "box"
+  or a container that can hold any value that implements the interface.
+
+
+  Internally, a non-nil interface value can be thought of as a tuple containing two components:
+    1.  Dynamic Type: The concrete type of the value being stored.
+    2.  Dynamic Value: The actual value itself.
+
+  The term "concrete type/value" is often used to refer to the dynamic type/value
+  of a non-interface value that has been stored inside an interface.
+
+
+  example 
+    ```go
+      var i interface{} // The empty interface can hold a value of ANY type.
+
+      i = 10
+      // At this point, `i` contains:
+      // - Dynamic Type:  `int`
+      // - Dynamic Value: `10`
+
+      i = "hello"
+      // Now, `i` contains:
+      // - Dynamic Type:  `string`
+      // - Dynamic Value: `"hello"`
+
+    ```
+
+
+
+
+
+-- The `nil` Interface
+--
+  This two-part structure is the key to understanding a frequent point of confusion in Go.
+
+  -- rule 
+  --
+    An interface value is `nil`
+    if and only if BOTH its dynamic type and dynamic value are `nil`
+
+
+  -- zero value interface
+  --
+    When an interface is declared without being assigned a value, it is a "zero
+    interface value." Both its internal parts are `nil`.
+
+
+    example 
+      ```go
+        var i interface{}
+        // `i` contains:
+        // - Dynamic Type:  `nil`
+        // - Dynamic Value: `nil`
+        // Therefore, the expression `i == nil` evaluates to `true`.
+
+      ```
+
+
+
+  -- common error
+  --
+    The "gotcha" occurs when you store a `nil` value of a concrete type (like a
+    nil pointer) inside an interface.
+
+    ```go
+      var p *int = nil
+
+      // We assign the nil pointer `p` to the interface `i`.
+      var i interface{} = p
+
+      // Now let's inspect the contents of `i`:
+      // - Dynamic Type:  `*int`  (This is NOT nil)
+      // - Dynamic Value: `nil`
+
+      // Because the Dynamic Type is `*int` (not `nil`), the interface itself is NOT nil,
+      // even though its dynamic value is.
+      // Therefore, the expression `i == nil` evaluates to `false`.
+
+    ```
+    
+
+
+
+
+-- polymorphism
+--
+  The primary use of interfaces is to achieve polymorphism—writing code that can
+  operate on values of different concrete types in a uniform way.
+  
+  example
+    ```go
+      package main
+
+      import "fmt"
+
+      // Speaker is the interface. It defines the behavior contract.
+      type Speaker interface {
+        Speak() string
+      }
+
+      // Dog is a concrete type that satisfies the Speaker interface.
+      type Dog struct{}
+
+      func (d Dog) Speak() string {
+        return "Woof!"
+      }
+
+      // Cat is another concrete type that also satisfies the Speaker interface.
+      type Cat struct{}
+
+      func (c Cat) Speak() string {
+        return "Meow!"
+      }
+
+      // MakeSound is a polymorphic function. It doesn't care if it gets a Dog
+      // or a Cat; it only cares that it gets something that knows how to `Speak()`.
+      func MakeSound(s Speaker) {
+        fmt.Println(s.Speak())
+      }
+
+      func main() {
+        // Create instances of our concrete types.
+        d := Dog{}
+        c := Cat{}
+
+        // Call the polymorphic function with different types.
+        // The `Dog` value is "boxed" into a `Speaker` interface value.
+        MakeSound(d) // Output: Woof!
+
+        // The `Cat` value is "boxed" into a `Speaker` interface value.
+        MakeSound(c) // Output: Meow!
+
+        // --- The `nil` interface gotcha in practice ---
+        var p *Dog = nil
+
+        // Is the pointer nil? Yes.
+        fmt.Println(p == nil) // Output: true
+
+        // Put the typed nil pointer into the interface.
+        var s Speaker = p
+
+        // Is the interface nil? No! Because it contains a type (*Dog).
+        fmt.Println(s == nil) // Output: false
+      }
+
+    ```
+
+
+
+

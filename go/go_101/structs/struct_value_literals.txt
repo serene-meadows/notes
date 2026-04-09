@@ -1,0 +1,160 @@
+-- Composite Literals (`T{...}`)
+--
+  In Go, the syntax `T{...}` is called a "composite literal." It is used to
+  construct values for structs, arrays, slices, and maps.
+
+  - `T` can be a type name (like `Book`) or a type literal (like `struct{x int}`).
+  - A composite literal `T{...}` is always a typed value; its type is `T`.
+
+
+
+
+
+-- Creating Struct Values (Two Variants)
+--
+  --  Variant 1: Positional Syntax (Unnamed Fields)
+  --
+    - No field names are provided.
+    - ALL field values MUST be present.
+    - Values MUST be in the exact order they were declared in the struct.
+
+    example
+      ```go
+        type Book struct {
+          title  string
+          author string
+          pages  int
+        }
+
+
+        book1 := Book{"Go 101", "Tapir", 256}
+
+      ```
+  
+  --  Variant 2: Named Field Syntax (Key-Value)
+  --
+    - Uses the `FieldName: FieldValue` format.
+    - Highly recommended for readability and maintainability.
+    - Order of fields does NOT matter.
+    - Fields are OPTIONAL. Any absent field is automatically set to its zero value.
+
+    example
+      ```go
+        type Book struct {
+          title  string
+          author string
+          pages  int
+        }
+
+
+        // All fields specified, but in a different order:
+        book2 := Book{
+          author: "Tapir", 
+          pages:  256, 
+          title:  "Go 101",
+        }
+
+
+        // Partial initialization (title and author become "", pages becomes 0):
+        book3 := Book{author: "Tapir"}
+        
+
+        // Empty initialization (ALL fields get their zero values):
+        // This represents the zero value of the struct.
+        book4 := Book{} 
+
+      ```
+
+
+
+
+
+-- Selectors and Receivers
+--
+  To access or modify the fields of a struct value, we use dot notation (`.`).
+  In the expression `v.x`:
+    - `v.x` is called the selector (or selector expression).
+    - `v` is called the receiver of the selector.
+
+
+    example
+      ```go
+        type Book struct {
+          title  string
+          author string
+          pages  int
+        }
+
+
+        // Initialize an empty struct (all zero values).
+        var myBook Book // Equivalent to: myBook := Book{}
+
+
+        // Use selectors to mutate the field values.
+        // `myBook` is the receiver, `.author` and `.pages` are the selectors.
+        myBook.author = "Tapir Liu"
+        myBook.pages = 300
+
+
+        // Use a selector to read a field value.
+        fmt.Println(myBook.pages) // Output: 300
+
+      ```
+
+
+
+
+
+-- Formatting: The Trailing Comma Rule
+--
+  Go has strict rules about commas in composite literals, which helps keep 
+  version control diffs clean.
+
+
+  Rule 1 (Multi-line):
+    If the closing brace `}` is on a NEW line, 
+    the last item MUST end with a comma.
+
+
+  Rule 2 (Single-line):
+    If the closing brace `}` is on the SAME line 
+    as the last item, the trailing comma is OPTIONAL.
+
+
+  example
+    ```go
+      type Book struct {
+        title  string
+        author string
+        pages  int
+      }
+
+
+      // -- Multi-line: Comma REQUIRED 
+      var _ = Book{
+        author: "Tapir",
+        pages:  256,
+        title:  "Go 101", // <--- This comma MUST be here.
+      }
+
+
+      // COMPILE ERROR: missing ',' before newline in composite literal
+      var _ = Book{
+        author: "Tapir",
+        pages:  256,
+        title:  "Go 101" 
+      }
+
+
+      // -- Single-line: Comma OPTIONAL 
+      // Both of the following are perfectly valid:
+      var _ = Book{author: "Tapir", pages: 256, title: "Go 101"}
+      var _ = Book{author: "Tapir", pages: 256, title: "Go 101",} 
+
+    ```
+
+
+
+
+
+

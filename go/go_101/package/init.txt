@@ -1,0 +1,104 @@
+The `init` function is a special, predefined function in Go used to set up
+initial state, register database drivers, or perform bootstrap logic before
+the main application starts.
+
+
+
+
+
+-- Signature and Rules
+--
+  An `init` function must take NO arguments and return NO values.  
+    ```go
+      func init() { ... }
+
+    ```
+  
+
+  -- The `init` Identifier
+  --
+    At the package level, the identifier `init` is reserved exclusively for 
+    function declarations. You cannot declare a variable, constant, or custom
+    type named `init`.
+
+
+    Furthermore, you CANNOT explicitly call an `init` function from your own code
+    (e.g., `init()` will cause a compiler error). The Go runtime handles calling
+    it automatically.
+
+
+  -- Multiplicity
+  --
+    Unlike `main`, you can declare MULTIPLE `init` functions within the same 
+    package, and even multiple `init` functions within the exact same source file
+      
+
+
+
+
+-- Execution Timing and Order
+--
+  `init` functions are invoked automatically by the Go runtime when the package 
+  is initialized. They run exactly ONCE.
+
+
+  -- The Sequence of Events
+  -- 
+    1. All imported packages are initialized (their variables and `init`s run).
+    2. Package-level variables in the current package are evaluated and initialized.
+    3. All `init` functions in the current package are executed sequentially.
+       - In the same file: They run from top to bottom.
+       - Across multiple files: They run in alphabetical order of the file names.
+    4. Finally, the `main()` function is executed.
+
+
+
+
+
+
+
+
+-- init
+-- 
+  The functions named as init must neither have any input parameters nor return results.
+
+  at the top package-level block, the init identifier can only be used in function declarations
+
+  There can be multiple functions named as init declared in a package
+  even in a source code file
+
+  At run time, each init function will be (sequentially) invoked once and only once 
+  (before invoking the main entry function). 
+
+  example - two init functions 
+    ```go
+      package main
+
+      import "fmt"
+
+      func init() {
+        fmt.Println("hi,", bob)
+      }
+
+      func main() {
+        fmt.Println("bye")
+      }
+
+      func init() {
+        fmt.Println("hello,", smith)
+      }
+
+      func titledName(who string) string {
+        return "Mr. " + who
+      }
+
+      var bob, smith = titledName("Bob"), titledName("Smith")
+    ```
+      // The output of this program:
+      // hi, Mr. Bob
+      // hello, Mr. Smith
+      // bye
+
+
+
+// more info in the other package files

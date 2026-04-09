@@ -1,0 +1,984 @@
+-- Functions as First-Class Citizens & Function Types
+--
+  In Go, functions are "first-class citizens." This means they are actual types, 
+  and functions can be assigned to variables, passed as arguments, or returned.
+
+
+
+
+
+-- Function Signatures & Type Literals
+--
+  A function type consists of the `func` keyword, an input parameter type list, 
+  and an output result type list.
+
+  Rule 1: Parameter/result names do NOT matter for the type signature itself.
+  Rule 2: Consecutive parameters/results of the same type can be grouped.
+  Rule 3: The blank identifier `_` can be used for names.
+  Rule 4: Names must be either ALL present or ALL absent in standard form.
+
+
+  example
+    ```go
+      // All of these type aliases represent the EXACT SAME function type:
+      type FuncA func(int, string, string) (int, int, bool)         // Standard form
+      type FuncB func(a int, b string, c string) (x int, y int, z bool)
+      type FuncC func(a int, b, c string) (x, y int, z bool)       // Grouped
+      type FuncD func(_ int, _, _ string) (_, _ int, _ bool)       // Blank identifiers
+      type FuncE func(x int, _ string, z string) (int, int, bool)  // Result names omitted
+
+    ```
+
+
+
+
+
+-- Parentheses Rules for Types
+--
+  - Input parameters MUST ALWAYS be enclosed in `()`, even if empty.
+  - Output results can ONLY omit `()` if there is EXACTLY ONE UNNAMED result.
+  - If there are zero results, the result block is omitted entirely.
+
+  
+  example
+    ```go
+      // Identical single-result types:
+      type SingleResultA func() int
+      type SingleResultB func() (int)
+      type SingleResultC func() (x int)
+
+
+      // Identical zero-result types:
+      type ZeroResultA func(a int, b string)
+      type ZeroResultB func(a int, b string) ()
+    ```
+
+
+
+
+
+-- Function Prototypes vs. Declarations
+--
+  A "Function Prototype" is simply the function's name and signature WITHOUT 
+  the body. A full "Function Declaration" includes the body.
+
+  Prototype:   func Double(n int) (result int)
+  Declaration: func Double(n int) (result int) { return n * 2 }
+
+
+
+
+
+-- Variadic Parameters & Types
+--
+  A variadic parameter allows a function to accept zero or more arguments of a 
+  specific type.
+  
+  Rules:
+    1. A function can have AT MOST ONE variadic parameter.
+    2. It MUST be the absolute LAST parameter.
+    3. You prefix the element type with `...` (e.g., `...int64`).
+    4. Inside the function body, the variadic parameter is treated exactly as a SLICE.
+    5. Variadic types (`func(...int)`) and non-variadic types (`func([]int)`) 
+       are fundamentally DIFFERENT and incompatible types.
+
+  example
+    ```go
+      // Sum is a variadic function. Inside, `values` is treated as type `[]int64`.
+      func Sum(values ...int64) (sum int64) {
+        for _, v := range values {
+          sum += v
+        }
+        return sum
+      }
+
+
+      func variadicCallsExample() {
+        // Manner 1: Pass individual arguments. The compiler automatically allocates 
+        // a new slice under the hood to hold these values.
+        _ = Sum()              // Becomes Sum([]int64{}...)
+        _ = Sum(2)             // Becomes Sum([]int64{2}...)
+        _ = Sum(2, 3, 5)       // Becomes Sum([]int64{2, 3, 5}...)
+
+        // Manner 2: Pass an existing slice using the `...` operator to unpack it.
+        mySlice :=[]int64{10, 20, 30}
+        _ = Sum(mySlice...)
+
+        // FATAL ERROR: You CANNOT mix the two manners in a single call.
+        // _ = Sum(2,[]int64{3, 5}...) // "too many arguments in call"
+      }
+
+    ```
+
+
+
+
+
+-- Function Types are Incomparable
+--
+  You cannot compare two function variables using `==` or `!=`.
+  Because they are incomparable, function types CANNOT be used as Map keys.
+  The ONLY allowed comparison for a function value is against `nil`.
+
+  example
+    ```go
+      func incomparabilityExample() {
+        var f1 FuncA = func(i int, s1, s2 string) (int, int, bool) { return 0, 0, false }
+        var f2 FuncA = f1
+
+        // _ = f1 == f2 // COMPILER ERROR: func can only be compared to nil
+        _ = f1 == nil   // VALID
+        _ = f2
+      }
+
+    ```
+  
+
+
+
+
+-- Duplicate Function Names (The Exceptions)
+--
+  ```go
+    // Normally, function names must be unique within a package. However, Go allows 
+    // two very specific exceptions:
+
+
+    // Exception 1: `init()` functions. 
+
+    // You can have multiple `init()` functions in the same file or package. Go will 
+    // execute all of them sequentially before `main()`.
+
+    func init() { /* Setup A */ }
+    func init() { /* Setup B */ }
+
+
+    // Exception 2: The blank identifier `_`.
+
+    // You can declare multiple functions named `_`. These act as dead code or type
+    // checks. They can NEVER be called.
+
+    func _() {}
+    func _(a int) bool { return false }
+
+  ```
+
+
+
+
+
+-- Compile-Time vs. Run-Time Evaluation
+--
+  Most functions execute at run-time. However, specific built-ins are evaluated
+  by the compiler at compile-time, meaning their results can be assigned to Constants!
+
+    - `unsafe` package functions (e.g., `unsafe.Sizeof`) are compile-time.
+    - `len` and `cap` can be compile-time IF passed an Array (not a slice).
+
+
+  example
+    ```go
+      func compileTimeExample() {
+        // Evaluated at compile-time! 'size' is a strict constant.
+        const size = unsafe.Sizeof(int64(0)) 
+
+        // Evaluated at compile-time! Arrays have fixed sizes.
+        var arr [5]int
+        const arrLen = len(arr) 
+
+        _ = size
+        _ = arrLen
+      }
+
+    ```
+
+
+
+
+
+
+-- All Arguments are Passed by Copy (Shallow)
+--
+  In Go, ALL function arguments are passed by copy (Pass-by-Value).
+  However, it is a "Shallow Copy" of the variable's "direct part".
+
+    - Passing an `int` copies the number.
+    - Passing a `*int` copies the POINTER (the memory address), but it still 
+      points to the same underlying integer.
+    - Passing a `[]int` (Slice) copies the Slice Header (Pointer, Length, Cap), 
+      but the newly copied header still points to the SAME underlying array data!
+
+  example
+    ```go
+      func passByCopyExample(s[]int) {
+        // 's' is a copy of the slice header. 
+        // Mutating elements affects the original array because the pointer matches.
+        if len(s) > 0 {
+          s[0] = 99 
+        }
+        // Reassigning the slice itself only affects the local copy of the header.
+        s =[]int{1, 2, 3} 
+      }
+
+    ```
+
+
+
+
+
+-- Terminating Statements (Why "return" isn't always needed)
+--
+  Expanding on the notes: "Some functions with results are not required to return."
+  
+  If a function declares a return type (e.g., `func() int`), the compiler requires 
+  the function to guarantee it will never reach the end of the block without a value.
+  It checks for a "Terminating Statement". 
+  
+  A `return` is just ONE kind of terminating statement. Others include:
+  1. An infinite loop (`for {}`) with no `break`.
+  2. An unconditional `goto` that jumps away and never returns.
+  3. A call to `panic()`.
+  
+  In these cases, the compiler mathematically proves the end of the function is 
+  "unreachable," so it doesn't force you to write a `return` keyword.
+
+
+  example
+    ```go
+      func noReturnNeededLoop() bool {
+        for {
+          // Infinite loop. The function never naturally ends, so no return is needed.
+        }
+      }
+
+
+      func noReturnNeededGoto() int {
+      start:
+        // do work
+        goto start
+        // The end is unreachable, no return needed.
+      }
+
+
+      func noReturnNeededPanic() string {
+        panic("This function terminates abruptly!")
+        // Unreachable, no return needed.
+      }
+
+    ```
+
+
+
+
+
+-- Discarding Results & Built-in Restrictions
+--
+  example
+    ```go
+      func myCustomFunc() int { return 42 }
+
+
+      func discardingResultsExample() {
+        // For custom functions, you can completely ignore the results without capturing.
+        myCustomFunc() 
+
+
+        // For MOST built-in functions (like len, cap, append, make), you CANNOT 
+        // discard the result. The compiler will throw an error.
+        // len("hello") // COMPILER ERROR: len("hello") evaluated but not used
+
+
+        // You MUST explicitly ignore it via assignment to the blank identifier.
+        _ = len("hello") 
+
+
+        // Consequence: Because built-ins often demand their results be used, you 
+        // cannot use them directly in `defer` or `go` statements.
+        // defer len("hello") // COMPILER ERROR
+        
+
+        // Exception: Built-ins `copy` and `recover` are allowed to have results discarded.
+        defer recover() 
+      }
+
+    ```
+
+
+
+
+
+-- Function Calls as Expressions & Multi-Value Nesting
+--
+  ```go
+    // A single-result function can be used anywhere (math, arguments, conditions).
+    // A MULTI-RESULT function can only be passed dynamically if it is the ONLY 
+    // item in the expression. It cannot be "mixed" with other values.
+
+
+    func halfAndNegative(n int) (int, int) {
+      return n / 2, -n
+    }
+
+
+    func addSub(a, b int) (int, int) {
+      return a + b, a - b
+    }
+
+
+    func dummy(values ...int) {}
+
+
+    func expressionsExample() {
+
+      // OKAY: Multi-result func is the ONLY source for the assignment.
+      _, _ = addSub(7, 5)
+
+     
+      // OKAY: Multi-result func is the ONLY argument passed to another func.
+      // halfAndNegative returns 2 ints, addSub perfectly consumes 2 ints.
+      _, _ = addSub(halfAndNegative(6))
+      dummy(halfAndNegative(6))
+
+
+      // FATAL ERRORS (Mixing is prohibited):
+      
+
+      // _, _, _ = 6, addSub(7, 5) 
+      // ERROR: Cannot mix a literal '6' with a multi-value function return.
+
+
+      // dummy(addSub(7, 5), 9)    
+      // ERROR: Cannot mix multi-value return with a literal '9' as arguments.
+      
+
+      // dummy(addSub(7, 5), halfAndNegative(6)) 
+      // ERROR: Cannot mix two different multi-value returns in the same call.
+    }
+
+  ```
+
+
+
+
+
+
+-- The Function Value & Immutability
+--
+  When you declare a standard, named custom function, you are actually creating 
+  an IMMUTABLE function value identified by the function's name.
+  
+  The "type" of this value is its signature (the parameters and return types).
+
+  example
+    ```go
+      // Double is an immutable function value of type `func(int) int`
+      func Double(n int) int {
+        return n + n
+      }
+
+
+      func functionValueBasics() {
+        fmt.Printf("Type of Double: %T\n", Double) // Output: func(int) int
+
+
+        // Double = nil // COMPILE ERROR: Double is not a variable, it is immutable.
+
+
+        // We can declare a variable of a function type.
+        // The zero value of any function type is `nil`.
+        var f func(n int) int
+        
+        
+        // We can assign our immutable function to this mutable variable.
+        f = Double 
+
+        
+        fmt.Println(f(9)) // Output: 18
+      }
+
+    ```
+
+
+
+
+
+-- Memory Sharing (Internal Structure)
+--
+  Function values are "multi-part" values (like slices or maps). 
+  The variable itself is just a pointer (the direct part) that references the 
+  underlying executable code and captured environment (the indirect part).
+
+  
+  When you assign one function value to another (e.g., `f = Double`), Go performs 
+  a shallow copy. Both `f` and `Double` now point to the exact same internal 
+  function object in memory. Invoking either has the exact same effect.
+
+
+
+
+
+-- Strict Restrictions
+--
+  You cannot use EVERY function as a value. Go enforces two strict exceptions:
+
+  
+  1. Built-in Functions: Functions like `len()`, `cap()`, `make()`, or `append()` 
+     CANNOT be used as values or assigned to variables. They are compiler directives.
+  2. `init` Functions: The special `init()` functions cannot be referenced, 
+     assigned, or called manually.
+
+
+  example
+    ```go
+      func restrictionsExample() {
+        // var myLen func(string) int = len // COMPILE ERROR: cannot use built-in function len as value
+      }
+
+    ```
+
+
+
+
+
+-- Higher-Order Functions (Passing Functions)
+--
+  Because functions are values, you can pass them as arguments to other functions.
+  This is the foundation of many functional programming patterns in Go.
+
+
+  example
+    ```go
+      // Apply takes a number and a function, and applies the function to the number.
+      func Apply(n int, operation func(int) int) int {
+        return operation(n)
+      }
+
+
+      func Double(n int) int {
+        return n + n
+      }
+
+
+      func passingFunctions() {
+        var myFunc = Double
+        
+
+        // Let the compiler deduce the type of `g`. 
+        // `g` is now a variable holding the `Apply` function!
+        g := Apply 
+        fmt.Printf("Type of g: %T\n", g) // Output: func(int, func(int) int) int
+
+
+        // These are completely equivalent:
+        fmt.Println(g(6, Double)) // Output: 12
+        fmt.Println(Apply(6, myFunc)) // Output: 12
+      }
+
+    ```
+
+
+
+
+
+-- Closures & Returning Functions
+--
+  Anonymous functions are heavily used as function variables. 
+  More importantly, all functions in Go act as "Closures". They capture and 
+  retain access to the variables in their surrounding lexical scope.
+
+  example
+    ```go
+      // This function returns ANOTHER function.
+      func isMultipleOfX(x int) func(int) bool {
+        // The returned anonymous function "closes over" (captures) the variable `x`.
+        // Even after `isMultipleOfX` finishes executing, the returned function 
+        // remembers the value of `x` it was created with.
+        return func(n int) bool {
+          return n%x == 0
+        }
+      }
+
+
+      func closureExample() {
+
+        // Generate two distinct function values with different captured states.
+        var isMultipleOf3 = isMultipleOfX(3) // Captures x = 3
+        var isMultipleOf5 = isMultipleOfX(5) // Captures x = 5
+
+
+        fmt.Println(isMultipleOf3(6))  // true  (6 % 3 == 0)
+        fmt.Println(isMultipleOf3(8))  // false (8 % 3 != 0)
+        fmt.Println(isMultipleOf5(10)) // true  (10 % 5 == 0)
+
+
+        // We can easily compose them using another anonymous closure!
+        isMultipleOf15 := func(n int) bool {
+          return isMultipleOf3(n) && isMultipleOf5(n)
+        }
+
+        
+        fmt.Println(isMultipleOf15(30)) // false
+        fmt.Println(isMultipleOf15(60)) // true
+      }
+
+    ```
+
+
+
+
+
+-- The `nil` Function Danger (Panic vs. Fatal Error)
+--
+  Invoking a `nil` function is highly dangerous, but the behavior changes 
+  dramatically depending on HOW you invoke it.
+
+  ```go
+    func nilFunctionDanger() {
+      var f func() // Zero value is nil
+
+
+      // -- Case 1: Standard Call (Recoverable Panic) --
+      // Calling a nil function directly causes a runtime panic. 
+      // This CAN be caught and handled by a deferred `recover()`.
+      //
+      // defer func() {
+      //   if r := recover(); r != nil {
+      //     fmt.Println("Recovered from nil function call!")
+      //   }
+      // }()
+      //
+      // f() // Causes panic
+
+
+      // -- Case 2: Goroutine Call (UNRECOVERABLE FATAL ERROR) --
+      // If you attempt to start a new goroutine using a nil function, the runtime 
+      // cannot even initialize the thread safely. 
+      // This results in a raw, unrecoverable FATAL ERROR that bypasses `recover()` 
+      // and instantly crashes the entire program.
+      //  
+      // go f() // CRASH: fatal error: go of nil func value
+    }
+
+  ```
+
+
+
+
+
+-- Demystifying "Range Over Func" Iterators
+--
+-- The Core Concept: What is `yield`?
+--
+  To understand this code, you have to understand a concept called "Inversion 
+  of Control" introduced for Iterators (ranging over functions) in Go.
+
+
+  Normally, a `for` loop PULLS data from a slice or map.
+  With custom iterators, the Iterator function PUSHES data into the `for` loop.
+
+
+  The Magic Behind the Scenes:
+  When you write a loop like this:
+    
+    ```go
+      for i := range OneDigitNumbers {
+         fmt.Print(i)
+         if i == 5 { break }
+      }
+
+    ```
+
+  The Go compiler secretly takes the ENTIRE BODY of your `for` loop and wraps 
+  it into a hidden function. We conventionally call this hidden function `yield`.
+
+  Secret function generated by the compiler:
+    
+    ```go
+      yield := func(i int) bool {
+         fmt.Print(i)
+         if i == 5 { return false } // 'break' translates to 'return false'
+         return true                // normal end of loop translates to 'return true'
+      }
+    
+    ```
+
+  The compiler then passes this `yield` function as an argument to your 
+  `OneDigitNumbers` function.
+
+  The Golden Rules of Iterators:
+  1. Every time your iterator calls `yield(data)`, the `for` loop body executes once.
+  2. The `yield` function returns a `bool`.
+     - `true` means the loop finished normally and wants the NEXT piece of data.
+     - `false` means the loop hit a `break`, `return`, or `goto` statement.
+  3. If `yield` returns `false`, your iterator MUST stop generating data and `return` 
+     immediately to avoid wasting CPU cycles.
+
+
+  -- Zero-Value Iterator
+  --
+    Signature: `func(yield func() bool)`
+    Use Case: You just want to repeat an action N times, but you don't need to 
+    pass any variables (like an index or value) into the loop body.
+    Equivalent to: `for range X { ... }`
+
+    example
+      ```go
+        func Loop3(yield func() bool) {
+          // We call yield() to execute the loop body.
+          // If the user's loop body has a 'break', yield() returns false.
+          // `!yield()` means "if yield returned false".
+          
+          if !yield() { return } // Run loop body 1st time. If it broke, stop.
+          if !yield() { return } // Run loop body 2nd time. If it broke, stop.
+          
+          // We don't strictly need `if !yield() { return }` on the very last line
+          // because the iterator function is about to end anyway.
+          yield()               // Run loop body 3rd time.
+        }
+
+      ```
+
+
+  -- One-Value Iterator
+  --
+  Signature: `func(yield func(V) bool)`
+  Use Case: You want to push a SINGLE value into the loop on each iteration.
+  Equivalent to: `for v := range X { ... }`
+
+  example
+    ```go
+      func OneDigitNumbers(yield func(int) bool) {
+        // Generate numbers 0 through 9
+        for i := range 10 {
+          
+          // Push the number 'i' into the user's loop body.
+          // If the user wrote `for v := range OneDigitNumbers`, then inside 
+          // their loop, `v` will be equal to `i`.
+          
+          continueIterating := yield(i) 
+          
+          if !continueIterating {
+            // The user's loop hit a 'break'. We must respect it and stop 
+            // generating numbers. We exit our iterator function entirely.
+            return 
+          }
+        }
+      }
+
+    ```
+
+
+  -- Two-Value Iterator
+  --
+  Signature: `func(yield func(K, V) bool)`
+  Use Case: You want to push TWO values into the loop (often a key/index and a value).
+  Equivalent to: `for k, v := range X { ... }`
+
+  example
+    ```go
+      func SquareLessThan50(yield func(int, int) bool) {
+        // Generate numbers 0 through 7
+        for i := range 8 {
+          
+          // We push BOTH the index 'i' and the squared value 'i*i' into the loop.
+          // If the user wrote `for k, v := range SquareLessThan50`, then `k` 
+          // gets `i`, and `v` gets `i*i`.
+          
+          if !yield(i, i*i) {
+            return // The user broke early. Stop generating.
+          }
+        }
+      }
+
+    ```
+
+
+  --Execution & Demonstration
+  --
+    ```go
+      func main() {
+        // --- A. Zero-Value Example ---
+        fmt.Print("Zero-Value Iterator: ")
+        var n = 0
+        
+        // Because Loop3 takes `func() bool` (no arguments), we range over it 
+        // without declaring any variables (no `k, v :=`).
+        for range Loop3 { 
+          fmt.Print(n)
+          n++
+        }
+        fmt.Println() // Output: 012
+
+
+        // --- B. One-Value Example ---
+        fmt.Print("One-Value Iterator:  ")
+        
+        // OneDigitNumbers takes `func(int) bool`, so we declare ONE variable (`i`).
+        for i := range OneDigitNumbers {
+          fmt.Print(i)
+        }
+        fmt.Println() // Output: 0123456789
+
+
+        // --- C. Two-Value Example ---
+        fmt.Print("Two-Value Iterator:  ")
+        
+        // SquareLessThan50 takes `func(int, int) bool`, so we declare TWO 
+        // variables (`k, v`).
+        for k, v := range SquareLessThan50 {
+          fmt.Printf("%v:%v ", k, v)
+        }
+        fmt.Println() // Output: 0:0 1:1 2:4 3:9 4:16 5:25 6:36 7:49 
+
+
+        // --- D. The "Break" Demonstration ---
+        // This proves WHY we need `if !yield() { return }` inside our iterators.
+        fmt.Print("\nBreak Demonstration: ")
+        
+        for i := range OneDigitNumbers {
+          fmt.Print(i)
+          if i == 3 {
+            // When this triggers, the secret `yield` function returns FALSE.
+            // `OneDigitNumbers` sees this false, and hits its `return` statement,
+            // preventing it from generating 4, 5, 6, 7, 8, 9.
+            break 
+          }
+        }
+        fmt.Println() // Output: 0123
+      }
+
+    ```
+
+
+  -- practical uses cases
+  --
+    -- Reverse Iteration (The Most Common Use Case)
+    --
+      Standard Go `range` only iterates forward through slices. Traditionally, 
+      if you wanted to go backward, you had to write a manual `for i := len-1...` 
+      loop. Iterators allow you to wrap this logic into a clean, reusable tool.
+
+      example
+
+        ```go
+          // Backward takes a slice and returns a two-value iterator function.
+          func Backward[T any](s []T) func(func(int, T) bool) {
+            return func(yield func(int, T) bool) {
+              for i := len(s) - 1; i >= 0; i-- {
+                // Push index and value to the loop.
+                if !yield(i, s[i]) {
+                  return
+                }
+              }
+            }
+          }
+
+
+          func reverseExample() {
+            names := []string{"Alice", "Bob", "Charlie"}
+
+            fmt.Print("Backward names: ")
+
+            // We call the function to get the iterator, then range over it.
+            for i, name := range Backward(names) {
+              fmt.Printf("[%d:%s] ", i, name)
+            }
+
+            fmt.Println()
+            // Output: [2:Charlie] [1:Bob] [0:Alice]
+          }
+
+        ```
+
+
+    -- Lazy File Loading (Streaming I/O)
+    --
+      If you have a 10GB log file, you cannot load it all into a `[]string`. 
+      Iterators allow you to "stream" lines into a loop one by one. This keeps 
+      memory usage extremely low (only one line at a time).
+
+      
+      example
+        ```go
+          // ReadLines opens a file and yields lines one by one.
+          func ReadLines(path string) func(func(string) bool) {
+            return func(yield func(string) bool) {
+              file, err := os.Open(path)
+              if err != nil {
+                return // In a real app, you might handle errors differently.
+              }
+              defer file.Close()
+
+              scanner := bufio.NewScanner(file)
+              for scanner.Scan() {
+                // Push the current line into the loop.
+                // If the user's loop breaks, yield returns false, and we stop reading.
+                if !yield(scanner.Text()) {
+                  return
+                }
+              }
+            }
+          }
+
+
+          func fileStreamingExample() {
+            // Let's assume 'logs.txt' exists. 
+            // We can search for a specific keyword and stop immediately when found.
+            for line := range ReadLines("logs.txt") {
+              if strings.Contains(line, "ERROR") {
+                fmt.Println("Found error:", line)
+                break // The iterator's 'yield' will return false and close the file.
+              }
+            }
+          }
+
+        ```
+
+    
+    -- Recursive Data Structures (Tree Traversal)
+    --
+      Iterating over a Tree (like a folder structure or a JSON tree) usually 
+      requires complex recursion. Iterators hide that complexity, making the 
+      tree look like a flat list to the person using the loop.
+
+
+      example
+        ```go
+          type Node struct {
+            Value int
+            Left  *Node
+            Right *Node
+          }
+
+
+          // InOrder yields values from the tree in sorted order (Left -> Self -> Right).
+          func (n *Node) InOrder(yield func(int) bool) {
+            if n == nil {
+              return
+            }
+
+            // 1. Traverse Left
+            n.Left.InOrder(yield)
+
+            // 2. Yield Self
+            if !yield(n.Value) {
+              return
+            }
+
+            // 3. Traverse Right
+            n.Right.InOrder(yield)
+          }
+
+
+          func treeExample() {
+            // Build a small tree:
+            //      2
+            //     / \
+            //    1   3
+            root := &Node{
+              Value: 2,
+              Left:  &Node{Value: 1},
+              Right: &Node{Value: 3},
+            }
+
+            fmt.Print("Tree values: ")
+            for val := range root.InOrder {
+              fmt.Printf("%d ", val)
+            }
+            fmt.Println()
+            // Output: 1 2 3
+          }
+
+        ```
+
+    -- Filtering and Transformation (Pipeline Pattern)
+    --
+      You can create "middleware" iterators that wrap other iterators to filter 
+      data on the fly without creating intermediate slices in memory.     
+
+
+      example
+        ```go
+          // Filter only yields values that satisfy the 'keep' function.
+          func Filter[T any](src func(func(T) bool), keep func(T) bool) func(func(T) bool) {
+            return func(yield func(T) bool) {
+              // Range over the source iterator
+              for val := range src {
+                if keep(val) {
+                  // Only yield to the final loop if the filter passes
+                  if !yield(val) {
+                    return
+                  }
+                }
+              }
+            }
+          }
+
+
+          func pipelineExample() {
+            // Source: An iterator that produces numbers 0-9
+            nums := func(yield func(int) bool) {
+              for i := 0; i < 10; i++ {
+                if !yield(i) { return }
+              }
+            }
+
+            // Wrapper: Only keep even numbers
+            evens := Filter(nums, func(n int) bool {
+              return n%2 == 0
+            })
+
+            fmt.Print("Even numbers: ")
+            for n := range evens {
+              fmt.Printf("%d ", n)
+            }
+            fmt.Println()
+            // Output: 0 2 4 6 8
+          }
+
+        ```
+
+
+    -- Database/API Pagination
+    --
+      This is a powerful pattern for web developers. You can hide the logic 
+      of "fetching the next page" behind a simple loop.
+
+
+      example
+        ```go
+          type User struct {
+            ID   int
+            Name string
+          }
+
+          func AllUsers(apiClient string) func(func(User) bool) {
+            return func(yield func(User) bool) {
+              page := 1
+              for {
+                // Simulated API Call: fetchUsers(page)
+                users := []User{{ID: page, Name: "UserFromPage"}} 
+                
+                if len(users) == 0 { break } // No more data
+
+                for _, u := range users {
+                  if !yield(u) { return } // User stopped looping
+                }
+                
+                page++ // Go to next page for next iteration
+                if page > 3 { break } // Limit for example
+              }
+            }
+          }
+
+          func paginationExample() {
+            fmt.Print("Paged Users: ")
+            for user := range AllUsers("http://api.example.com") {
+              fmt.Printf("%d ", user.ID)
+              if user.ID >= 2 { break } // Stop after 2 users; the iterator stops fetching pages!
+            }
+            fmt.Println()
+          }
+
+        ```
+

@@ -1,0 +1,322 @@
+-- Expression Evaluation Orders
+--
+  In Go, the order in which expressions are evaluated is governed by a 
+  combination of lexical order (declaration order), dependency analysis, 
+  and specific rules for package-level vs. local-level code.
+
+
+
+
+
+-- Fundamental Dependency Rule
+--
+  An expression is ALWAYS evaluated after all the expressions it depends on. 
+  Practically, this means sub-expressions are evaluated before the parent 
+  expression.
+
+
+  Example: f(x, y[n])
+    1. To evaluate y[n], the program must first evaluate 'y' and 'n'.
+    2. To evaluate f(...), the program must first evaluate 'f', 'x', and 'y[n]'.
+
+
+
+
+
+-- Package-Level Variable Initialization
+--
+  When a package is loaded, Go initializes package-level variables using an 
+  iterative dependency-check algorithm.
+
+
+  -- The Algorithm 
+  --
+    1. Find the first variable (by declaration order) that does not depend on 
+       any uninitialized variables.
+    2. Initialize it.
+    3. Repeat until all variables are initialized.
+    4. Blank identifiers (_) are treated like named variables during this process.
+
+
+
+  example
+    ```go
+      var (
+        // Dependencies: _ depends on 'a' (via function f)
+        _ = f() 
+        // Dependencies: 'a' depends on 'b'
+        a = b / 2 
+        // Dependencies: 'b' depends on nothing
+        b = 6 
+        // Dependencies: 'c' depends on 'a' (via function f)
+        c = f() 
+      )
+
+
+      func f() int {
+        a++
+        return a
+      }
+
+
+      func initializationOrderDemo() {
+        // Let's Trace:
+        // 1. 'b' is the first variable with no dependencies. b = 6.
+        // 2. 'a' now has no uninitialized dependencies. a = 6 / 2 = 3.
+        // 3. '_' is the first in order needing init. Calls f(). 
+        //    Inside f: a++ (a becomes 4). Returns 4.
+        // 4. 'c' is the last needing init. Calls f().
+        //    Inside f: a++ (a becomes 5). Returns 5.
+        
+        fmt.Println(a, b, c) 
+      }
+
+    ```
+
+
+
+
+
+-- Grouping and Disassembly Rules
+--
+  -- Rule A: Single Multi-valued Expression (Grouped) 
+  --
+    If multiple variables are initialized by one function call (multi-value), 
+    they are initialized as an atomic group. No other variable can be 
+    initialized between them.
+    `var x, y = f()` // x and y are bound together in the init timeline.
+
+
+  -- Rule B: Multiple Source Expressions (Disassembled) 
+  --
+    If one line contains multiple assignments from multiple expressions, the 
+    compiler "disassembles" them into separate lines before calculating order.
+
+    `var m, n = expr1, expr2` 
+    is treated as:
+    `var m = expr1`
+    `var n = expr2`
+
+
+
+
+
+-- Hidden Dependencies and Unspecified Orders
+--
+  A "Hidden Dependency" occurs when a variable's initialization calls a method 
+  or an interface that references other package variables. 
+
+
+  -- warning 
+  --
+    If hidden dependencies exist, the relative order of initialization between 
+    those variables and unrelated variables (with side effects) is UNSPECIFIED.
+
+  
+  example
+    ```go
+      func sideEffect() int {
+        fmt.Println("Side effect executed!")
+        return 0
+      }
+
+
+      type I interface    { ab() []int }
+      type T struct{}
+      func (T) ab() []int { return []int{a_val, b_val} }
+
+
+      var x_val = I(T{}).ab() // x_val has a hidden dependency on a_val and b_val
+      var _ = sideEffect()    // Execution moment is unspecified relative to x_val
+      var a_val = b_val       // Guaranteed: a_val initialized after b_val
+      var b_val = 42
+
+
+      // -- Result of Unspecified Order 
+      // Different compilers (or different versions of the Go toolchain) might 
+      // execute 'sideEffect()' before OR after 'x_val' is initialized. 
+
+    ```
+
+
+
+
+
+-- Risks & Best Practices
+--
+  1. Cross-File Danger: Go does not strictly define the compilation order of 
+     different files within the same package. 
+
+     Best Practice: Do not spread variables with complex dependencies 
+     across different files. Keep them in one file to ensure the 
+     "declaration order" rule acts as a predictable tie-breaker.
+
+
+  2. Toolchain Bugs: 
+     - Go 1.22.0 - 1.22.4 had specific bugs in dependency analysis.
+     - Toolchains prior to 1.23 had edge cases with complex init logic.
+     Best Practice: Keep package-level initialization as simple as 
+     possible. Avoid using complex logic or functions with side-effects 
+     inside global `var` blocks.
+
+
+
+
+
+-- Expression & Operand Evaluation Orders
+--
+  Go provides specific guarantees regarding the order in which expressions are 
+  evaluated, but it also leaves many scenarios "unspecified." Understanding 
+  this distinction is vital for avoiding subtle, non-deterministic bugs.
+
+
+// =============================================================================
+// :: 1. Logical Operations: Short-Circuit Evaluation
+// =============================================================================
+
+// For boolean logical operators, the evaluation of the right-hand operand is 
+// strictly conditional based on the result of the left-hand operand.
+
+// -- Operator: && (Conditional AND) --
+// If 'a' is false, the result is already false. 'b' is NEVER evaluated.
+// `a && b` -> Evaluation order: a (always), then b (only if a is true).
+
+// -- Operator: || (Conditional OR) --
+// If 'a' is true, the result is already true. 'b' is NEVER evaluated.
+// `a || b` -> Evaluation order: a (always), then b (only if a is false).
+
+package main
+
+import "fmt"
+
+func trace(msg string, result bool) bool {
+	fmt.Println("Evaluating:", msg)
+	return result
+}
+
+func shortCircuitDemo() {
+	fmt.Println("--- Logical AND ---")
+	_ = trace("Left side", false) && trace("Right side", true) 
+	// Output: Evaluating: Left side (Right side is skipped)
+
+	fmt.Println("\n--- Logical OR ---")
+	_ = trace("Left side", true) || trace("Right side", false)
+	// Output: Evaluating: Left side (Right side is skipped)
+}
+
+
+// =============================================================================
+// :: 2. The "Usual Order": Lexical Left-to-Right
+// =============================================================================
+
+// When evaluating operands in an expression, assignment, or return statement, 
+// Go guarantees that all "Active Operations" are evaluated in lexical 
+// (textual) left-to-right order.
+
+// -- What are "Active Operations"? --
+// 1. Function calls: `f()`
+// 2. Method calls: `obj.m()`
+// 3. Channel communications: `<-ch` or `ch <- v`
+
+// **Note**: Explicit type conversions (e.g., `string(65)`) are NOT function 
+// calls and do not follow this strict left-to-right rule relative to calls.
+
+func usualOrderDemo() {
+	fa := func() int { fmt.Print("fa "); return 1 }
+	fb := func() int { fmt.Print("fb "); return 2 }
+	
+	// Guaranteed: fa() executes before fb() because fa appears to the left of fb.
+	vals := []int{fa(), fb()} 
+	fmt.Println("\nResult:", vals)
+}
+
+/*
+================================================================================
+EXPECTED OUTPUT (usualOrderDemo):
+================================================================================
+fa fb 
+Result: [1 2]
+================================================================================
+*/
+
+
+// =============================================================================
+// :: 3. Unspecified Orders: The Ambiguity Traps
+// =============================================================================
+
+// While calls are ordered left-to-right, the evaluation of basic variables 
+// relative to those calls is NOT specified. This can lead to unpredictable 
+// state if a function call modifies a variable used in the same statement.
+
+func ambiguityDemo() {
+	a := 1
+	f := func() int { a++; return a }
+
+	// --- Trap 1: Variable vs. Function Call ---
+	// Evaluation order of 'a' and 'f()' is NOT specified.
+	// Potential Result A: [1, 2] (a is read, then f adds 1)
+	// Potential Result B: [2, 2] (f adds 1, then a is read)
+	x := []int{a, f()}
+	fmt.Println("Ambiguous Slice:", x)
+
+	// --- Trap 2: Map Element Assignments ---
+	// The order of map literal entries is not specified.
+	// m might be {2: 1} or {2: 2}.
+	a = 1
+	m := map[int]int{a: 1, a: 2}
+	fmt.Println("Ambiguous Map Keys:", m)
+
+	// --- Trap 3: Map Key vs. Map Value ---
+	// The order between evaluating the key and the value is not specified.
+	// n might be {2: 3} or {3: 3}.
+	a = 2
+	n := map[int]int{a: f()}
+	fmt.Println("Ambiguous Map Value:", n)
+}
+
+
+// =============================================================================
+// :: 4. Complex Assignment Case Study
+// =============================================================================
+
+/*
+Consider this line from the Go Specification:
+y[z.f()], ok = g(h(a, b), i() + x[j()], <-c), k()
+
+Guaranteed Left-to-Right Order (for calls and channel ops):
+1. z.f() 
+2. h()
+3. i()
+4. j()
+5. <-c
+6. g()
+7. k()
+
+Guaranteed Dependency Order:
+- h() is evaluated AFTER its arguments h, a, and b.
+- y[...] is evaluated AFTER its index z.f().
+- z.f() is evaluated AFTER the expression z.
+
+UNSPECIFIED Order (Potential bugs!):
+- Whether 'y' is evaluated before 'z'.
+- Whether 'a' is evaluated before 'g'.
+- Whether index 'x[j()]' is evaluated before the channel receive '<-c'.
+*/
+
+
+// =============================================================================
+// :: Summary & Best Practices
+// =============================================================================
+
+// 1. **Avoid Side Effects**: Do not write function calls that modify variables 
+//    appearing elsewhere in the same statement.
+// 2. **Explicit Sequencing**: If order matters between a variable and a call, 
+//    split the logic into multiple lines.
+// 3. **Consistency**: Do not rely on the current behavior of a specific 
+//    compiler version for "unspecified" scenarios; it may change in the future.
+
+func main() {
+	shortCircuitDemo()
+	usualOrderDemo()
+	ambiguityDemo()
+}

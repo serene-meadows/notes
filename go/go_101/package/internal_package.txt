@@ -1,0 +1,91 @@
+Go provides powerful mechanisms for encapsulating code and managing how 
+packages interact with one another. Two of the most important concepts
+for architectural design are the `internal` directory and strict dependency rules.
+
+
+
+
+
+-- The `internal` Package (Encapsulation)
+--
+  Go does not have `public`, `private`, or `protected` keywords for packages. 
+  Instead, it uses a special directory name `internal` to enforce visibility
+  boundaries at the package level.
+
+
+  -- The Visibility Rule
+  --
+    Any package whose import path contains an `internal` folder is treated specially 
+    by the Go compiler (`go build`, `go run`, etc.).
+
+
+    An `internal` package can ONLY be imported by code residing in or below
+    the direct parent directory of the `internal` folder.
+
+
+
+
+
+-- Visualizing the `internal` Rule
+--
+  Let's look at a hypothetical project structure:
+  
+  github.com/myorg/project/
+  ├── a/
+  │   ├── b/
+  │   │   ├── c/
+  │   │   │   ├── main.go               <-- Imports internal/d/e/f (ALLOWED)
+  │   │   │   ├── sibling/
+  │   │   │   │   └── helper.go         <-- Imports internal/d/e/f (ALLOWED)
+  │   │   │   │
+  │   │   │   └── internal/             <-- The boundary is set at `c/`
+  │   │   │       ├── auth/
+  │   │   │       └── d/
+  │   │   │           └── e/
+  │   │   │               └── f/
+  │   │   │                   └── f.go
+  │   │   └── x/
+  │   │       └── other.go              <-- Imports c/internal/... (BLOCKED!)
+  │   └── z.go                          <-- Imports c/internal/... (BLOCKED!)
+  └── external_app/
+      └── main.go                       <-- Imports c/internal/... (BLOCKED!) 
+
+
+  Breaking it down 
+    - The package path is: `.../a/b/c/internal/d/e/f`
+    - The direct parent of `internal` is: `.../a/b/c`
+    - ONLY packages with the prefix `.../a/b/c` are allowed to import it.
+
+
+
+
+-- internal package
+-- 
+  a package whose import path containing an internal folder name is viewed as a special package.
+  It can only be imported by the packages in and under the direct parent directory of the internal folder.
+
+  For example
+    package 
+      .../a/b/c/internal/d/e/f
+      and 
+      .../a/b/c/internal
+
+    can only be imported by the packages whose import paths have a .../a/b/c prefix.
+
+
+
+
+
+-- package dependency
+--
+  When one source file in a package imports another package
+  we say the importing package depends on the imported package.
+
+  Go doesn't support circular package dependencies
+  example 
+    if 
+      package 'a' depends on package 'b'
+      package 'b' depends on package 'c'
+    then 
+      package 'c' cannot depend on package 'a'
+

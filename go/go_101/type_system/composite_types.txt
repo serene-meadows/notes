@@ -1,0 +1,113 @@
+-- composite types
+--
+  Composite types are types built upon basic types or other composite types.
+  They group elements together into more complex data structures.
+
+
+  -- overview
+  --
+    Go provides a rich set of built-in composite types that serve different
+    purposes, from data aggregation to defining behavior and handling concurrency.
+
+
+    -- Pointer Types (`*T`)
+    --
+    Stores the memory address of a value of another type (T).
+
+
+    -- Aggregate Types (Value Types)
+    --
+    Group together other values.
+      - `struct`: A collection of named fields, useful for grouping related data.
+      - `array`: A fixed-length sequence of elements of a single type.
+
+
+    -- Reference Types
+    --
+    Provide dynamic views or management of underlying data structures.
+      - `slice`: A dynamically-sized, flexible view into the elements of an array.
+      - `map`: An unordered collection of key-value pairs (a hash table).
+
+
+    -- Behavioral Types
+    --
+    Define signatures and behaviors rather than storing data directly.
+      - `function`: Represents the signature of a function, including its
+                    parameters and return types. Functions are first-class citizens.
+      - `interface`: Defines a set of method signatures. A type "implements" an
+                     interface by having all the methods in its set.
+
+
+    -- Concurrency Primitives
+    --
+      - `channel`: A typed conduit for communication and synchronization
+                   between goroutines.
+
+
+
+
+
+-- composite type literals
+--
+  The following code block demonstrates how to declare variables for each
+  composite type using their respective type literal syntax.
+
+  example
+    ```go
+      // Assume `T` is an arbitrary type like `int` or `string` for these examples.
+      // Assume `TKey` is a comparable type (like string, int, etc.) for the map key.
+      // a type supporting comparison (== and !=).
+
+    var (
+      // Pointer Type: A pointer to an integer.
+      p *int
+
+
+      // Array Type: An array that holds exactly 5 strings.
+      // The length `5` is part of the type.
+      arr [5]string
+
+
+      // Slice Type: A slice of integers. Represents a dynamic-length list.
+      slc []int
+
+
+      // Map Type: A map with string keys and integer values.
+      m map[string]int
+
+
+      // Struct Type: A collection of named fields.
+      // This declares a variable of an anonymous struct type.
+      book struct {
+        title  string
+        author string
+        pages  int
+      }
+
+
+      // Function Type: A variable that can hold a function that takes a string
+      // and an int, and returns a boolean.
+      validator func(string, int) bool
+
+
+      // Interface Type: Defines a set of methods. Any type that implements
+      // a `Read(p []byte) (n int, err error)` method satisfies this interface.
+      reader interface {
+        Read(p []byte) (n int, err error)
+        Close() error
+      }
+
+
+      // Channel Types:
+      // A bidirectional channel that can send and receive integers.
+      events chan int
+
+
+      // A send-only channel for sending strings.
+      requests chan<- string
+
+
+      // A receive-only channel for receiving boolean results.
+      results <-chan bool
+
+    ```

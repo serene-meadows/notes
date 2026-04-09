@@ -1,0 +1,172 @@
+-- The Basic Anatomy of a Function
+--
+  A function declaration binds a name to a piece of code. Let's break down its components.
+
+    func      FunctionName     (parameterList)        (resultList)         { ... body ... }
+       ▲             ▲                  ▲                     ▲                   ▲
+    Keyword          Name            Inputs (Parameters)    Outputs (Results)    Implementation
+  
+
+  example
+    ```go
+      func SquaresOfSumAndDiff(a int64, b int64) (s int64, d int64) {
+        x, y := a+b, a-b
+        s = x * x
+        d = y * y
+        return // Ends normal execution and starts the exiting phase.
+      }
+
+    ```
+
+
+
+
+
+-- Parameters (Inputs)
+--
+  -- parameter shortand
+  --
+    If successive parameters share the same type, you can write the type once at the end.
+
+    Verbose:
+      func process(name string, age int, city string, country string)
+
+    Shorthand:
+      func process(name string, age int, city, country string)
+
+
+  -- Anonymous (Unnamed) Parameters
+  --
+    If a parameter is not used inside the function body, you can omit its name.
+    This is common when satisfying an interface or for maintaining backward compatibility.
+
+    ```go
+      // Option A: Just specify the type.
+      func Handle(string, int) {
+        // Can't access the string or int values here.
+      }
+
+
+      // Option B: Use the blank identifier `_`. This is often clearer.
+      func HandleWithBlank(_ string, _ int) {
+        // Also can't access the values here.
+      }
+
+    ```
+
+
+  -- No Default Parameter Values
+  --
+    Go does not support default parameter values. All arguments must be explicitly passed.
+
+
+    
+
+
+-- Results (Outputs)
+--
+  Go supports two styles for declaring return values: anonymous and named.
+
+  -- Anonymous Results
+  --
+    The return types are listed, but not given names.
+    With this style, the `return` keyword MUST be followed by the values to be returned.
+
+    example
+      ```go
+        func SumAndDiff(a, b int) (int, int) {
+          return a + b, a - b
+        }
+
+      ```
+
+
+  -- Named Results
+  --
+    The return values are declared as variables in the function signature.
+    Inside the function, these variables are automatically created and initialized to their zero values.
+    You can then perform a "naked" return (the `return` keyword by itself), which will
+    return the current values of the named result variables.
+
+    ```go
+      func SumAndDiffNamed(a, b int) (sum, diff int) {
+        // `sum` and `diff` are already declared and are `0`.
+        sum = a + b
+        diff = a - b
+        return // This is equivalent to `return sum, diff`.
+      }
+
+    ```
+
+
+
+
+
+-- Formatting the Result List
+--
+  The parentheses `()` around the result list follow specific rules:
+  - REQUIRED if there are multiple results OR one named result.
+  - OPTIONAL if there is only one anonymous result.
+  - OMITTED if there are no results.
+
+
+  example
+    ```go
+      // One named result (Parentheses required):
+      func GetVersion() (v string) {
+        return "v1.0.0"
+      }
+
+
+      // One anonymous result (Parentheses optional):
+      func GetMessage() string {
+        return "hello"
+      }
+
+
+      // No results (Result list is omitted entirely):
+      func LogMessage(msg string) {
+        fmt.Println(msg)
+      }
+
+    ```
+
+
+
+
+
+-- Declaration Scope: Package Level Only
+--
+  Named functions (like the ones above) can ONLY be declared at the top level
+  of a package. You CANNOT declare a named function inside another function.
+
+    ```go
+      func parent() {
+          func child() { // COMPILE ERROR: function declaration not allowed here
+              // ...
+          }
+      }
+
+    ```
+
+
+  -- The Anonymous Function Workaround
+  -- 
+    If you need function-in-function logic, you must use an anonymous function
+    (also called a function literal). These are not function declarations, but
+    are expressions that produce a function value.
+
+  
+    example
+      ```go
+        func parent() {
+          // This creates an anonymous function and assigns it to the variable `child`.
+          child := func() {
+            fmt.Println("This is a legal nested function.")
+          }
+          child() // It can then be called like a normal function.
+        }
+
+      ```
+
+

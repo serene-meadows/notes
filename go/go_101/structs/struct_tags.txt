@@ -1,0 +1,177 @@
+-- struct tags
+--
+  A "struct tag" is an optional metadata string that can be attached to a struct
+  field during its declaration.
+
+  - If omitted, the default tag is an empty string `""`.
+  - Tags are inspected at runtime using Go's `reflect` (Reflection) package.
+
+
+  -- Raw Strings vs. Interpreted Strings
+  --
+    Tags are almost always written using raw string literals (backticks: `...`).
+    Because tags conventionally use the `key:"value"` format, using interpreted
+    strings (double quotes) would require ugly escape sequences (`"key:\"value\""`).
+
+
+  example
+    ```go
+      type Book struct {
+        // Idiomatic: Using raw string literals (backticks)
+        Title string `json:"title" xml:"Title"`
+
+        // Valid, but messy: Using interpreted strings (requires escaping)
+        Author string "json:\"author\" xml:\"Author\""
+
+        // POOR PRACTICE: Applying a tag to multiple fields on the same line.
+        // It's allowed, but makes the code harder to read and maintain.
+        X, Y int `json:"coordinates"` 
+      }
+
+    ```
+
+
+
+
+
+-- The Purpose of Struct Tags
+--
+  The Go compiler ignores struct tags. Their meaning and purpose are entirely
+  application-dependent, determined by the libraries that read them via reflection.
+
+
+  -- Example: JSON Encoding/Decoding
+  --
+    The standard library's `encoding/json` package uses tags to map struct fields
+    to JSON keys, or to dictate behaviors like omitting empty fields.
+
+    example
+      ```go
+        type User struct {
+          // Maps to "user_id". 
+          ID       int    `json:"user_id"`
+          
+          // Maps to "username". If the string is empty (""), it is omitted from the JSON.
+          Username string `json:"username,omitempty"`
+          
+          // The "-" tells the json package to completely ignore this field.
+          Password string `json:"-"`
+        }
+
+      ```
+
+
+
+
+
+-- Exported vs. Unexported Fields (Visibility)
+--
+  In Go, visibility (public/private) is determined by the first letter of the name.
+  This applies to packages, functions, types, AND struct fields.
+
+
+  -- Exported (Public):
+  --
+    Starts with an UPPERCASE letter. Can be accessed
+    by other packages.
+
+  -- Unexported (Private):
+  --
+    Starts with a LOWERCASE letter. Can only be accessed
+    within the package it is defined in.
+
+
+  -- CRITICAL RULE FOR TAGS:
+  --
+    Packages like `encoding/json` use reflection from outside your package. 
+    Therefore, they can ONLY see and process Exported fields. If you put a JSON
+    tag on an unexported field, it will be silently ignored.
+
+
+  example
+    ```go
+      type Configuration struct {
+        Port int `json:"port"` // Exported. JSON package WILL see this.
+        
+        // Unexported. JSON package WILL NOT see this, even with the tag!
+        host string `json:"host"` 
+      }
+
+    ```
+
+
+
+
+
+-- Struct Type Identity (Why Order and Tags Matter)
+--
+  The identity of a struct type is determined by a strict set of rules.
+  Two unnamed struct types are considered identical ONLY IF they have the exact
+  same sequence of field declarations.
+
+
+  Two field declarations are identical ONLY IF ALL of the following match:
+    1. Their Names
+    2. Their Types
+    3. Their Tags
+    4. Their Order of declaration
+
+
+  example
+    ```go
+      var s1 struct { X int `json:"x"`; Y int }
+      var s2 struct { X int `json:"x"`; Y int }
+      var s3 struct { X int `json:"X"`; Y int } // Different tag case
+      var s4 struct { Y int; X int `json:"x"` } // Different order
+
+      s1 = s2 // SUCCESS: Identical structures, tags, and order.
+      // s1 = s3 // COMPILE ERROR: Tags don't match exactly.
+      // s1 = s4 // COMPILE ERROR: Order of fields doesn't match.
+
+    ```
+
+
+
+
+
+-- Structural Limitations
+--
+  -- No Unions
+  --
+    Unlike C or C++, Go structs do not support "unions" (where multiple fields
+    share the same memory location).
+
+
+  -- No Recursive VALUE References
+  --
+    A struct cannot contain a field of its own type as a direct value. 
+    If it did, the compiler wouldn't be able to calculate its memory size,
+    because it would be infinitely large (a Node containing a Node containing a Node...).
+
+    example
+      ```go
+        // COMPILE ERROR: invalid recursive type Node
+        type Node struct {
+          Value int
+          Next  Node // ERROR: Cannot hold itself as a value.
+        }
+
+      ```
+
+
+    -- the fix
+    --
+      Use Pointers
+
+      You CAN have a recursive reference if you use a pointer. A pointer has a fixed
+      memory size (e.g., 8 bytes), so the compiler knows exactly how big the struct is.
+
+
+      example
+        ```go
+          type ValidNode struct {
+            Value int
+            Next  *ValidNode // SUCCESS: Pointers have a known, fixed size.
+          }
+
+        ```
