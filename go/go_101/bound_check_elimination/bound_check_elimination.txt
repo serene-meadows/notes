@@ -922,73 +922,321 @@
 
   -- The Unsigned Integer Advantage
   --
+    A standard bounds check actually checks two things:
+    1. Is index >= 0?
+    2. Is index < length?
 
-// A standard bounds check actually checks two things:
-// 1. Is index >= 0?
-// 2. Is index < length?
-
-// By using unsigned integers (`uint`), the first check is eliminated by 
-// definition (unsigned cannot be negative). This often simplifies the 
-// compiler's proof logic for complex strides.
-
-const N = 3
-
-// --- f6a: Complex Offset (Inefficient) ---
-func f6a(s []byte) {
-	for i := 0; i < len(s)-(N-1); i += N {
-		_ = s[i+N-1] // Found IsInBounds
-	}
-}
-
-// --- f6b: Standard Stride (Better, but still checked) ---
-func f6b(s []byte) {
-	for i := N - 1; i < len(s); i += N {
-		_ = s[i] // Found IsInBounds (Check required to ensure i >= 0)
-	}
-}
-
-// --- f6c: Unsigned Stride (The Performance Winner) ---
-// Using uint is a "power move" for hot loops. It significantly helps 
-// the compiler prove the entire range is safe.
-func f6c(s []byte) {
-	// Casting to uint here removes the "negative index" possibility.
-	for i := uint(N - 1); i < uint(len(s)); i += N {
-		_ = s[i] // ELIMINATED (BCEed!)
-	}
-}
+    By using unsigned integers (`uint`), the first check is eliminated by 
+    definition (unsigned cannot be negative). This often simplifies the 
+    compiler's proof logic for complex strides.
 
 
-// =============================================================================
-// :: 3. Summary of Findings
-// =============================================================================
-
-/*
-================================================================================
-BCE VERIFICATION (-gcflags="-d=ssa/check_bce"):
-================================================================================
-Function | Pattern                       | Status
----------|-------------------------------|--------------------------------------
-f9a      | i <= n                        | Found IsInBounds
-f9b      | i < len(buf)                  | ELIMINATED
-f9c      | i < n+1                       | ELIMINATED
-f6a      | i+N-1 access                  | Found IsInBounds
-f6b      | i < len(s) (signed)           | Found IsInBounds
-f6c      | uint conversion               | ELIMINATED (Fastest)
-================================================================================
-*/
+    example
+      ```go
+        const N = 3
 
 
-// =============================================================================
-// :: INFO GAIN: Why f6c is much more performant
-// =============================================================================
+        // -- f6a: Complex Offset (Inefficient) 
+        // 
+        func f6a(s []byte) {
+          for i := 0; i < len(s)-(N-1); i += N {
+            _ = s[i+N-1] // Found IsInBounds
+          }
+        }
 
-// 1. Machine Instructions: 'f6c' generates fewer assembly instructions because 
-//    it skips the "compare to zero" branch entirely.
-// 2. Predictability: By using uint, the compiler's Static Single Assignment (SSA) 
-//    optimizer has a much easier time verifying the loop bounds, leading to 
-//    tighter, more efficient machine code.
-// 3. Best Practice: In heavy numerical or data-processing loops (striding 
-//    through buffers), consider converting lengths and indices to uint if 
-//    you are aiming for peak performance.
 
-func main() {}
+        // -- f6b: Standard Stride (Better, but still checked) 
+        //
+        func f6b(s []byte) {
+          for i := N - 1; i < len(s); i += N {
+            _ = s[i] // Found IsInBounds (Check required to ensure i >= 0)
+          }
+        }
+
+
+        // -- f6c: Unsigned Stride (The Performance Winner) 
+        //
+        // Using uint is a "power move" for hot loops. It significantly helps 
+        // the compiler prove the entire range is safe.
+        func f6c(s []byte) {
+          // Casting to uint here removes the "negative index" possibility.
+          for i := uint(N - 1); i < uint(len(s)); i += N {
+            _ = s[i] // ELIMINATED (BCEed!)
+          }
+        }
+
+      ```
+
+
+
+
+
+-- BCE - Global Variables, Arrays, and Go 1.24+ Logic
+--
+  Bounds Check Elimination (BCE) efficiency depends heavily on the compiler's
+  ability to "trust" the length of a container. This section explores how
+  the scope of a variable (Global vs. Local) and the type (Array vs. Slice)
+  influence these optimizations.
+
+
+  --  The Global Slice Problem
+  --
+  Package-level (global) slices are inherently "unfriendly" to BCE.
+  
+  -- Why?
+  --
+    The compiler must assume that any function call or concurrent operation 
+    might modify the global slice header (changing its length or capacity). 
+    As a result, it often cannot "lock in" a safety proof for the entire loop.
+
+
+  example
+    ```go
+      var s = make([]int, 5) // Global slice
+
+
+      // -- fa0: Using Global Slice (Sub-optimal) 
+      // 
+      func fa0() {
+        for i := range s {
+          // Found IsInBounds: The compiler re-checks 's' every iteration 
+          // because 's' is global and theoretically volatile.
+          s[i] = i 
+        }
+      }
+
+
+      // -- fa1: The Local Re-assignment Fix (Optimized) 
+      // 
+      func fa1() {
+        // By shadowing the global 's' with a local 's', we copy the slice header
+        // onto the stack. Since this local header cannot be modified externally,
+        // the compiler can prove the loop is 100% safe.
+        s := s 
+        for i := range s {
+          s[i] = i // ELIMINATED (BCEed!)
+        }
+      }
+
+
+      // -- fa2: The Parameter Fix (Optimized) 
+      //
+      // Passing the slice as an argument has the same effect as a local assignment.
+      func fa2(x []int) {
+        for i := range x {
+          x[i] = i // ELIMINATED (BCEed!)
+        }
+      }
+
+    ```
+
+
+
+  -- Arrays vs. Slices
+  --
+    Arrays have fixed lengths known at compile time. This makes them significantly
+    more BCE-friendly than slices, which are dynamic headers.
+
+
+    ```go
+      var globalSlice = make([]int, 256)
+      var globalArray = [256]int{}
+
+
+      // -- Case A: Constant Indexing 
+      // 
+      func fb1() int {
+          return globalSlice[100] // Found IsInBounds: Length could have changed.
+      }
+
+
+      func fb2() int {
+          return globalArray[100] // ELIMINATED: Index 100 is always < 256.
+      }
+
+
+      // -- Case B: Byte Indexing (The 256 Rule) 
+      //
+      // A 'byte' (uint8) has a max value of 255. 
+      func fc1(n byte) int {
+          return globalSlice[n] // Found IsInBounds: Slice could be smaller than 256.
+      }
+
+
+      func fc2(n byte) int {
+          // ELIMINATED: An array of 256 elements cannot be indexed out of 
+          // bounds by a single byte (max 255).
+          return globalArray[n] 
+      }
+
+    ```
+
+
+  -- Loop Arithmetic & Go 1.24 Optimizations
+  --
+    Performing math within an index (e.g., x[i*4+3]) used to be difficult for 
+    the compiler to prove safe.
+
+
+    ```go
+      // -- f0a: Calculated Indexing 
+      //
+      func f0a(x [16]byte) (r [4]byte) {
+        for i := 0; i < 4; i++ {
+          // Prior to Go 1.24: "Found IsInBounds" triggered here.
+          // Go 1.24+: ELIMINATED. The compiler now handles this math.
+          r[i] =
+            x[i*4+3] ^
+            x[i*4+2] ^
+            x[i*4+1] ^
+            x[i*4]
+        }
+        return
+      }
+
+
+      // -- f0b: Manual Unrolling 
+      // This remains the fastest "manual" way to ensure zero bounds checks across
+      // all Go versions, as it avoids loop overhead entirely.
+      func f0b(x [16]byte) (r [4]byte) {
+        r[0] = x[3] ^ x[2] ^ x[1] ^ x[0]   // BCEed
+        r[1] = x[7] ^ x[6] ^ x[5] ^ x[4]   // BCEed
+        r[2] = x[11] ^ x[10] ^ x[9] ^ x[8] // BCEed
+        r[3] = x[15] ^ x[14] ^ x[13] ^ x[12]// BCEed
+        return
+      }
+
+    ```
+
+
+
+
+
+-- BCE - Current Compiler Limitations (v1.24.n)
+--
+  While the Go compiler is continually getting smarter, as of version 1.24.n, 
+  there are still common patterns where the compiler fails to prove safety, 
+  resulting in "unnecessary" bounds checks. 
+
+  
+  Understanding these limits helps in writing high-performance code and 
+  knowing where manual hints might still be required.
+
+
+  -- The Filter-In-Place Pattern
+  --
+    This is a common idiom to filter a slice without allocating new memory. 
+    Logic: 'k' starts at 0 and increments only when a condition is met. 
+    Mathematically, 'k' is always <= the current index 'i', and therefore 
+    always < len(data).
+
+
+    example
+      ```go
+        func fd(data []int, check func(int) bool) []int {
+          var k = 0
+          for _, v := range data {
+            if check(v) {
+              // Found IsInBounds:
+              // The compiler does not track the relationship between 'k' and 
+              // the range loop's internal index across iterations.
+              data[k] = v 
+              k++
+            }
+          }
+          
+
+          // Found IsSliceInBounds:
+          // Because the write above wasn't "proven" safe, the compiler 
+          // also cannot prove the final re-slice is safe.
+          return data[:k] 
+        }
+
+      ```
+
+
+
+  -- The Modulo Proof Limit
+  --
+    If 'r = len(s) % N', then 'r' is guaranteed to be < 'N'. 
+    If 'len(s) >= N', then 'r' is guaranteed to be in bounds.
+
+
+    example
+      ```go
+        func fe(s []byte) {
+          const N = 3 // Not a power of 2
+          if len(s) >= N {
+            r := len(s) % N
+
+            
+            // Found IsInBounds:
+            // The compiler handles this perfectly if N is a power of 2 
+            // (e.g., 2, 4, 8) because it uses bitwise masking. 
+            // For odd numbers like 3, the proof engine currently fails.
+            _ = s[r] 
+          }
+        }
+
+      ```
+
+
+  -- Transitive Division Proofs
+  --
+    In a loop where 'i < len(s)', any positive division 'i/N' is 
+    mathematically guaranteed to be < len(s).
+
+
+    example
+      ```go
+        func ff(s []byte) {
+          for i := 0; i < len(s); i++ {
+            // Found IsInBounds (for both):
+            // The compiler understands 'i < len(s)', but doesn't yet 
+            // perform the transitive proof that 'i/2 < i'.
+            _ = s[i/2] 
+            _ = s[i/3] 
+          }
+        }
+
+      ```
+
+
+  -- Parallel Slicing & Header Mutation
+  --
+    When you mutate slice headers (src = src[4:]) inside a loop, the 
+    compiler often loses the "connection" between the lengths of two 
+    different slices.
+
+
+    example
+      ```go
+        func fg(src, dst []byte) {
+          // Initially, we lock dst to the length of src.
+          dst = dst[:len(src)]
+          
+          
+          for len(src) >= 4 {
+            // Found IsInBounds:
+            // Even though dst was matched to src, the mutation 
+            // below (dst = dst[4:]) makes the compiler check this again.
+            dst[1] = src[0]
+            dst[0] = src[1]
+
+            
+            // Advance both
+            src = src[4:]
+            
+
+            // Found IsSliceInBounds:
+            // The compiler doesn't realize the remaining capacity of 
+            // 'dst' is tied to the remaining length of 'src'.
+            dst = dst[4:] 
+          }
+        }
+
+      ```
+
+
+
+
