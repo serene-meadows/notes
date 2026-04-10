@@ -1,0 +1,994 @@
+-- BCE (Bounds Check Elimination)
+--
+  Go is a memory-safe language. To prevent buffer overflows and unauthorized
+  memory access, the Go runtime performs "Bounds Checking" on every array,
+  slice, and string indexing or sub-slicing operation.
+
+
+  If an index is out of bounds, Go triggers a panic. While this ensures safety,
+  it adds a small runtime overhead.
+
+
+  "Bounds Check Elimination" (BCE) is a compiler optimization (introduced in
+  Go 1.7) that identifies and removes redundant checks when the compiler
+  can prove that an index will always be within valid bounds.
+
+
+
+
+
+-- Verifying BCE with Compiler Flags
+--
+  You can see exactly where the compiler is inserting bounds checks by using
+  the following command:
+
+    go run -gcflags="-d=ssa/check_bce" main.go
+
+  If the compiler finds a check it CANNOT eliminate, it will output:
+  "Found IsInBounds" or "Found IsSliceInBounds".
+
+
+
+
+
+-- Case Studies: When BCE Works and When It Doesn't
+--
+  ```go
+    // -- Redundant Accesses
+    func f1a(s []struct{}, index int) {
+      _ = s[index]   // check 1: Required (Compiler doesn't know 'index' yet)
+      _ = s[index]   // eliminated: If the line above didn't panic, this is safe.
+      _ = s[index:]  // eliminated: Logic follows from first check.
+      _ = s[:index+1]// eliminated: Logic follows from first check.
+    }
+      // Go inserts bounds checks like:
+      // _ = s[index]   // requires: 0 <= index < len(s)
+      // If it can prove this once, it may eliminate later checks.
+
+
+    // -- Order of Operations
+    func f1b(s []byte, index int) {
+      // If index is 0, index-1 is -1. This needs a check.
+      s[index-1] = 'a' // CHECK 2: Required.
+
+      // Because index-1 was safe, index must be >= 1.
+      // If the slice was large enough for index-1, it's large enough for index.
+      _ = s[:index]    // ELIMINATED.
+    }
+
+
+    // -- Arrays with Constant Indices
+    func f1c(a [5]int) {
+      // Arrays have fixed sizes known at compile time.
+      // Constant indices 0 and 4 are clearly within [0, 5).
+      _ = a[0] // ELIMINATED.
+      _ = a[4] // ELIMINATED.
+    }
+
+
+    // -- Explicit Guard Rails
+    func f1d(s []int) {
+      // By checking the length upfront, we "prove" to the compiler
+      // that indices 0, 1, and 2 are safe.
+      if len(s) > 2 {
+          _, _, _ = s[0], s[1], s[2] // ALL ELIMINATED.
+      }
+    }
+
+
+    // -- Mathematical Safety
+    func f1g(s []int) {
+      // Since Go 1.21, the compiler is smart enough to know that
+      // (len/2) is always <= len.
+      middle := len(s) / 2
+      _ = s[:middle] // ELIMINATED (since Go 1.21).
+      _ = s[middle:] // ELIMINATED (since Go 1.21).
+    }
+
+  ```
+
+  -- compiler output for examples above:
+  --
+    $ go build -gcflags="-d=ssa/check_bce" example1.go
+    ./example1.go:25:7: Found IsInBounds       (From f1a: first access)
+    ./example1.go:34:3: Found IsInBounds       (From f1b: index-1 access)
+
+
+
+
+
+-- BCE and Generics: The Instantiation Requirement
+--
+  As of Go 1.24, the compiler performs BCE analysis on generic functions
+  ONLY when they are instantiated.
+
+
+  -- Scenario A: Uninstantiated (No analysis performed)
+  --
+    ```go
+      func foo[E any](s []E) {
+        _ = s[0]
+        _ = s[1]
+        _ = s[2]
+      }
+
+    ```
+
+  If you run BCE check on the code above alone, the compiler reports NOTHING.
+
+
+  -- Scenario B: Instantiated (Analysis triggers)
+  --
+    By creating a variable that uses the generic function, we force the
+    compiler to generate concrete code and check bounds.
+
+
+    example
+      ```go
+        var _ = foo[bool]
+
+      ```
+
+    -- compiler output for scenario b:
+    --
+      $ go build -gcflags="-d=ssa/check_bce" bar.go
+      ./bar.go:88:7: Found IsInBounds
+      ./bar.go:89:7: Found IsInBounds
+      ./bar.go:90:7: Found IsInBounds
+
+
+
+
+
+-- Performance Tip: The "BCE Hint"
+--
+  If you are writing a high-performance loop over a slice, you can often
+  speed it up by adding a single "dummy" check at the top to eliminate
+  checks inside the loop.
+
+
+  example
+    ```go
+      func bceHint(s []int) {
+        if len(s) < 100 { return }
+
+        // By doing this once...
+        _ = s[99]
+
+        for i := 0; i < 100; i++ {
+          // ...the compiler eliminates the check for every iteration here!
+          fmt.Print(s[i])
+        }
+      }
+
+    ```
+
+
+
+
+
+-- BCE (Bounds Check Elimination) - Loop Patterns
+--
+  Go's standard compiler is highly optimized to recognize common loop patterns.
+  When iterating over containers, the compiler can often prove that the loop
+  index will never exceed the container's bounds, allowing it to remove the
+  check logic entirely from the resulting machine code.
+
+
+  -- Optimized Loop Patterns
+  --
+    In the following examples, the Go compiler (v1.24+) eliminates EVERY
+    bounds check within these functions.
+
+
+  example
+    ```go
+      // -- Pattern A: Idiomatic for-range
+
+      // This is the most efficient way to iterate. The compiler inherently
+      // understands that 'i' is derived directly from the length of 's'.
+      func f2a(s []int) {
+        for i := range s {
+          _ = s[i]       // ELIMINATED
+          _ = s[i:len(s)] // ELIMINATED
+          _ = s[:i+1]    // ELIMINATED
+        }
+      }
+
+
+      // -- Pattern B: Standard Incrementing Loop
+
+      // The condition 'i < len(s)' provides a mathematical proof for the compiler
+      // that 'i' is always a valid index for 's'.
+      func f2b(s []int) {
+        for i := 0; i < len(s); i++ {
+          _ = s[i]       // ELIMINATED
+          _ = s[i:len(s)] // ELIMINATED
+          _ = s[:i+1]    // ELIMINATED
+        }
+      }
+
+
+      // -- Pattern C: Standard Decrementing Loop
+
+      // Even in reverse, 'i := len(s)-1' and 'i >= 0' prove safety.
+      func f2c(s []int) {
+        for i := len(s) - 1; i >= 0; i-- {
+          _ = s[i]       // ELIMINATED
+          _ = s[i:len(s)] // ELIMINATED
+          _ = s[:i+1]    // ELIMINATED
+        }
+      }
+
+
+      // -- Pattern D: While-style with Manual Decrement
+
+      func f2d(s []int) {
+        for i := len(s); i > 0; {
+          i--
+          _ = s[i]       // ELIMINATED
+          _ = s[i:len(s)] // ELIMINATED
+          _ = s[:i+1]    // ELIMINATED
+        }
+      }
+
+
+      // -- Pattern E: Stepped Loop (Stride > 1)
+
+      // The compiler proves that if 'i' is safe, and 'i < len(s)-1', then
+      // operations involving 'i' and 'i+1' remain within bounds.
+      func f2e(s []int) {
+        for i := 0; i < len(s)-1; i += 2 {
+          _ = s[i]       // ELIMINATED
+          _ = s[i:len(s)] // ELIMINATED
+          _ = s[:i+1]    // ELIMINATED
+        }
+      }
+
+    ```
+
+
+
+
+
+-- Recent Optimizations (Go 1.24+)
+--
+  Prior to Go 1.24, the compiler struggled with sub-slicing logic using
+  'i+1' in certain loop structures. These have now been optimized.
+
+
+  ```go
+    // In Go < 1.24, these functions would trigger "Found IsInBounds":
+    func f2g(s []int) {
+      for i := len(s) - 1; i >= 0; i-- {
+        // Go 1.24+: ELIMINATED
+        _ = s[:i+1]
+      }
+    }
+
+
+    func f2h(s []int) {
+      for i := 0; i <= len(s)-1; i++ {
+        // Go 1.24+: ELIMINATED
+        _ = s[:i+1]
+      }
+    }
+
+  ```
+
+  -- Verification
+  --
+    compiler check:
+      $ go run -gcflags="-d=ssa/check_bce" example2.go
+      (No output)
+
+
+    -- Result:
+    --
+      Nothing is reported. This confirms that the compiler successfully
+      eliminated 100% of the bounds checks in the functions above.
+
+
+
+
+
+-- BCE - The Largest Index Strategy
+--
+  Bounds Check Elimination (BCE) is most effective when the compiler can
+  mathematically prove subsequent accesses are safe.
+
+
+  A powerful manual optimization strategy is to evaluate the element indexing
+  or subslice operation with the largest required index as early as possible.
+
+
+  -- The Logic of "Dominating Access"
+  --
+    If the Go runtime successfully evaluates `s[3]` without panicking, it implies
+    that `len(s)` is at least 4.
+
+
+    Consequently, the compiler realizes that indices `s[0]`, `s[1]`, and `s[2]`
+    are guaranteed to be within bounds. Therefore, it eliminates the checks
+    for those lower indices entirely.
+
+
+  -- Comparison: Sequential vs. Front-Loaded Access
+  --
+    ```go
+      // -- f3a: Sequential Access (Inefficient for BCE)
+
+      // Since indices are accessed from smallest to largest, the compiler cannot
+      // assume anything about the next index based on the current one.
+      func f3a(s []int32) int32 {
+        return s[0] | // CHECK 1: Required
+          s[1] | // CHECK 2: Required
+          s[2] | // CHECK 3: Required
+          s[3]   // CHECK 4: Required
+      }
+
+
+      // -- f3b: Front-Loaded Access (Highly Optimized)
+
+      // By checking the largest index first, we "prove" the safety of all lower
+      // indices in a single operation.
+      func f3b(s []int32) int32 {
+        return s[3] | // CHECK 1: Required (Proves len(s) >= 4)
+          s[0] | // ELIMINATED
+          s[1] | // ELIMINATED
+          s[2]   // ELIMINATED
+      }
+
+    ```
+
+    -- compiler output (-gcflags="-d=ssa/check_bce"):
+    --
+      ./example3.go:21:10: Found IsInBounds (s[0])
+      ./example3.go:22:4:  Found IsInBounds (s[1])
+      ./example3.go:23:4:  Found IsInBounds (s[2])
+      ./example3.go:24:4:  Found IsInBounds (s[3])
+
+      ./example3.go:30:10: Found IsInBounds (s[3])
+
+
+    -- observation:
+    --
+      f3a triggers 4 bounds checks.
+      f3b triggers ONLY 1 bounds check.
+
+
+
+
+
+  -- Practical Pattern: The "BCE Hint"
+  --
+    In high-performance code where you need to access specific indices repeatedly
+    or in a complex order, you can use a "BCE Hint." This is a dummy assignment
+    to the blank identifier that "warm ups" the compiler's safety proof.
+
+
+    example
+      ```go
+        func processBuffer(data []byte) {
+          // If the buffer must be at least 8 bytes, check it once at the top.
+          if len(data) < 8 {
+            return
+          }
+
+
+          // BCE Hint: Access the largest index we intend to use.
+          _ = data[7]
+
+
+          // The following operations are now "Cheaper" because the compiler
+          // has eliminated their individual bounds checks.
+          valA := data[0]
+          valB := data[4]
+          valC := data[7]
+
+          _, _, _ = valA, valB, valC
+        }
+
+      ```
+
+
+
+
+
+-- BCE - Bitmasking and Version-Specific Hints
+--
+  Bounds Check Elimination (BCE) often depends on the compiler's ability to
+  understand bitwise operations. A common pattern in high-performance code
+  (like hash tables or circular buffers) is using a bitmask to keep an index
+  within a specific range.
+
+
+  -- Modern BCE: The Bitmask Pattern (Go 1.19+)
+  --
+    In Go 1.19 and later, the compiler is smart enough to recognize that a
+    bitwise AND operation (e.g., `n & 0xFFF`) results in a value that is
+    guaranteed to be within the range [0, 4095].
+
+
+  example
+    ```go
+      // f5a demonstrates modern BCE behavior.
+      func f5a(isa []int, isb []int) {
+        // 0xFFF is 4095 decimal.
+        // If the length is greater than 4095, any index masked with 0xFFF
+        // is mathematically guaranteed to be within bounds.
+        if len(isa) > 0xFFF {
+          for _, n := range isb {
+            // Go 1.19+: ELIMINATED (BCEed!)
+            // Go 1.18-: Found IsInBounds
+            _ = isa[n & 0xFFF]
+          }
+        }
+      }
+
+    ```
+
+
+  -- Legacy BCE: Working with Hints (Pre-1.19)
+  --
+    Before Go 1.19, the compiler needed a "hint" to prove that the slice header
+    inside the loop was actually large enough for the bitmask range.
+
+    -- f5b: An Effective Hint
+    --
+      ```go
+        func f5b(isa []int, isb []int) {
+          if len(isa) > 0xFFF {
+            // HINT: Re-slice the container to the mask's upper bound.
+            // By updating the slice variable itself (isa = ...), the compiler
+            // "locks in" the new length knowledge for the loop that follows.
+            isa = isa[:0xFFF+1]
+
+
+            for _, n := range isb {
+              // BCEed in all versions!
+              _ = isa[n & 0xFFF]
+            }
+          }
+        }
+
+      ```
+
+
+    -- f5c & f5d: Ineffective Hints
+    --
+      Note: A dummy operation that doesn't update the variable's metadata
+      (the slice header) does not provide a safety proof for the loop.
+
+
+      example
+        ```go
+          func f5c(isa []int, isb []int) {
+            if len(isa) > 0xFFF {
+              // INVALID HINT: A dummy sub-slice to '_' is ignored by the loop analysis.
+              _ = isa[:0xFFF+1]
+
+              for _, n := range isb {
+                // Found IsInBounds (in pre-1.19 compilers)
+                _ = isa[n & 0xFFF]
+              }
+            }
+          }
+
+
+          func f5d(isa []int, isb []int) {
+            if len(isa) > 0xFFF {
+              // INVALID HINT: Accessing the index once outside doesn't
+              // "unlock" bitmasked access inside the loop for older compilers.
+              _ = isa[0xFFF]
+
+              for _, n := range isb {
+                // Found IsInBounds (in pre-1.19 compilers)
+                _ = isa[n & 0xFFF]
+              }
+            }
+          }
+
+        ```
+
+
+
+
+
+-- BCE (Bounds Check Elimination) - Go 1.24+
+--
+  Go 1.24 introduced significant improvements to the compiler's ability to
+  prove safety in complex indexing scenarios. Many patterns that previously
+  required manual "hints" are now optimized automatically.
+
+
+  -- Copy Operations and Resulting Indices
+  --
+    The built-in `copy(dst, src)` function returns `n`, which is the minimum
+    of `len(dst)` and `len(src)`. Mathematically, `n` is guaranteed to be
+    a valid index for both slices.
+
+
+    example
+      ```go
+        func fz(s, x, y []byte) {
+          n := copy(s, x)
+
+          // Pre-1.24: The compiler didn't track the relationship between 'n' and
+          // the lengths of 's' and 'x'. It would trigger "Found IsSliceInBounds".
+
+          // Go 1.24+: ELIMINATED.
+          copy(s[n:], y)
+
+          // Go 1.24+: ELIMINATED.
+          _ = x[n:]
+        }
+
+      ```
+
+
+  -- Iterating with `min()`
+  --
+    When ranging over the result of `min(len(a), len(b))`, the loop index `i`
+    is strictly bounded by the smaller of the two lengths.
+
+
+    example
+      ```go
+        func fy(a, b []byte) {
+          // Go 1.21 introduced built-in min().
+          // Go 1.24+ compiler understands that 'i' is safe for both 'a' and 'b'.
+            for i := range min(len(a), len(b)) {
+                _ = a[i] // Go 1.24+: ELIMINATED
+                _ = b[i] // Go 1.24+: ELIMINATED
+            }
+        }
+
+      ```
+
+
+  -- Constant Arithmetic on Array Indices
+  --
+    For fixed-size arrays, the compiler can perform arithmetic proofs.
+    In a loop where `i < 128`, then `2 * i` must be `< 256`.
+
+    example
+      ```go
+        func fx(a [256]byte) {
+          for i := 0; i < 128; i++ {
+            // Since a has 256 bytes, 2*i (max 254) is always safe.
+            // Go 1.24+: ELIMINATED
+            _ = a[2*i]
+          }
+        }
+
+      ```
+
+
+
+
+
+-- The "Byte-Index" Proof
+--
+  A value of type `byte` (uint8) has a maximum value of 255.
+  If a slice has a length of 256 or greater, any `byte` used as an index is
+  mathematically guaranteed to be in bounds.
+
+
+  -- Legacy Approach (Pre-1.24)
+  --
+    Older compilers needed an explicit re-slicing "hint" to lock in the
+    knowledge that 'is' is at least 256 elements long.
+
+    example
+      ```go
+        func f4a_Legacy(is []int, bs []byte) {
+          if len(is) >= 256 {
+            is = is[:256] // THE HINT: Forces BCE for the following loop
+            for _, n := range bs {
+              _ = is[n] // BCEed!
+            }
+          }
+        }
+
+      ```
+
+
+  -- Modern Approach (Go 1.24+)
+  --
+    The hint is no longer required. The compiler performs this proof automatically.
+
+    example
+      ```go
+        func f4a_Modern(is []int, bs []byte) {
+          if len(is) >= 256 {
+            for _, n := range bs {
+              // Go 1.24+: ELIMINATED automatically.
+              _ = is[n]
+            }
+          }
+        }
+
+      ```
+
+
+
+
+
+-- Advanced BCE (Bounds Check Elimination) Hints
+--
+  Bounds Check Elimination (BCE) is a powerful optimization, but the standard
+  Go compiler (as of v1.24) still has limits. Sometimes, even when it is
+  mathematically obvious to a human that an index is safe, the compiler
+  fails to "prove" it.
+
+
+  In these cases, we can provide "hints"—small, often redundant-looking
+  code snippets that provide the compiler with the logical proof it needs
+  to safely remove a bounds check.
+
+
+  -- The Problem: Subtle Ambiguity
+  --
+    In the function below, we ensure `x` is the shorter string. Logically,
+    if `i < len(x)` and `len(x) <= len(y)`, then `i` must be a valid index
+    for both. However, the compiler doesn't always "connect" these facts.
+
+
+    example
+      ```go
+        type T = string
+
+
+        func NumSameBytes_1(x, y T) int {
+          if len(x) > len(y) {
+            x, y = y, x
+          }
+          for i := 0; i < len(x); i++ {
+            // x[i] is BCEed because of the loop condition 'i < len(x)'
+            if x[i] !=
+              y[i] { // Found IsInBounds: The compiler still checks y[i]
+              return i
+            }
+          }
+          return len(x)
+        }
+
+      ```
+
+
+  -- The "Redundant If" Hint (Universal)
+  --
+    By adding an explicit, redundant check that panics if the condition is false,
+    we create a "Dominating Condition". If the code passes this block, the
+    compiler can "lock in" the fact that `len(y)` is at least `len(x)`.
+
+
+    example
+      ```go
+        func NumSameBytes_2(x, y T) int {
+          if len(x) > len(y) {
+            x, y = y, x
+          }
+
+
+          // -- THE HINT
+          // This looks redundant, but it provides a definitive proof for the SSA
+          // (Static Single Assignment) backend of the compiler.
+          if len(x) > len(y) {
+            panic("unreachable")
+          }
+
+          for i := 0; i < len(x); i++ {
+            // Both are now BCEed!
+            if x[i] != y[i] {
+              return i
+            }
+          }
+          return len(x)
+        }
+
+      ```
+
+    -- VERIFICATION (-gcflags="-d=ssa/check_bce"):
+    --
+      NumSameBytes_1:
+        ./main.go:21:4: Found IsInBounds (for y[i])
+
+      NumSameBytes_2:
+        (No output - All checks eliminated)
+
+
+    -- Type-Specific Hints (Slices vs. Strings)
+    --
+      As of Go 1.24, some hints work differently depending on whether the
+      container is a slice or a string.
+
+
+    -- The Slice Hint: Explicit Re-slicing
+    --
+      If T is a slice type, updating the slice header of 'y' to match the
+      length of 'x' is a highly effective hint.
+
+
+      example
+        ```go
+          func NumSameBytes_3(x, y []byte) int {
+            if len(x) > len(y) {
+              x, y = y, x
+            }
+
+            // HINT: Re-slicing y to exactly len(x).
+            // This proves to the compiler that any index safe for x is safe for y.
+            y = y[:len(x)]
+
+            for i := 0; i < len(x); i++ {
+              if x[i] != y[i] { // BCEed!
+                return i
+              }
+            }
+            return len(x)
+          }
+
+        ```
+
+
+    -- The String Hint: Dummy Sub-slice
+    --
+      If T is a string, assigning a sub-slice to the blank identifier can
+      sometimes act as the necessary proof.
+
+
+      example
+        ```go
+          func NumSameBytes_4(x, y string) int {
+            if len(x) > len(y) {
+              x, y = y, x
+            }
+
+            // HINT: A dummy operation.
+            // For strings, this tells the compiler y is at least len(x) long.
+            _ = y[:len(x)]
+
+            for i := 0; i < len(x); i++ {
+              if x[i] != y[i] { // BCEed!
+                return i
+              }
+            }
+            return len(x)
+          }
+
+        ```
+
+
+
+
+
+-- Writing BCE-Friendly Code
+--
+  Writing "BCE-friendly" code means structuring your logic so the Go compiler
+  can prove that memory accesses are safe, thus eliminating redundant
+  runtime checks.
+
+
+  However, as this document demonstrates, reducing the "number of checks"
+  does not always guarantee a faster program. Other factors, such as how
+  the compiler manages slice headers, play a significant role.
+
+
+  -- Comparison of Indexing Strategies
+  --
+    Consider three ways to access a sequence of bytes starting from index 'i'.
+
+    ```go
+      // -- Strategy A: Direct Lexical Indexing
+      //
+      // This is the most "naive" way. Because 'i' is a variable, the compiler
+      // must generate a bounds check for every single line to ensure (i+N)
+      // hasn't exceeded the length.
+      func f7a(s []byte, i int) {
+        _ = s[i+3] // CHECK 1: Found IsInBounds
+        _ = s[i+2] // CHECK 2: Found IsInBounds
+        _ = s[i+1] // CHECK 3: Found IsInBounds
+        _ = s[i]   // CHECK 4: Found IsInBounds
+      }
+
+
+      // -- Strategy B: Sub-slicing (Two-index form)
+      //
+      // By creating a sub-slice `s[i:i+4]`, we perform ONE check on the slice
+      // boundaries. Once that slice is created, the compiler knows it has a
+      // length of exactly 4. Accessing indices 0, 1, 2, and 3 is now
+      // mathematically guaranteed to be safe.
+      func f7b(s []byte, i int) {
+        s = s[i : i+4] // CHECK 1: Found IsSliceInBounds
+        _ = s[3]       // ELIMINATED: Index is constant < 4
+        _ = s[2]       // ELIMINATED
+        _ = s[1]       // ELIMINATED
+        _ = s[0]       // ELIMINATED
+      }
+
+
+      // -- Strategy C: Sub-slicing (Three-index form)
+      //
+      // This is similar to f7b, but uses the three-index form `[low:high:max]`
+      // to explicitly set the capacity of the new slice header to match the length.
+      func f7c(s []byte, i int) {
+        s = s[i : i+4 : i+4] // CHECK 1: Found IsSliceInBounds
+        _ = s[3]             // ELIMINATED
+        _ = s[2]             // ELIMINATED
+        _ = s[1]             // ELIMINATED
+        _ = s[0]             // ELIMINATED
+      }
+
+    ```
+
+
+  -- Performance Paradox: Checks vs. Benchmarks
+  --
+    You might expect that 1 check (f7b/f7c) is always better than 4 checks (f7a).
+    However, real-world benchmarks show a more complex reality.
+
+
+    ```go
+
+    ```
+
+    -- benchmark results (Intel i5-4210U @ 1.70GHz, Linux/amd64):
+    --
+      Benchmark_f7a-4  3861 ns/op  (Standard)
+      Benchmark_f7b-4  4223 ns/op  (Least performant!)
+      Benchmark_f7c-4  3477 ns/op  (Most performant)
+
+
+    -- Analysis
+    --
+      1. Why is f7b the slowest?
+         Even though it has fewer bounds checks, the two-index sub-slicing
+         operation in f7b requires the runtime to calculate a new capacity
+         (cap - low). This overhead can outweigh the savings of the
+         eliminated checks.
+
+      2. Why is f7c the fastest?
+         By explicitly setting the capacity `[i:i+4:i+4]`, you simplify the work
+         the compiler has to do to construct the new slice header. Combined with
+         BCE, this results in the most efficient machine code.
+
+
+
+
+
+-- BCE - Loop Termination and Unsigned Indexing
+--
+  Bounds Check Elimination (BCE) relies on the compiler's ability to prove
+  that an index will always be within the range [0, length). The way you
+  write your loop conditions and the types you use for indices can
+  significantly impact whether the compiler can perform this optimization.
+
+
+  -- Helping the Compiler: Loop Termination Conditions
+  --
+    When initializing or iterating through a slice, the compiler looks for a 
+    direct relationship between the loop variable and the slice length.
+
+
+  ```go
+    // -- f9a: Indirect Proof (Sub-optimal) 
+
+    // Even though len(buf) is n+1, using "i <= n" is often too indirect for the
+    // compiler's proof engine to skip the check reliably.
+    func f9a(n int) []int {
+      buf := make([]int, n+1)
+      k := 0
+      for i := 0; i <= n; i++ {
+        buf[i] = k // Found IsInBounds: Check triggered
+        k++
+      }
+      return buf
+    }
+
+
+    // -- f9b: Explicit Length Proof (Highly Optimized) 
+
+    // By comparing 'i' directly against 
+    // 'len(buf)', the compiler has a 1:1 mathematical proof of safety.
+    func f9b(n int) []int {
+      buf := make([]int, n+1)
+      k := 0
+      for i := 0; i < len(buf); i++ {
+        buf[i] = k // ELIMINATED (BCEed!)
+        k++
+      }
+      return buf
+    }
+
+
+    // -- f9c: Fixed Bound Proof (Optimized) 
+
+    // Because 'buf' was created with 'n+1', the compiler can often connect 
+    // the bound 'i < n+1' back to the slice allocation.
+    func f9c(n int) []int {
+      buf := make([]int, n+1)
+      k := 0
+      for i := 0; i < n+1; i++ {
+        buf[i] = k // ELIMINATED (BCEed!)
+        k++
+      }
+      return buf
+    }
+
+  ```
+
+
+  -- The Unsigned Integer Advantage
+  --
+
+// A standard bounds check actually checks two things:
+// 1. Is index >= 0?
+// 2. Is index < length?
+
+// By using unsigned integers (`uint`), the first check is eliminated by 
+// definition (unsigned cannot be negative). This often simplifies the 
+// compiler's proof logic for complex strides.
+
+const N = 3
+
+// --- f6a: Complex Offset (Inefficient) ---
+func f6a(s []byte) {
+	for i := 0; i < len(s)-(N-1); i += N {
+		_ = s[i+N-1] // Found IsInBounds
+	}
+}
+
+// --- f6b: Standard Stride (Better, but still checked) ---
+func f6b(s []byte) {
+	for i := N - 1; i < len(s); i += N {
+		_ = s[i] // Found IsInBounds (Check required to ensure i >= 0)
+	}
+}
+
+// --- f6c: Unsigned Stride (The Performance Winner) ---
+// Using uint is a "power move" for hot loops. It significantly helps 
+// the compiler prove the entire range is safe.
+func f6c(s []byte) {
+	// Casting to uint here removes the "negative index" possibility.
+	for i := uint(N - 1); i < uint(len(s)); i += N {
+		_ = s[i] // ELIMINATED (BCEed!)
+	}
+}
+
+
+// =============================================================================
+// :: 3. Summary of Findings
+// =============================================================================
+
+/*
+================================================================================
+BCE VERIFICATION (-gcflags="-d=ssa/check_bce"):
+================================================================================
+Function | Pattern                       | Status
+---------|-------------------------------|--------------------------------------
+f9a      | i <= n                        | Found IsInBounds
+f9b      | i < len(buf)                  | ELIMINATED
+f9c      | i < n+1                       | ELIMINATED
+f6a      | i+N-1 access                  | Found IsInBounds
+f6b      | i < len(s) (signed)           | Found IsInBounds
+f6c      | uint conversion               | ELIMINATED (Fastest)
+================================================================================
+*/
+
+
+// =============================================================================
+// :: INFO GAIN: Why f6c is much more performant
+// =============================================================================
+
+// 1. Machine Instructions: 'f6c' generates fewer assembly instructions because 
+//    it skips the "compare to zero" branch entirely.
+// 2. Predictability: By using uint, the compiler's Static Single Assignment (SSA) 
+//    optimizer has a much easier time verifying the loop bounds, leading to 
+//    tighter, more efficient machine code.
+// 3. Best Practice: In heavy numerical or data-processing loops (striding 
+//    through buffers), consider converting lengths and indices to uint if 
+//    you are aiming for peak performance.
+
+func main() {}
