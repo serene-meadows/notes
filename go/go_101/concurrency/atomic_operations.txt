@@ -1,0 +1,647 @@
+-- Atomic Operations (sync/atomic Package)
+--
+  Atomic operations are the most primitive synchronization techniques in Go.
+  They are "lockless" and typically implemented via direct hardware CPU
+  instructions. They are often used to build higher-level synchronization
+  tools like Mutexes or WaitGroups.
+
+
+  Key characteristic: An atomic operation is uninterruptible. It appears to
+  the rest of the system as if it happened instantaneously.
+
+
+  -- Legacy Style (Package-Level Functions) - Pre-Go 1.19
+  --
+    Before Go 1.19, atomic operations were performed using functions that
+    accepted memory addresses (pointers) to specific integer types.
+
+
+    -- Supported Types (T)
+    --
+      int32, int64, uint32, uint64, uintptr
+
+
+    -- The Five Basic Operations
+    --
+      1. AddT(addr, delta): Adds delta and returns the NEW value.
+      2. LoadT(addr): Atomically reads the value.
+      3. StoreT(addr, val): Atomically writes the value.
+      4. SwapT(addr, new): Atomically replaces value and returns the OLD value.
+      5. CompareAndSwapT(addr, old, new): IF current == old, THEN current = new.
+         Returns true if swapped. (Commonly called CAS).
+
+
+    -- example
+    --
+      ```go
+        func legacyAtomicDemo() {
+          var n int32 = 10
+
+          // Atomically add 5
+          newVal := atomic.AddInt32(&n, 5)
+
+          // Atomically load
+          current := atomic.LoadInt32(&n)
+
+          // Compare and Swap (CAS):
+          // If n is currently 15, change it to 20.
+          swapped := atomic.CompareAndSwapInt32(&n, 15, 20)
+
+          fmt.Printf("Legacy: New=%d, Current=%d, Swapped=%t\n", newVal, current, swapped)
+        }
+
+      ```
+
+
+
+    -- Atomic Pointer Operations (Legacy)
+    --
+      Because Go didn't originally support generics, atomic operations on
+      pointers were handled via `unsafe.Pointer`.
+
+
+      -- Functions Provided
+      --
+        LoadPointer, StorePointer, SwapPointer, CompareAndSwapPointer.
+        (Note: No 'AddPointer' exists because pointer arithmetic isn't safe).
+
+
+        example
+          ```go
+            func legacyPointerDemo() {
+              var p unsafe.Pointer
+              val := 123
+
+              // Store the address of 'val' into 'p' atomically
+              atomic.StorePointer(&p, unsafe.Pointer(&val))
+
+              // Load the pointer back
+              p2 := atomic.LoadPointer(&p)
+              fmt.Println("Value via unsafe atomic:", *(*int)(p2))
+            }
+
+          ```
+
+
+    -- The `atomic.Value` Type (Any Type Container)
+    --
+      `atomic.Value` provides a way to atomically load and store values of ANY type.
+      It is commonly used for configuration objects that are read frequently but
+      updated occasionally.
+
+
+      example
+        ```go
+          func valueDemo() {
+            type Config struct {
+              Nodes []string
+            }
+
+            var v atomic.Value
+            v.Store(Config{Nodes: []string{"A", "B"}})
+
+            // Load returns an interface{}, requiring a type assertion
+            cfg := v.Load().(Config)
+            fmt.Println("Config Nodes:", cfg.Nodes)
+          }
+
+        ```
+
+
+  -- Modern Style (Typed Wrappers) - Go 1.19+
+  --
+    Go 1.19 introduced dedicated types that act as wrappers for atomic values.
+    This is the PREFERRED modern style as it is more readable and type-safe.
+
+    -- Wrapper Types
+    --
+      atomic.Int32, atomic.Int64, atomic.Uint32, atomic.Uint64, atomic.Uintptr,
+      atomic.Bool, atomic.Pointer[T] (Generic)
+
+
+    example
+      ```go
+        func modernAtomicDemo() {
+          // -- Integer Wrappers
+
+          var counter atomic.Int64
+          counter.Store(100)
+          counter.Add(1)
+          fmt.Println("Modern Counter:", counter.Load())
+
+
+          // -- Boolean Wrapper --
+
+          var active atomic.Bool
+          active.Store(true)
+          active.Swap(false)
+          fmt.Println("Is Active:", active.Load())
+
+
+          // -- Generic Pointer[T] --
+
+          // This replaces the messy unsafe.Pointer logic with clean generics.
+          type User struct { Name string }
+          var ptr atomic.Pointer[User]
+
+
+          u := User{Name: "Alice"}
+          ptr.Store(&u)
+
+
+          loadedUser := ptr.Load()
+          fmt.Println("Modern Pointer:", loadedUser.Name)
+        }
+
+      ```
+
+
+
+
+
+-- Atomic Operations for Integers
+--
+  Atomic operations are essential for maintaining data integrity in concurrent
+  programs without the overhead of Mutexes. They ensure that a variable is
+  modified as a single, uninterruptible operation at the hardware level.
+
+
+  -- Why Atomics? (Atomic Add vs. Standard Increment)
+  --
+    A standard increment like `n++` is NOT atomic. It consists of three steps:
+    1. Read the current value of n from memory into a CPU register.
+    2. Increment the value in the register.
+    3. Write the new value back to memory.
+
+
+    In a concurrent environment, two goroutines might both read the same
+    value (e.g., 5), both increment it to 6, and both write 6 back.
+    One increment is "lost." Atomics prevent this by forcing these steps
+    to happen as one atomic event.
+
+
+  -- Pattern A: Legacy Function API (Pre-Go 1.19)
+  --
+    Before Go 1.19, you performed atomic operations by passing the memory address
+    (pointer) of a standard integer to package-level functions.
+
+
+    example
+      ```go
+        func legacyAtomicDemo() {
+          var n int32 // Standard integer
+          var wg sync.WaitGroup
+
+
+          for i := 0; i < 1000; i++ {
+            wg.Add(1)
+            go func() {
+              defer wg.Done()
+              // We MUST pass the address (&n).
+              // If we used n++, the final result would likely be < 1000.
+              atomic.AddInt32(&n, 1)
+            }()
+          }
+          wg.Wait()
+
+
+          // Always use atomic.Load to read the value in a concurrent context
+          // to ensure you see the most recent write (Memory Visibility).
+          fmt.Println("Legacy Atomic Result:", atomic.LoadInt32(&n))
+        }
+
+      ```
+
+
+  -- Pattern B: Modern Wrapper Types (Go 1.19+)
+  --
+    Go 1.19 introduced dedicated atomic types (Int32, Int64, etc.). This is
+    the preferred style because:
+    1. Readability: Code is cleaner and more object-oriented.
+    2. Safety: You cannot accidentally perform non-atomic math on these types.
+    3. Alignment: It automatically handles 8-byte alignment required for 64-bit
+       atomics on 32-bit architectures.
+
+    ```go
+      func modernAtomicDemo() {
+        var n atomic.Int32 // Wrapper type
+        var wg sync.WaitGroup
+
+        for i := 0; i < 1000; i++ {
+          wg.Add(1)
+          go func() {
+            defer wg.Done()
+            // Methods are called directly on the object.
+            n.Add(1)
+          }()
+        }
+        wg.Wait()
+
+        fmt.Println("Modern Atomic Result:", n.Load())
+      }
+
+    ```
+
+
+
+
+
+-- Practical Application: Thread-Safe Struct Properties
+--
+  If a struct is shared across goroutines, its fields should be protected.
+  Using atomics for "Getters" and "Setters" is a high-performance pattern.
+
+  -- Struct with Legacy Atomics
+  --
+    ```go
+      type PageLegacy struct {
+        views uint32
+      }
+
+
+      func (p *PageLegacy) SetViews(n uint32) {
+        atomic.StoreUint32(&p.views, n)
+      }
+
+
+      func (p *PageLegacy) Views() uint32 {
+        return atomic.LoadUint32(&p.views)
+      }
+
+    ```
+
+  -- Struct with Modern Atomics (Preferred)
+  --
+    ```go
+      type PageModern struct {
+        // The field itself is atomic, ensuring no one can accidentally
+        // use standard operators on it.
+        views atomic.Uint32
+      }
+
+
+      func (p *PageModern) SetViews(n uint32) {
+        p.views.Store(n)
+      }
+
+
+      func (p *PageModern) Views() uint32 {
+        return p.views.Load()
+      }
+
+    ```
+
+
+
+
+
+-- Unsigned Subtraction, CAS, & Alignment
+  While atomic "Addition" is straightforward, performing "Subtraction" on
+  unsigned types (uint32, uint64, uintptr) requires specific bitwise tricks.
+  Additionally, Compare-And-Swap (CAS) is the fundamental building block for
+  lock-free data structures.
+
+
+  -- Atomic Subtraction for Unsigned Types
+  --
+    For signed types (int32/int64), you simply pass a negative delta.
+    For unsigned types, Go forbids passing a negative constant (e.g., -1) to a
+    uint64 parameter. We must use Two's Complement math to achieve subtraction.
+
+
+  -- Subtracting via Variable: T(-v)
+  --
+    If you have a variable `v`, you can pass `-v`. Go's conversion rules will
+    wrap the negative value into the large unsigned equivalent.
+
+
+  -- Subtracting via Constant: ^T(c-1)
+  --
+    If you have a constant `c`, you use the bitwise NOT of (c-1).
+    Logic: ^uint64(c-1) is mathematically identical to -c in two's complement.
+
+
+  example
+    ```go
+      func unsignedSubtractionDemo() {
+        var n uint64 = 100
+        var v uint64 = 1 // Variable
+        const c = 5      // Constant
+
+
+        // -- A. Subtraction using a variable --
+        // We want n - 1. We pass -1 (as uint64)
+        atomic.AddUint64(&n, -v)
+        fmt.Println("After -v (1):", n) // Output: 99
+
+
+        // -- B. Subtraction using a constant --
+        // We want n - 5. We pass ^uint64(5 - 1)
+        atomic.AddUint64(&n, ^uint64(c-1))
+        fmt.Println("After ^T(c-1):", n) // Output: 94
+      }
+
+    ```
+
+
+
+  -- Atomic Swap and Compare-And-Swap (CAS)
+  --
+    -- Swap (Atomic Replace)
+    --
+      Swap sets a new value and returns the old value in one atomic step.
+      Think of it as: "Give me what was there, and put this there instead."
+
+
+    -- CompareAndSwap (Conditional Update)
+    --
+      CAS only updates the value IF the current value matches an expected "old" value.
+      It returns a boolean indicating if the swap actually happened.
+      This is the basis for "Optimistic Locking."
+
+
+  example
+    ```go
+      func casDemo() {
+        var n int64 = 100
+
+        // 1. Swap: Set to 200, get 100 back.
+        old := atomic.SwapInt64(&n, 200)
+        fmt.Printf("Swap: current=%d, returned_old=%d\n", n, old)
+
+        // 2. CAS Failure: Try to change 100 to 300.
+        // Fails because current value is actually 200.
+        success := atomic.CompareAndSwapInt64(&n, 100, 300)
+        fmt.Printf("CAS 1 (Expect 100): success=%t, val=%d\n", success, n)
+
+        // 3. CAS Success: Try to change 200 to 400.
+        success = atomic.CompareAndSwapInt64(&n, 200, 400)
+        fmt.Printf("CAS 2 (Expect 200): success=%t, val=%d\n", success, n)
+      }
+
+    ```
+
+
+-- The 64-bit Alignment Requirement (CRITICAL)
+--
+  On 32-bit architectures (like ARM or x86), atomic operations on 64-bit words
+  (int64/uint64) require the variable to be "8-byte aligned" (its memory
+  address must be a multiple of 8).
+
+
+  -- The Danger
+  --
+    If you use the legacy functions (e.g., `atomic.AddInt64`) on a variable that
+    is not perfectly aligned, the program will CRASH with a runtime panic.
+
+  -- The Solution
+  --
+    1. Legacy Way: Use padding or manual struct layout to ensure 8-byte boundaries.
+    2. Modern Way (Recommended): Use the Go 1.19+ types (`atomic.Int64`, etc.).
+       These types are specifically designed to handle the alignment
+       automatically, making your code safe on both 32-bit and 64-bit systems
+       without extra effort.
+
+
+
+
+
+-- Atomic Operations for Pointers
+--
+  Atomic pointer operations allow you to read and update memory addresses
+  concurrently without using a Mutex. This is particularly useful for
+  lock-free data structures and high-performance "hot-swapping" of
+  configuration or state.
+
+  -- The Legacy Approach: unsafe.Pointer (Pre-Go 1.19)
+  --
+    Before the introduction of generics in Go 1.18 and atomic wrappers in 1.19,
+    pointer atomics required heavy use of the `unsafe` package.
+
+
+    -- The "Double Cast" Requirement
+    --
+      Because functions like `atomic.StorePointer` expect a `*unsafe.Pointer`,
+      you have to perform a complex cast:
+      1. Take the address of your pointer variable (&p).
+      2. Convert that address to an `unsafe.Pointer`.
+      3. Convert that `unsafe.Pointer` to a `*unsafe.Pointer`.
+
+
+    example
+      ```go
+        type T struct{ x int }
+
+
+        func legacyPointerAtomics() {
+          var pT *T                                          // Our standard pointer
+          unsafePPT := (*unsafe.Pointer)(unsafe.Pointer(&pT)) // The "Double Cast"
+
+          ta, tb := T{1}, T{2}
+
+          // -- Store
+          // We must cast our target data address to unsafe.Pointer
+          atomic.StorePointer(unsafePPT, unsafe.Pointer(&ta))
+          fmt.Println("Legacy Store:", pT) // Output: &{1}
+
+
+          // -- Load
+          // Load returns an unsafe.Pointer; we must cast it back to (*T)
+          pa1 := (*T)(atomic.LoadPointer(unsafePPT))
+          fmt.Println("Legacy Load success:", pa1 == &ta) // Output: true
+
+
+          // -- Swap
+          // Atomically replaces and returns the old pointer
+          old := atomic.SwapPointer(unsafePPT, unsafe.Pointer(&tb))
+          fmt.Println("Legacy Swap (old):", (*T)(old) == &ta) // Output: true
+          fmt.Println("Legacy Swap (new):", pT)               // Output: &{2}
+
+
+          // -- Compare and Swap (CAS)
+          // If current == old, set to new.
+          // This fails because pT is currently &tb, not &ta (pa2)
+          success := atomic.CompareAndSwapPointer(unsafePPT, unsafe.Pointer(&ta), unsafe.Pointer(&tb))
+          fmt.Println("Legacy CAS Success:", success) // Output: false
+        }
+
+      ```
+
+
+  -- The Modern Approach: atomic.Pointer[T] (Go 1.19+)
+  --
+    Go 1.19 introduced a generic wrapper `atomic.Pointer[T]`. This is the
+    standard, idiomatic way to handle pointer atomics today.
+
+
+    -- Advantages
+    --
+      1. Type Safety: The compiler ensures you only store pointers of type T.
+      2. Clean Syntax: No `unsafe` casts or pointer-to-pointer logic required.
+      3. Compatibility: Fully protected by the Go 1 compatibility guidelines.
+
+
+    example
+      ```go
+        func modernPointerAtomics() {
+          // Initialize a generic atomic pointer for type T
+          var pT atomic.Pointer[T]
+          ta, tb := T{1}, T{2}
+
+
+          // -- Store
+          pT.Store(&ta)
+          fmt.Println("Modern Store:", pT.Load()) // Output: &{1}
+
+
+          // -- Load
+          pa1 := pT.Load()
+          fmt.Println("Modern Load success:", pa1 == &ta) // Output: true
+
+
+          // --  Swap
+          old := pT.Swap(&tb)
+          fmt.Println("Modern Swap (old):", old == &ta)   // Output: true
+          fmt.Println("Modern Swap (new):", pT.Load())    // Output: &{2}
+
+
+          // -- Compare and Swap (CAS)
+          // Atomic update: only change if current value is &tb
+          success := pT.CompareAndSwap(&tb, &ta)
+          fmt.Println("Modern CAS Success:", success)     // Output: true
+        }
+
+      ```
+
+
+
+
+
+-- Atomic Operations for Arbitrary Types (atomic.Value)
+--
+  While specific atomic types (like atomic.Int64) are for integers, Go provides
+  the `atomic.Value` type to perform atomic operations on values of ANY type
+  (structs, slices, maps, etc.).
+
+
+  It is commonly used for "Read-Mostly" data structures that need to be
+  updated atomically, such as application configurations or routing tables.
+
+
+  -- The Methods of atomic.Value
+  --
+    The `atomic.Value` type provides four core methods. All arguments and
+    return values use the `any` (interface{}) type.
+
+
+    - v.Load() any:
+      Atomically retrieves the value stored in v. Returns nil if empty.
+
+
+    - v.Store(val any):
+      Atomically sets the value in v.
+
+
+    - v.Swap(new any) (old any):
+      Atomically sets a new value and returns the previous one. (Go 1.17+)
+
+
+    - v.CompareAndSwap(old, new any) (swapped bool):
+      If current value == old, then sets to new. Requires same concrete types. (Go 1.17+)
+
+
+  -- THE GOLDEN RULE: The Single-Type Constraint
+  --
+    For a specific instance of `atomic.Value`, once the first `Store` call is
+    made, all subsequent calls must use the EXACT SAME concrete type.
+
+
+    -- Runtime Panics occur if:
+    --
+      1. You try to store a value of a different type than the first stored value.
+      2. You try to store an untyped `nil`.
+
+
+  example
+    ```go
+      func typeConstraintDemo() {
+        type Config struct {
+          Version int
+          Active  bool
+        }
+
+
+        var v atomic.Value
+        initial := Config{Version: 1, Active: true}
+
+
+        // 1. The first Store sets the "Concrete Type" for this Value instance.
+        v.Store(initial)
+
+
+        // 2. Loading requires a Type Assertion since Load() returns 'any'.
+        current := v.Load().(Config)
+        fmt.Println("Initial Config:", current)
+
+
+        // --  The Panic Zone
+
+        // v.Store("A String")
+        // PANIC: sync/atomic: store of inconsistently typed value into Value
+
+
+        // v.Store(nil)
+        // PANIC: sync/atomic: store of nil value into Value
+      }
+
+    ```
+
+
+
+
+
+-- Advanced Operations: Swap and CAS (Go 1.17+)
+--
+  `Swap` and `CompareAndSwap` allow for more complex logic, like ensuring
+  you only update a configuration if no one else has updated it since you
+  last checked.
+
+
+  example
+    ```go
+      func advancedAtomicValueDemo() {
+        type State struct {
+          Health string
+        }
+
+
+        var v atomic.Value
+        s1 := State{Health: "Green"}
+        s2 := State{Health: "Yellow"}
+        s3 := State{Health: "Red"}
+
+
+        v.Store(s1)
+
+
+        // -- Atomic Swap
+        // Sets s2, returns s1.
+        old := v.Swap(s2)
+        fmt.Printf("Swapped out: %v, New state: %v\n", old.(State), v.Load().(State))
+
+
+        // -- Compare and Swap (CAS)
+        // Attempt to change s1 -> s3.
+        // This FAILS because the current value is s2.
+        didSwap := v.CompareAndSwap(s1, s3)
+        fmt.Printf("CAS (s1 -> s3) success: %t\n", didSwap)
+
+
+        // Attempt to change s2 -> s3.
+        // This SUCCEEDS.
+        didSwap = v.CompareAndSwap(s2, s3)
+        fmt.Printf("CAS (s2 -> s3) success: %t, Current state: %v\n", didSwap, v.Load().(State))
+      }
+
+    ```
+

@@ -1,0 +1,720 @@
+-- Concurrency Synchronization with the `sync` Package
+--
+  While channels are the primary way to communicate and synchronize in Go,
+  the `sync` standard package provides low-level primitives that are often
+  more efficient and readable for specific synchronization patterns.
+
+
+
+
+
+-- The "No Copy" Rule
+--
+  critical warning: Types in the `sync` package (WaitGroup, Mutex, etc.)
+  maintain internal state and often rely on specific memory addresses.
+
+
+  rule: Never copy a value of a type from the `sync` package.
+  If you must pass them to a function, ALWAYS pass them by pointer (*T).
+  Copying these values leads to undefined behavior and deadlocks.
+
+
+
+
+
+-- The `sync.WaitGroup` Type
+--
+  A `sync.WaitGroup` is used to wait for a collection of goroutines to finish.
+  It maintains an internal counter that tracks how many tasks are still pending.
+
+
+  -- Internal State
+  --
+    - Initial value: 0.
+    - Methods use pointer receivers (e.g., `func (wg *WaitGroup) Add(delta int)`).
+    - Go's syntactic sugar allows calling methods directly on addressable values
+      (e.g., `wg.Wait()` is actually `(&wg).Wait()`).
+
+
+
+
+
+-- The Three Methods
+--
+  -- wg.Add(delta int)
+  --
+    - Changes the internal counter by the value of `delta`.
+    - Delta can be positive (registering tasks) or negative (marking completion).
+    - PANIC: If the counter becomes negative, the program panics immediately.
+
+
+  -- wg.Done()
+  --
+    - Decrements the counter by 1.
+    - It is exactly equivalent to calling `wg.Add(-1)`.
+
+
+  -- wg.Wait()
+  --
+    - If counter == 0: Returns immediately (no-op).
+    - If counter  > 0: Blocks the current goroutine until the counter hits zero.
+
+
+  -- Code Demonstration: N-to-1 Synchronization
+  --
+    ```go
+      func main() {
+        const N = 5
+        var values [N]int32
+        var wg sync.WaitGroup
+
+
+        // -- Pattern A: Bulk Registration
+
+        // We know exactly how many workers we are starting.
+        wg.Add(N)
+
+        for i := 0; i < N; i++ {
+          go func(n int) {
+            // Marking task as finished at the end of the goroutine.
+            // In real code, 'defer wg.Done()' is the preferred best practice.
+            defer wg.Done()
+
+            // Simulate work
+            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+            values[n] = int32(n * 10)
+            fmt.Printf("Worker %d finished\n", n)
+          }(i)
+        }
+
+        // Wait for all N workers to call Done()
+        wg.Wait()
+
+        fmt.Println("All workers complete. Final values:", values)
+
+
+        // -- Pattern B: Iterative Registration
+
+        // Alternatively, call Add(1) inside the loop.
+        // IMPORTANT: Add(1) must happen BEFORE 'go func()'. If done inside
+        // the goroutine, Wait() might see a counter of 0 and return before
+        // the goroutine even starts!
+
+        for i := 0; i < N; i++ {
+          wg.Add(1)
+          go func(n int) {
+            defer wg.Done()
+            // ... do work ...
+          }(i)
+        }
+        wg.Wait()
+      }
+
+    ```
+
+
+  -- Common Pitfalls & Best Practices
+  --
+    1. Where to Add: Always call `wg.Add()` in the "parent" goroutine. If the
+       parent is at `wg.Wait()` and a child hasn't executed `wg.Add()` yet, the
+       program will proceed prematurely.
+
+    2. Panics and Defer: Always use `defer wg.Done()`. If a goroutine panics
+       without calling `Done`, the `Wait()` call will block forever,
+       causing a deadlock.
+
+    3. Reuse: A WaitGroup can be reused after the counter has reached zero and
+       Wait() has returned. However, do not trigger a new `Add()` while
+       a previous `Wait()` is still in progress.
+
+
+
+
+
+-- sync.WaitGroup - Broadcast & Reuse Mechanics
+--
+  We have established that sync.WaitGroup is a counter-based synchronization
+  tool. Beyond simple N-to-1 waiting, it possesses a "Broadcast" capability
+  and specific rules regarding its lifecycle and reuse.
+
+
+  -- The Broadcast Capability of Wait()
+  --
+    A common misconception is that wg.Wait() can only be called by a single
+    "parent" goroutine.
+
+
+    In reality, Wait() can be called concurrently by any number of goroutines.
+    When the internal counter finally reaches zero, the Go runtime performs a
+    "Broadcast": EVERY goroutine currently blocked on that specific WaitGroup's
+    Wait() call is unblocked and resumes execution simultaneously.
+
+
+  -- Pattern: The "Starting Gate" (Barrier Synchronization)
+  --
+    This example uses two WaitGroups to demonstrate a complex synchronization
+    flow where workers are held at a "starting gate" until a broadcast releases them.
+
+
+    ```go
+      func broadcastDemo() {
+        const N = 5
+        var values [N]int32
+
+
+        // wgWorkers: Traditional use (waiting for N workers to finish)
+        // wgGate:    Broadcast use (holding workers until initialization is done)
+        var wgWorkers, wgGate sync.WaitGroup
+
+
+        wgWorkers.Add(N)
+        wgGate.Add(1) // Set the gate counter to 1
+
+
+        for i := 0; i < N; i++ {
+          go func(n int) {
+            // -- THE STARTING GATE
+
+            // All 5 workers reach this point and block.
+            // They are waiting for wgGate to reach 0.
+            wgGate.Wait()
+
+            fmt.Printf("Worker %d released! Value is: %d\n", n, values[n])
+
+            // Signal that this worker is finished
+            wgWorkers.Done()
+          }(i)
+        }
+
+
+        fmt.Println("Main: Initializing data...")
+        time.Sleep(time.Millisecond * 500) // Simulate complex init
+        for i := 0; i < N; i++ {
+          values[i] = int32(50 + rand.Intn(50))
+        }
+
+
+        // -- THE BROADCAST
+
+        // Calling Done() makes wgGate counter 0.
+        // This BROADCASTS a signal to all 5 workers waiting above.
+        fmt.Println("Main: Initialization complete. Releasing workers!")
+        wgGate.Done()
+
+        // Final sync: wait for workers to print and finish
+        wgWorkers.Wait()
+        fmt.Println("Main: All workers have finished.")
+      }
+
+    ```
+
+
+  -- Rules for Reuse and Race Prevention
+  --
+    A `sync.WaitGroup` is designed to be reusable. Once the counter hits zero and
+    all calls to `Wait()` have returned, the object is essentially in its
+    zero-state and ready to be used again.
+
+
+    -- The Sequencing Requirement
+    --
+      CRITICAL: If the counter is currently zero, any call to `Add(delta)` (where
+      delta > 0) MUST happen before any call to `Wait()` starts.
+
+      If you attempt to call `Add()` and `Wait()` concurrently while the counter
+      is zero, you create a "Data Race". The Go runtime cannot determine if it
+      should block (because of the Add) or return (because it saw zero first).
+
+
+      -- Summary of Reuse Safety
+      --
+        1. SAFE: Reusing a WaitGroup after the previous cycle is completely finished.
+        2. UNSAFE: Adding to the counter while another goroutine is already
+           mid-execution of a `Wait()` call that was triggered when the counter
+           was previously zero.
+
+
+
+
+
+-- The `sync.Once` Type
+--
+  The `sync.Once` type is a synchronization primitive used to ensure that a
+  specific piece of code (typically initialization logic) is executed
+  exactly once, regardless of how many goroutines attempt to run it.
+
+
+  -- The `Do` Method
+  --
+    A `*sync.Once` value has exactly one method:
+
+       func (o *Once) Do(f func())
+
+    - It takes a single parameter: a function with no arguments and no return values.
+    - Like other sync primitives, it uses a pointer receiver. Go's sugar allows
+      `onceValue.Do(...)` as a shorthand for `(&onceValue).Do(...)`.
+
+
+  -- Core Guarantees and Behavior
+  --
+    -- Atomic Execution
+    --
+      No matter how many times `Do` is called, and no matter how many goroutines
+      call it concurrently, the passed function `f` will be executed EXACTLY once.
+
+
+    -- The Serialization Guarantee (Blocking)
+    --
+        This is a crucial detail: If multiple goroutines call `once.Do(f)`
+        simultaneously, only one will run `f`.
+
+        However, the other goroutines will BLOCK (wait) until that first goroutine
+        has finished executing `f`. When `Do` returns in any goroutine, it is
+        guaranteed that `f` has fully completed.
+
+
+  -- Code Demonstration: Coordination
+  --
+    ```go
+      func main() {
+        var once sync.Once
+        var wg sync.WaitGroup
+
+
+        x := 0
+        // This logic should only happen once
+        initialize := func() {
+          fmt.Println("--- [INIT] Function started ---")
+          x++
+          fmt.Println("--- [INIT] Function finished ---")
+        }
+
+
+        const numWorkers = 5
+        wg.Add(numWorkers)
+
+
+        for i := 0; i < numWorkers; i++ {
+          go func(workerID int) {
+            defer wg.Done()
+
+            // Multiple goroutines race to initialize.
+            // Only the first one succeeds. The others wait.
+            once.Do(initialize)
+
+            // This line is guaranteed to execute ONLY AFTER 'initialize'
+            // has finished, even for the goroutines that didn't run it.
+            fmt.Printf("Worker %d says: world!\n", workerID)
+          }(i)
+        }
+
+
+        wg.Wait()
+        fmt.Println("Final value of x:", x) // Always 1
+      }
+
+    ```
+      -- expected output:
+      --
+        --- [INIT] Function started ---
+        --- [INIT] Function finished ---
+        Worker 0 says: world!
+        Worker 4 says: world!
+        Worker 1 says: world!
+        Worker 2 says: world!
+        Worker 3 says: world!
+        Final value of x: 1
+
+
+
+
+
+-- sync.Mutex and sync.RWMutex
+--
+  Go provides Mutual Exclusion locks in the `sync` package to protect shared
+  resources from data races. These are used when multiple goroutines need
+  to access the same memory concurrently.
+
+
+  -- sync.Mutex (Mutual Exclusion Lock)
+  --
+    A `sync.Mutex` is a simple "binary" lock. It has two states: Locked and Unlocked.
+    - Zero Value: A newly declared `sync.Mutex` is always Unlocked.
+    - Lock(): If the mutex is unlocked, the caller takes ownership. If it is
+      already locked, the caller blocks until it becomes available.
+    - Unlock(): Releases the lock. If other goroutines are waiting, one is
+      woken up to take the lock.
+
+
+    -- Rule: Mutexes are not re-entrant
+    --
+      If a goroutine already holds a lock and calls Lock() again on the same
+      mutex, it will deadlock itself.
+
+
+    example
+      ```go
+        type Counter struct {
+          mu sync.Mutex
+          n  uint64
+        }
+
+
+        func (c *Counter) Value() uint64 {
+          c.mu.Lock()
+          // Use defer to ensure the lock is released even if a panic occurs
+          defer c.mu.Unlock()
+          return c.n
+        }
+
+
+        func (c *Counter) Increase(delta uint64) {
+          c.mu.Lock()
+          c.n += delta
+          c.mu.Unlock()
+        }
+
+
+        func mutexDemo() {
+          var c Counter
+          for i := 0; i < 100; i++ {
+            go func() {
+              for k := 0; k < 100; k++ {
+                c.Increase(1)
+              }
+            }()
+          }
+
+
+          // Wait until counter reaches 10,000
+          for c.Value() < 10000 {
+            runtime.Gosched() // Yield processor
+          }
+          fmt.Println("Final Counter Value:", c.Value())
+        }
+
+      ```
+
+
+
+
+
+  -- sync.RWMutex (Reader/Writer Mutex)
+  --
+    `sync.RWMutex` is a more sophisticated lock that distinguishes between
+    "reading" and "writing".
+
+
+    -- Why use it?
+    --
+      In many systems, data is read frequently but modified rarely. Standard
+      Mutexes block readers from each other. RWMutex allows any number of
+      concurrent readers, as long as no one is writing.
+
+
+    -- Methods
+    --
+      - Lock() / Unlock(): Used by Writers. Exclusive access.
+      - RLock() / RUnlock(): Used by Readers. Non-exclusive access among readers.
+
+
+    -- Behavior Rules
+    --
+      1. Write Lock: Can only be acquired if NO ONE (no readers, no writers)
+         holds any lock.
+      2. Read Lock: Can be acquired by many goroutines simultaneously, provided
+         no writer holds or is waiting for the lock.
+
+
+    -- Fairness and Anti-Starvation Logic
+    --
+      Go implements specific rules to ensure writers aren't "starved" by an
+      endless stream of readers:
+
+      1. If a reader holds the lock and a writer calls Lock(), the writer blocks.
+      2. ANY NEW READERS who call RLock() after the writer started waiting will
+         ALSO block, even though the lock is technically in "read mode".
+      3. This ensures the writer gets the lock as soon as the current readers
+         finish.
+
+
+    -- example
+    --
+      ```go
+        func rwPriorityDemo() {
+          var m sync.RWMutex
+          // Logic:
+          // a: Starts RLock, sleeps.
+          // b: Tries Lock (blocked by a).
+          // c: Tries Lock (blocked by b).
+          // d: Tries RLock (blocked by b - anti-starvation).
+
+
+          go func() {
+            m.RLock()
+            fmt.Print("a")
+            time.Sleep(time.Second)
+            m.RUnlock()
+          }()
+          go func() {
+            time.Sleep(time.Millisecond * 100)
+            m.Lock()
+            fmt.Print("b")
+            time.Sleep(time.Second)
+            m.Unlock()
+          }()
+          go func() {
+            time.Sleep(time.Millisecond * 200)
+            m.Lock()
+            fmt.Print("c")
+            m.Unlock()
+          }()
+          go func() {
+            time.Sleep(time.Millisecond * 300)
+            m.RLock()
+            fmt.Print("d")
+            m.RUnlock()
+          }()
+
+
+          time.Sleep(time.Second * 3)
+          fmt.Println()
+        }
+
+      ```
+      -- expected output:
+      --
+        abdc
+
+
+      -- Analysis:
+      --
+        'a' gets lock. 'b' waits. 'd' waits because 'b' is already waiting (priority).
+        When 'a' finishes, 'b' gets lock. When 'b' finishes, 'c' and 'd' race,
+        but usually pending writers ('c') take precedence or readers are bundled.
+
+
+
+  -- Mutex as a Notification Signal
+  --
+    While channels or sync.Cond are better for signaling, a Mutex can be
+    used to block a goroutine until another goroutine releases it.
+
+
+    example
+      ```go
+        func mutexNotification() {
+          var m sync.Mutex
+          m.Lock() // Lock it in the main thread
+
+
+          go func() {
+            time.Sleep(time.Second)
+            fmt.Println("Worker: Task Complete.")
+            m.Unlock() // Signal by unlocking
+          }()
+
+
+          m.Lock() // Blocks until the worker unlocks it
+          fmt.Println("Main: Received notification, exiting.")
+        }
+
+      ```
+        -- EXPECTED OUTPUT:
+        --
+          Worker: Task Complete.
+          Main: Received notification, exiting.
+
+
+  -- Critical Warnings & Best Practices
+  --
+    1. NEVER COPY: Passing a Mutex by value creates a new lock state. Always
+       use pointers.
+    2. NOT BOUND TO GOROUTINES: Technically, G1 can Lock and G2 can Unlock.
+       Go does not enforce that the locker must be the unlocker, though
+       doing otherwise is usually a bug.
+    3. PANIC ON UNLOCK: Calling Unlock() on a mutex that is already
+       unlocked will cause a runtime PANIC.
+    4. CHOOSE CORRECTLY: Use `sync.Mutex` for simple state protection.
+       Only use `sync.RWMutex` if you have a high ratio of readers to writers.
+
+
+
+
+
+-- The sync.Cond Type
+--
+  The `sync.Cond` (Condition Variable) type provides an efficient way for
+  goroutines to wait for or announce changes to a shared state (a condition).
+
+
+  Unlike channels, which transfer data, `sync.Cond` is used purely for
+  signaling. It is often more efficient than a "busy-wait" loop or a
+  channel-based signaling system when multiple goroutines are waiting
+  for a specific state change.
+
+
+  -- Components of sync.Cond
+  --
+    Each `sync.Cond` value consists of:
+    1. A Locker (L): Usually a `*sync.Mutex` or `*sync.RWMutex`.
+    2. A Waiting Queue: A FIFO (First-In, First-Out) queue of blocked goroutines.
+
+
+  -- Creation:
+  --
+    Use `sync.NewCond(l Locker)` to create a new condition variable.
+    Example: cond := sync.NewCond(&sync.Mutex{})
+
+
+  -- The Three Core Methods
+  --
+    -- cond.Wait()
+    --
+      CRITICAL RULE: Wait() MUST be called while the locker `L` is locked.
+
+    
+    -- Mechanics of a Wait() call:
+    --
+      1. Enqueue: The current goroutine is added to the internal FIFO waiting queue.
+      2. Unlock: The locker `L` is automatically unlocked (atomically).
+      3. Block: The goroutine enters a blocked state until signaled.
+      4. Resume: Once signaled/broadcasted, the goroutine wakes up.
+      5. Relock: The goroutine attempts to lock `L` again. Wait() only returns
+         AFTER `L` is successfully relocked.
+
+
+    -- cond.Signal()
+    -- 
+      Unblocks the FIRST goroutine currently in the waiting queue (if any).
+      Note: It does not require `L` to be locked when calling Signal().
+
+
+    -- cond.Broadcast()
+    -- 
+      Unblocks ALL goroutines currently in the waiting queue.
+      Note: It does not require `L` to be locked when calling Broadcast().
+
+
+  -- The Idiomatic "Wait Loop" Pattern
+  --
+    You should NEVER call `cond.Wait()` inside an `if` statement. You must
+    always use a `for` loop to re-check the condition.
+
+
+    example
+      ```go
+        cond.L.Lock()
+        for !conditionSatisfied() {
+          cond.Wait()
+        }
+        // ... process protected data ...
+        cond.L.Unlock()
+
+      ```
+
+
+  -- Why the loop? 
+  --
+    1. Spurious Wakeups: The runtime might wake up a goroutine even if it wasn't
+       specifically signaled.
+    2. State Changes: Between the time a goroutine is signaled and the time
+       it successfully re-acquires the lock, another goroutine might have
+       changed the state again.
+
+
+  -- Code Demonstration: Collective Task Completion
+  --
+    ```go
+      func conditionDemo() {
+        const N = 5
+        var values [N]string
+
+
+        // Create a condition variable tied to a mutex
+        mutex := &sync.Mutex{}
+        cond := sync.NewCond(mutex)
+
+
+        // Launch N workers to fill slots in the 'values' array
+        for i := 0; i < N; i++ {
+          go func(idx int) {
+            // Simulate variable workload
+            time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+
+            cond.L.Lock()
+            values[idx] = string('A' + idx)
+            fmt.Printf("Worker %d: Set value to %s. Signaling...\n", idx, values[idx])
+
+            // Notify the main thread that the state has changed
+            cond.Broadcast()
+            cond.L.Unlock()
+          }(i)
+        }
+
+
+        // Helper to verify if all work is done
+        isFinished := func() bool {
+          for _, v := range values {
+            if v == "" { return false }
+          }
+          return true
+        }
+
+
+        // Main thread waits for the "Finished" condition
+        cond.L.Lock()
+        for !isFinished() {
+          fmt.Println("Main: Condition not met, entering Wait...")
+          cond.Wait() // Unlocks, blocks, wakes, relocks
+          fmt.Println("Main: Woken up, checking condition again...")
+        }
+
+
+        fmt.Printf("Main: Final state reached: %v\n", values)
+        cond.L.Unlock()
+      }
+
+    ```
+      -- representative output:
+      --
+        Main: Condition not met, entering Wait...
+        Worker 2: Set value to C. Signaling...
+        Main: Woken up, checking condition again...
+        Main: Condition not met, entering Wait...
+        Worker 0: Set value to A. Signaling...
+        Worker 1: Set value to B. Signaling...
+        Main: Woken up, checking condition again...
+        Main: Condition not met, entering Wait...
+        ... (repeats) ...
+        Main: Final state reached: [A B C D E]
+                                                                                
+  
+
+
+
+-- Advanced Scenarios
+--
+  -- Cond with RWMutex 
+  --
+    You can use `sync.RWMutex` with `sync.Cond`.
+    - If multiple goroutines are updating state, they use `RLock` (unusual but
+      valid if they only modify independent parts of a structure).
+    - The "Waiter" uses `Lock` (Write Lock) to verify the aggregate state.
+
+
+  -- Multi-Cond, Single Locker 
+  --
+    It is possible for multiple `sync.Cond` variables to share the same locker.
+    This allows you to have different signal queues for different states while
+    protecting the same underlying data structure with a single mutex.
+
+
+  -- Key Warnings
+  --
+    1. NEVER COPY: Do not copy a `sync.Cond` value after it has been created.
+    2. Lock Ownership: Always call `Wait()` while holding the lock.
+    3. Infinite Wait: If no other goroutine calls `Signal()` or `Broadcast()`,
+       a waiting goroutine will block forever. Unlike channels, `sync.Cond`
+       has no built-in "timeout" mechanism (use a separate timer and
+       Broadcasting to wake up and check the time).

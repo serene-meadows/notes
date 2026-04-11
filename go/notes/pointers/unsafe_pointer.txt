@@ -1,5 +1,0 @@
--- It's Possible to Break the Go Pointer Restrictions
---
-  the mechanisms (specifically, the unsafe.Pointer type) provided by the unsafe standard package
-  can be used to break the restrictions made for pointers in Go. 
-  The unsafe.Pointer type is like the void* in C. In general the unsafe ways are not recommended to use.
