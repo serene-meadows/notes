@@ -10,8 +10,8 @@
 
 
 // composite types 
-  pointer types - C pointer alike.
-  struct types - C struct alike.
+  pointer types 
+  struct types 
   function types - functions are first-class types in Go.
   container types:
   array types - fixed-length container types.
@@ -94,7 +94,7 @@ Type Definitions
     // The following new defined and source types are all
     // composite types. The source types are all unnamed.
     type IntPtr *int
-    type Book struct{author, title string; pages int}
+    type Book struct{author, title string, pages int}
     type Convert func(in0 int, in1 bool)(out0 int, out1 string)
     type StringArray [5]string
     type StringSlice []string
@@ -106,6 +106,7 @@ Type Definitions
       type MessageQueue chan string
       type Reader interface{Read([]byte) int}
     }
+
   ```
 
 
@@ -243,7 +244,10 @@ Type Alias Declarations
 Concept: Underlying Types
 In Go, each type has an underlying type. Rules:
   for built-in types, the respective underlying types are themselves.
-  for the Pointer type defined in the unsafe standard code package, its underlying type is itself (at least we can think so. In fact, the underlying type of the unsafe.Pointer type is not well documented. We can also think the underlying type is *T, where T represents an arbitrary type). unsafe.Pointer is also viewed as a built-in type.
+  for the Pointer type defined in the unsafe standard code package, its underlying type is itself (at least we can think so. 
+    In fact, the underlying type of the unsafe.Pointer type is not well documented. 
+    We can also think the underlying type is *T, where T represents an arbitrary type). 
+    unsafe.Pointer is also viewed as a built-in type.
   the underlying type of an unnamed type, which must be a composite type, is itself.
   in a type declaration, the newly declared type and the source type have the same underlying type.
 
@@ -288,7 +292,8 @@ In Go,
 
 
 Value Sizes
-When a value is stored in memory, the number of bytes occupied by the direct part of the value is called the size of the value. As all values of the same type have the same value size, we often simply call this the size of the type.
+When a value is stored in memory, the number of bytes occupied by the direct part of the value is called the size of the value. 
+As all values of the same type have the same value size, we often simply call this the size of the type.
 We can use the Sizeof function in the unsafe standard package to get the size of any value.
 
 
@@ -298,7 +303,9 @@ The function name and body are not parts of a function signature. Parameter and 
 
 
 Dynamic Type and Dynamic Value of an Interface Value
-Each interface value can box a non-interface value in it. The value boxed in an interface value is called the dynamic value of the interface value. The type of the dynamic value is called the dynamic type of the interface value. An interface value boxing nothing is a zero interface value. A zero interface value has neither a dynamic value nor a dynamic type.
+Each interface value can box a non-interface value in it. The value boxed in an interface value is called the dynamic value of the interface value. 
+The type of the dynamic value is called the dynamic type of the interface value. An interface value boxing nothing is a zero interface value. 
+A zero interface value has neither a dynamic value nor a dynamic type.
 
 Element Type of a Container Type
   The types of the elements stored in values of a container type must be identical. The identical type of the elements is called the element type of the container type.
@@ -315,7 +322,8 @@ Element Type of a Container Type
 
 Directions of Channel Types
 Channel values can be viewed as synchronized first-in-first-out (FIFO) queues. Channel types and values have directions.
-A channel value which is both sendable and receivable is called a bidirectional channel. Its type is called a bidirectional channel type. The underlying types of bidirectional channel types are denoted by the chan T literal.
+A channel value which is both sendable and receivable is called a bidirectional channel. Its type is called a bidirectional channel type. 
+The underlying types of bidirectional channel types are denoted by the chan T literal.
 A channel value which is only sendable is called a send-only channel. Its type is called a send-only channel type. Send-only channel types are denoted by the chan<- T literal.
 A channel value which is only receivable is called a receive-only channel. Its type is called a receive-only channel type. Receive-only channel types are denoted by the <-chan T literal.
 
@@ -326,7 +334,9 @@ Types Which Support or Don't Support Comparisons
 Currently (Go 1.25), Go doesn't support comparisons (with the == and != operators) for values of the following types:
 slice types
 map types
-function types*. any struct type with a field whose type is incomparable and any array type which element type is incomparable.
+function types
+any struct type with a field whose type is incomparable
+any array type which element type is incomparable.
 Above listed types are called incomparable types. All other types are called comparable types. Compilers forbid comparing two values of incomparable types.
 Note, incomparable types are also called uncomparable types in many articles.
 The key type of any map type must be a comparable type.

@@ -294,7 +294,9 @@ The size of a zero-field struct type is zero.
 
 
 
-A tag may be bound to a struct field when the field is declared. Field tags are optional, the default value of each field tag is a blank string. The syntax allows either string literal forms for field tags. However, in practice, struct filed tags should present as key-value pairs, and each tag should present as raw string literals (...), whereas each value in a tag should present as interpreted string literals ("..."). For example:
+A tag may be bound to a struct field when the field is declared. Field tags are optional, the default value of each field tag is a blank string. 
+The syntax allows either string literal forms for field tags. However, in practice, struct filed tags should present as key-value pairs, 
+and each tag should present as raw string literals (...), whereas each value in a tag should present as interpreted string literals ("..."). For example:
 
 
 
@@ -305,7 +307,9 @@ struct {
 	Pages  int    `json:"pages,omitempty" myfmt:"n1"`
 }
 We can use the reflection way to inspect field tag information.
-The purpose of each field tag is application dependent. In the above example, the field tags can help the functions in the encoding/json standard package to determine the field names in JSON texts, in the process of encoding struct values into JSON texts or decoding JSON texts into struct values. The functions in the encoding/json standard package will only encode and decode the exported struct fields, which is why the first letters of the field names in the above example are all upper cased.
+The purpose of each field tag is application dependent. In the above example, the field tags can help the functions in the encoding/json 
+standard package to determine the field names in JSON texts, in the process of encoding struct values into JSON texts or decoding JSON texts into struct values. 
+The functions in the encoding/json standard package will only encode and decode the exported struct fields, which is why the first letters of the field names in the above example are all upper cased.
 
 
 Only exported fields of struct types shown up in a package can be used in other packages by importing the package. 

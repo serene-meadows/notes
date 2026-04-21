@@ -20,7 +20,9 @@ for channels
 if we do not intend to use one of the values received remem to use blank identifier `_`
 
 
-strings
+```go
+  import "fmt"
+
   message := "hello world"
 
   for i, v := range message {
@@ -32,3 +34,5 @@ strings
       // characters are called runes in go
     fmt.Printf("Index: %d, Rune: %c", i, v)
   }
+
+```

@@ -50,6 +50,7 @@
       ```go
         // A generic slice that can hold elements of any type.
         type GenericSlice[T any] []T
+
       ```
 
 

@@ -298,7 +298,6 @@
 
 
 -- Rules for representability of basic numeric value literals
--- Rules for representability 
 -- 
   A literal can only be assigned to a typed constant or variable if its value
   can be represented by the target type without loss in a way that violates

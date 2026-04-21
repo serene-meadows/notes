@@ -802,4 +802,13 @@
 
 
 
+-- Finalizers
+--
+  -- The Rule 
+  --
+    A call to `runtime.SetFinalizer(x, f)` happens-before the finalization 
+    call `f(x)` is executed by the runtime. This ensures that the setup for 
+    the finalizer is always visible to the finalizer itself when the 
+    object `x` is eventually garbage collected.
+
 

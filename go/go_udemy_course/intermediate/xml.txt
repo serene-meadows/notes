@@ -14,7 +14,7 @@ xml
 although REST is more popular now,
   in the good old days when SOAP was famous, it used xml
     SOAP -> Simple Object Access Protocol
-  afaik tell legacy important software like payment gatweways and what not.. which was built to last some time back
+  afaik legacy important software like payment gatweways and what not.. which was built to last some time back
   all use xml
 
 ````go

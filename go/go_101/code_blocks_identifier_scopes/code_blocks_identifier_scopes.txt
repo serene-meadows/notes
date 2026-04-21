@@ -298,7 +298,7 @@
 -- Package-Level Source Elements
 --
   Elements declared inside a Package block but outside any function are
-  "Package-level" elements. These are the building blocks of your API.
+  "Package-level" elements. 
 
 
   example

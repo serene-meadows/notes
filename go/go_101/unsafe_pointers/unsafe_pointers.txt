@@ -74,6 +74,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
   -- Code Demonstration: Memory Layout Metrics
   --
     ```go
+      import (
+        "fmt"
+        "unsafe"
+      )
+
       func metricsExample() {
         var x struct {
           a int64  // 8 bytes
@@ -120,6 +125,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
   example
     ```go
+      import (
+        "fmt"
+        "unsafe"
+      )
+
       func offsetRestrictionExample() {
         type S struct {
           b bool
@@ -239,6 +249,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
   -- Code Demonstration: Arithmetic & Manual Slicing
   --
     ```go
+      import (
+        "fmt"
+        "unsafe"
+      )
+
       func arithmeticAndSlicingDemo() {
         // Initialize an array with values at specific indices
         a := [16]int{3: 3, 9: 9, 11: 11}
@@ -381,6 +396,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
 
     ```go
+      import (
+        "fmt"
+        "unsafe"
+      )
+
       //go:noinline
       func createInt() *int {
         return new(int)
@@ -609,6 +629,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
 
       ```go
+        import (
+          "fmt"
+          "unsafe"
+        )
+
         func bitCastExample() {
           f := 1.0
 
@@ -639,6 +664,11 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "fmt"
+            "unsafe"
+          )
+
           type MyString string
 
 
@@ -718,6 +748,9 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import "unsafe"
+
+
           func modernZeroCopy(bs []byte, s string) {
             // Preferred over *(*string)(unsafe.Pointer(&bs))
             str := unsafe.String(unsafe.SliceData(bs), len(bs))
@@ -745,6 +778,12 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
     example
       ```go
+        import (
+          "fmt"
+          "unsafe"
+        )
+
+
         func inspectionExample() {
           type T struct{ a int }
           var t T
@@ -772,13 +811,19 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
     pointer to a `uintptr`, performing math (addition/subtraction/masking), 
     and converting it back to a pointer.
     
-    The Golden Rule: The resulting pointer MUST continue to point into the 
+    Rule: The resulting pointer MUST continue to point into the 
     SAME originally allocated memory block. You cannot "jump" from one 
     variable's memory space into another.
 
 
     example
       ```go
+        import (
+          "fmt"
+          "unsafe"
+        )
+
+
         type Data struct {
           x bool
           y [3]int16
@@ -822,20 +867,26 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
       two separate lines of code. The arithmetic and the conversion must be 
       ATOMIC to the eyes of the compiler and GC.
 
-      func dangerousSplitting() {
-        d := Data{y: [3]int16{100, 200, 300}}
-        p := unsafe.Pointer(&d)
+      ```go
+        import "unsafe"
 
-        // --- DANGEROUS ---
-        addr := uintptr(p) + offsetY + sizeInt16
-        
-        // Imagine the GC runs here, OR the stack grows and moves the variable 'd'.
-        // Because 'addr' is just a plain integer, the GC doesn't update it.
-        // 'addr' now points to a "ghost" memory location.
 
-        target := (*int16)(unsafe.Pointer(addr)) // Crash or Memory Corruption
-        _ = target
-      }
+        func dangerousSplitting() {
+          d := Data{y: [3]int16{100, 200, 300}}
+          p := unsafe.Pointer(&d)
+
+          // --- DANGEROUS ---
+          addr := uintptr(p) + offsetY + sizeInt16
+          
+          // Imagine the GC runs here, OR the stack grows and moves the variable 'd'.
+          // Because 'addr' is just a plain integer, the GC doesn't update it.
+          // 'addr' now points to a "ghost" memory location.
+
+          target := (*int16)(unsafe.Pointer(addr)) // Crash or Memory Corruption
+          _ = target
+        }
+
+      ```
 
 
     -- Address Alignment (Bitwise Operations)
@@ -846,6 +897,9 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
 
       ```go
+        import "unsafe"
+
+
         func alignmentExample() {
           var bytes [32]byte
           start := unsafe.Pointer(&bytes[0])
@@ -896,6 +950,9 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
   -- dangerous example (do not do this) 
   --
     ```go
+      import "unsafe"
+
+
       //go:noinline
       func DoSomething(addr uintptr) {
         // By the time we get here, the memory at 'addr' might be gone!
@@ -943,6 +1000,12 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
     example
       ```go
+        import (
+          "syscall"
+          "unsafe"
+        )
+
+
         func syscallSafetyExample(fd int, p []byte) {
           n := len(p)
           if n == 0 {
@@ -1026,6 +1089,14 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+
+          import (
+            "fmt"
+            "reflect"
+            "unsafe"
+          )
+
+
           func pattern5Example() {
             // --  SAFE USE: Immediate Conversion
 
@@ -1067,6 +1138,13 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "fmt"
+            "reflect"
+            "unsafe"
+          )
+
+
           func modernReflectionBestPractice() {
             val := reflect.ValueOf(new(int))
 
@@ -1109,6 +1187,13 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "fmt"
+            "reflect"
+            "unsafe"
+          )
+
+
           func manipulateStringHeader() {
             a := [...]byte{'G', 'o', 'l', 'a', 'n', 'g'}
             s := "Java"
@@ -1167,6 +1252,12 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "reflect"
+            "unsafe"
+          )
+
+
           func theCreationTrap() {
             var hdr reflect.StringHeader
 
@@ -1200,6 +1291,14 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "fmt"
+            "reflect"
+            "strings"
+            "unsafe"
+          )
+
+
           func legacyString2ByteSlice(str string) (bs[]byte) {
             strHdr := (*reflect.StringHeader)(unsafe.Pointer(&str))
             sliceHdr := (*reflect.SliceHeader)(unsafe.Pointer(&bs))
@@ -1215,7 +1314,7 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
           func legacyZeroCopyDemo() {
             // String literals are often stored in Read-Only memory by the compiler.
-            // If we mapped a[]byte to a string literal and tried to mutate it, the OS
+            // If we mapped a []byte to a string literal and tried to mutate it, the OS
             // would throw a Segmentation Fault.
             // We use strings.Join to force the string to be allocated on the heap.
             str := strings.Join([]string{"Go", "land"}, "")
@@ -1239,6 +1338,13 @@ Code using `unsafe` may break when upgrading Go versions without any warning.
 
       example
         ```go
+          import (
+            "fmt"
+            "reflect"
+            "unsafe"
+          )
+
+
           // BAD EXAMPLE:
           // `hdr.Data + 2` is just integer math. By the time it is wrapped in
           // `unsafe.Pointer`, the GC might have moved the string.

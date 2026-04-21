@@ -4,7 +4,8 @@
   While traditional languages use Mutexes and Locks (found in Go's `sync` and
   `sync/atomic` packages) to protect shared memory, Go introduces a different
   paradigm, famously summarized by Rob Pike:
-    "Don't communicate by sharing memory; share memory by communicating."
+    - "Don't communicate by sharing memory; share memory by communicating."
+
 
   -- Sharing Memory by Communicating
   --
@@ -12,10 +13,9 @@
     read/write it across goroutines, you send the data itself through a channel.
 
 
-  -- First-Class Citizens
-  --
-    Unlike the `sync` package, channels are built-in
-    types in Go. You don't need to import anything to use them.
+  Unlike the `sync` package, channels are built-in
+  types in Go. You don't need to import anything to use them.
+
 
   -- FIFO Queue
   --
@@ -102,6 +102,7 @@
         }
       }
 
+
       func directionalityExample() {
         // Create a standard Bidirectional channel
         biChan := make(chan int)
@@ -156,7 +157,7 @@
       unbuffered := make(chan int)
 
       // go func() { unbuffered <- 1 }() // Requires a concurrent receiver
-      // <-unbuffered
+      <-unbuffered
 
       // 3. Buffered Channel (Capacity of 3)
       buffered := make(chan string, 3)
@@ -449,6 +450,7 @@
 --
   When Goroutine R attempts to receive, it acquires the mutex lock and evaluates:
 
+
   -- Step 1: Buffer Shift + Sender Unblock (Non-Blocking Receive)
   --
     If the Value Buffer is NOT empty (meaning the Receive Queue MUST be empty):
@@ -457,6 +459,7 @@
     takes its value, puts that value into the newly freed space in the buffer,
     and unblocks the sender.
 
+
   -- Step 2: Direct Handoff from Sender (Non-Blocking Receive)
   --
     If the Value Buffer is empty, but the Sending Queue is NOT empty (this happens
@@ -464,16 +467,19 @@
     Goroutine R dequeues the sender, takes its value directly, unblocks the sender,
     and continues.
 
+
   -- Step 3: Block and Queue (Blocking Receive)
   --
     If both the Buffer and Sending Queue are empty:
     Goroutine R pushes itself into the Receiving Queue, releases the lock, and BLOCKS.
+
 
   -- Receiving from a CLOSED Channel
   --
     This NEVER blocks.
     1. It drains the Value Buffer first, returning `value, true`.
     2. Once the buffer is empty, it returns an infinite stream of `zeroValue, false`.
+
 
   example
     ```go
@@ -1313,13 +1319,3 @@
 
 
 
-
-  -- Key Insights
-  --
-    - Multiple Queues: While a goroutine is blocked on a `select`, it resides
-      in the wait queues of all involved channels.
-    - Atomic Cleanup: As soon as one case is satisfied, the goroutine is
-      instantly removed from all other channel queues to ensure it only
-      executes one branch.
-    - Priority: There is no priority in Go's `select` (unlike some other
-      languages). Randomness is the engine of fairness.

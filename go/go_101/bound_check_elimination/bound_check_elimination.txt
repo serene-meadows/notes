@@ -829,11 +829,6 @@
     You might expect that 1 check (f7b/f7c) is always better than 4 checks (f7a).
     However, real-world benchmarks show a more complex reality.
 
-
-    ```go
-
-    ```
-
     -- benchmark results (Intel i5-4210U @ 1.70GHz, Linux/amd64):
     --
       Benchmark_f7a-4  3861 ns/op  (Standard)
@@ -956,7 +951,7 @@
 
         // -- f6c: Unsigned Stride (The Performance Winner) 
         //
-        // Using uint is a "power move" for hot loops. It significantly helps 
+        // Using uint  significantly helps 
         // the compiler prove the entire range is safe.
         func f6c(s []byte) {
           // Casting to uint here removes the "negative index" possibility.
@@ -1153,7 +1148,6 @@
         }
 
       ```
-
 
 
   -- The Modulo Proof Limit

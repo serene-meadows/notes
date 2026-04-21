@@ -40,8 +40,9 @@ syntax
     }
 
     // output 
-      // Deferred statement executed 
       // Normal execution statement
+      // Deferred statement executed 
+
   ```
   
   remember, you can use and call anonymous functions too, just has to be a function
@@ -113,8 +114,10 @@ Deferred Function Calls Can Modify the Named Return Results of Nesting Functions
 
 
 The Evaluation Moment of the Arguments of Deferred Function Calls
-  The arguments of a deferred function call are all evaluated at the moment when the corresponding defer statement is executed (a.k.a. when the deferred call is pushed into the defer-call stack). 
-  The evaluation results are used when the deferred call is executed later during the existing phase of the surrounding call (the caller of the deferred call).
+  The arguments of a deferred function call are all evaluated at the moment when the corresponding defer statement is executed 
+  (a.k.a. when the deferred call is pushed into the defer-call stack). 
+  The evaluation results are used when the deferred call is executed later during the existing phase of the surrounding call 
+  (the caller of the deferred call).
 
 
 

@@ -1,1 +1,0 @@
-// TODO: reading and writing from nil maps, slices and so on

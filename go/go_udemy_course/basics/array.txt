@@ -31,13 +31,18 @@
     //    > size of the element
     // uses unsafe pointers ( DONT do this in prod code )
     ```go
+      import (
+          "fmt"
+          "unsafe"
+      )
+
       func main() {
         a := [3]int{99, 100, 101}
 
         p := unsafe.Pointer(&a[0])
 
-        a1 := unsafe.Pointer(p + 8) // int -> 8 bytes
-        a2 := unsafe.Pointer(p + 16)
+        a1 := unsafe.Pointer(uintptr(p) + 8)
+        a2 := unsafe.Pointer(uintptr(p) + 16)
 
         fmt.Println(*(int*)(p))
         fmt.Println(*(int*)(a1))
@@ -71,6 +76,8 @@
   the type of the element and number of elements are both part of the array's type
 
   ```go
+    import "fmt"
+
     a := [5]int{}
     b := [6]int{}
 

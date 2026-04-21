@@ -9,7 +9,7 @@
   Must be able to be assigned at compile time. 
   The value of a const can’t be the result of a runtime calculation
 
-  type literals are unamed constants, ex 1, 3, "gelo", 'a' 
+  type literals are unamed constants, ex 1, 3, "go", 'a' 
 
   In Go, const is a keyword introducing a name for a scalar value such as 2 or 3.14159 or "scrumptious"
   Such values, named or otherwise, are called constants in Go

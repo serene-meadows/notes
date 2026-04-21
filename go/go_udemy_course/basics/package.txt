@@ -1,7 +1,7 @@
 in go, if you're writing an executable program, it must:
   1. use `package main`
   2. have a `main()` function as the entry point in the `package main` file
-  3. only 1 file in a folder can have package main
+  3. only 1 file in a folder can have the main function
 
 you can create only 1 package in a folder
   convention for naming package

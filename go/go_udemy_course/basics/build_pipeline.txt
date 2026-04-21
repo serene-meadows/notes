@@ -108,7 +108,6 @@ overview of compilation pipeline
 
    > step 4: package compilation
      go compiles packages independently.
-     each package becomes compiled machine code.
 
      example compilation order:
        compile fmt

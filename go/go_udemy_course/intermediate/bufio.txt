@@ -60,6 +60,8 @@ Reader
       }
       fmt.Printf("Read: %d bytes: %s", n, data[:n])
       
+      reader = bufio.NewReader(strings.NewReader("Hello world! \n"))
+
       str, err := reader.ReadString('\n')
       if err != nil {
         fmt.Println(err)

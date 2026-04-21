@@ -105,23 +105,3 @@
 
 
         
-
--- Summary Table
-  +----------------+--------------------------------------+-------------------+
-  |      TYPE      |             DESCRIPTION              |     ZERO VALUE    |
-  +----------------+--------------------------------------+-------------------+
-  | bool           | Boolean value                        | false             |
-  | string         | Immutable sequence of bytes (UTF-8)  | ""                |
-  |----------------|--------------------------------------|-------------------|
-  | int, int8, ... | Signed integers                      | 0                 |
-  | uint, uint8,.. | Unsigned integers                    | 0                 |
-  | byte           | Alias for uint8                      | 0                 |
-  | rune           | Alias for int32 (Unicode code point) | 0                 |
-  | uintptr        | Unsigned integer for pointers        | 0                 |
-  |----------------|--------------------------------------|-------------------|
-  | float32        | Single-precision float               | 0.0               |
-  | float64        | Double-precision float               | 0.0               |
-  |----------------|--------------------------------------|-------------------|
-  | complex64      | Complex number with float32 parts    | (0+0i)            |
-  | complex128     | Complex number with float64 parts    | (0+0i)            |
-  +----------------+--------------------------------------+-------------------+

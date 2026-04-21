@@ -11,7 +11,7 @@
 
 -- The "Direct Part" Rule
 --
-  The size of a value refers strictly to its "Direct Part"—the memory 
+  The size of a value refers strictly to its "Direct Part" the memory 
   occupied by the variable itself. 
   
 
@@ -71,51 +71,59 @@
 
   -- Code Demonstration: Verifying Sizes
   --
-    func main() {
-      // -- Headers (Headers have fixed sizes) 
+    ```go
+      func main() {
+        import (
+          "fmt"
+          "unsafe"
+        )
 
-      var s string = "This is a very long string, but its header size is fixed."
-      var slc []int = make([]int, 1000) // 1000 elements, but header size is fixed.
-      var m map[int]int = make(map[int]int, 1000)
+        // -- Headers (Headers have fixed sizes) 
 
-
-      fmt.Println("--- Header Sizes (64-bit) ---")
-      fmt.Printf("String size:    %d bytes\n", unsafe.Sizeof(s))   // Output: 16 (2 words)
-      fmt.Printf("Slice size:     %d bytes\n", unsafe.Sizeof(slc)) // Output: 24 (3 words)
-      fmt.Printf("Map size:       %d bytes\n", unsafe.Sizeof(m))   // Output: 8  (1 word)
-
-
-      // -- Arrays (Size scales with length) 
-
-      var a1 [10]int64
-      var a2 [100]int64
-      fmt.Println("\n--- Array Sizes ---")
-      fmt.Printf("[10]int64 size:  %d bytes\n", unsafe.Sizeof(a1)) // Output: 80
-      fmt.Printf("[100]int64 size: %d bytes\n", unsafe.Sizeof(a2)) // Output: 800
+        var s string = "This is a very long string, but its header size is fixed."
+        var slc []int = make([]int, 1000) // 1000 elements, but header size is fixed.
+        var m map[int]int = make(map[int]int, 1000)
 
 
-      // -- Structs and Padding 
-
-      type Optimized struct {
-        a int64 // 8 bytes
-        b int32 // 4 bytes
-        c bool  // 1 byte
-      } // Total: 13 -> Padded to 16
+        fmt.Println("--- Header Sizes (64-bit) ---")
+        fmt.Printf("String size:    %d bytes\n", unsafe.Sizeof(s))   // Output: 16 (2 words)
+        fmt.Printf("Slice size:     %d bytes\n", unsafe.Sizeof(slc)) // Output: 24 (3 words)
+        fmt.Printf("Map size:       %d bytes\n", unsafe.Sizeof(m))   // Output: 8  (1 word)
 
 
-      type Unoptimized struct {
-        c bool  // 1 byte
-        // 7 bytes padding
-        a int64 // 8 bytes
-        b int32 // 4 bytes
-        // 4 bytes padding to make total multiple of 8
-      } // Total: 24
+        // -- Arrays (Size scales with length) 
+
+        var a1 [10]int64
+        var a2 [100]int64
+        fmt.Println("\n--- Array Sizes ---")
+        fmt.Printf("[10]int64 size:  %d bytes\n", unsafe.Sizeof(a1)) // Output: 80
+        fmt.Printf("[100]int64 size: %d bytes\n", unsafe.Sizeof(a2)) // Output: 800
 
 
-      fmt.Println("\n--- Struct Padding ---")
-      fmt.Printf("Optimized size:   %d bytes\n", unsafe.Sizeof(Optimized{}))   // Output: 16
-      fmt.Printf("Unoptimized size: %d bytes\n", unsafe.Sizeof(Unoptimized{})) // Output: 24
-    }
+        // -- Structs and Padding 
+
+        type Optimized struct {
+          a int64 // 8 bytes
+          b int32 // 4 bytes
+          c bool  // 1 byte
+        } // Total: 13 -> Padded to 16
+
+
+        type Unoptimized struct {
+          c bool  // 1 byte
+          // 7 bytes padding
+          a int64 // 8 bytes
+          b int32 // 4 bytes
+          // 4 bytes padding to make total multiple of 8
+        } // Total: 24
+
+
+        fmt.Println("\n--- Struct Padding ---")
+        fmt.Printf("Optimized size:   %d bytes\n", unsafe.Sizeof(Optimized{}))   // Output: 16
+        fmt.Printf("Unoptimized size: %d bytes\n", unsafe.Sizeof(Unoptimized{})) // Output: 24
+      }
+
+    ```
 
     -- expected output (on 64-bit architecture):
     --
@@ -229,6 +237,8 @@
 
   example
     ```go
+      import "testing"
+
       // S is a large-ish struct (12 * 8 bytes = 96 bytes)
       type S [12]int64
 
@@ -244,7 +254,7 @@
         for i := 0; i < b.N; i++ {
           sumX = 0
           for j := 0; j < len(sX); j++ {
-            sumX += sX[j][0]
+            sumX += sX[j]
           }
         }
       }
@@ -256,7 +266,7 @@
         for i := 0; i < b.N; i++ {
           sumX = 0
           for j := range sX {
-            sumX += sX[j][0]
+            sumX += sX[j]
           }
         }
       }
@@ -268,7 +278,7 @@
         for i := 0; i < b.N; i++ {
           sumX = 0
           for _, v := range sX {
-            sumX += v[0]
+            sumX += v
           }
         }
       }

@@ -16,6 +16,8 @@ its a builtin function that stops the propogation of a panic and returns the val
 
 example
   ```go
+    import "fmt"
+
     func main() {
       process()
       fmt.Println("return from main")
@@ -36,6 +38,7 @@ example
       // commented because statements after panic() is called
       // are not reachable
     }
+
   ```
 
   // output 
